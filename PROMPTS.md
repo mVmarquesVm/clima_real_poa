@@ -35,4 +35,4 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - `.gitignore`, `README.md` com a Ficha da CitizenTech, `INTEGRANTES.md`, `AI.md`, este `PROMPTS.md` e um `README.md` em cada pasta (`edge/`, `python/`, `matematica/`, `backend/`, `frontend/`, `docs/`).
 
 **O que eu mudei ou fiz sozinho**
-- (preencher depois do primeiro commit)
+- Revisei e editei os arquivos gerados, achei e corrigi as tabelas quebradas no AI.md e no INTEGRANTES.md, fiz o commit sozinho pelo GitHub Desktop e reescrevi a mensagem com amend, depois da revisão.
