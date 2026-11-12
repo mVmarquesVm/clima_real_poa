@@ -36,3 +36,31 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Revisei e editei os arquivos gerados, achei e corrigi as tabelas quebradas no AI.md e no INTEGRANTES.md, fiz o commit sozinho pelo GitHub Desktop e reescrevi a mensagem com amend, depois da revisão.
+
+---
+
+## Passo 2 — Edge: ler o sensor com robustez (12/11/2026)
+
+**O que eu pedi**
+- Ritmo mais rápido: a IA faz os passos e continua explicando, eu faço os commits e recebo uma tarefa a cada 2 ou 3 passos.
+- Que o equipamento seja **profissional de verdade**: watchdog, sistemas de defesa e testes.
+
+**O que a IA gerou**
+- `edge/config.h`: todos os ajustes num lugar só (pinos, tempos, faixas, limites de defesa).
+- `edge/sensacao.h`: pressão de vapor e Temperatura Aparente de Steadman (ainda sem vento e sem sol).
+- `edge/defesa.h`: 3 barreiras contra leitura ruim (faixa física, filtro de salto, contador de falhas) e a regra de "leitura velha não serve para decidir".
+- `edge/autoteste.h`: 18 testes (depois foram 31, ver a revisão abaixo) que rodam no ESP32 a cada boot; se algum falhar, a estação entra em modo seguro. Os valores esperados foram conferidos à parte, em Python.
+- `edge/sketch.ino`: leitura a cada 2 s com `millis()` e agenda sem atraso acumulado, watchdog de 8 s, motivo do reinício, contador de reinícios e o comando `w` para simular travamento.
+- `edge/diagram.json` e `edge/libraries.txt`: ESP32 + DHT22 no Wokwi.
+
+**Revisão que eu pedi:** "se o sensor ficar louco, não tem nenhum watchdog para isso, nem sistema para parar, reiniciar e avisar". A IA então gerou:
+- `edge/vigia.h`: detectores de sensor **instável** (5 saltos em 1 min) e **travado** (mesmo valor por 30 min), e a **escada de recuperação**: reiniciar a leitura → desligar e religar o sensor → reiniciar o ESP32 (no máximo 2 vezes) → modo manutenção.
+- Alimentação do DHT22 pelo GPIO 4, para o ESP32 conseguir desligar e religar o sensor.
+- Avisos (`ALERTA`, `OK`, `MANUTENCAO`) só quando o estado muda.
+- Comandos de teste `f` (falha), `x` (sensor louco) e `n` (normal).
+- 13 testes novos no autoteste, num total de 31.
+
+**O que eu mudei ou fiz sozinho**
+- Pedi o watchdog, as defesas e os testes.
+- Achei a falha de projeto: o watchdog só protegia o programa, não o sensor.
+- (preencher depois de rodar no Wokwi)

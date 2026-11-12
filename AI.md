@@ -18,3 +18,4 @@
 | Data | O que foi gerado | Como validei |
 |---|---|---|
 | 12/11/2026 | Estrutura do repositório e arquivos-base | Revisei os arquivos e fiz o primeiro commit sozinho |
+| 12/11/2026 | Edge: leitura do DHT22, Temperatura Aparente, watchdog, defesas e autoteste | Autoteste no boot do ESP32; valores esperados conferidos em Python; testes manuais no Wokwi (salto de temperatura e travamento com `w`) |
