@@ -64,3 +64,21 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Pedi o watchdog, as defesas e os testes.
 - Achei a falha de projeto: o watchdog só protegia o programa, não o sensor.
 - (preencher depois de rodar no Wokwi)
+
+---
+
+## Passo 2.2b — Edge: testar o código no PC (12/11/2026)
+
+**O que eu pedi**
+- Instalar no PC o que faltava para rodar C++, já que sem isso não dava para testar parte do código.
+- Escolhi instalar as duas ferramentas: o g++ (WinLibs) e o arduino-cli com o núcleo do ESP32.
+
+**O que a IA gerou**
+- `edge/teste_pc/Arduino.h`: um "dublê" do Arduino, que troca o `Serial` por `printf`, para o autoteste rodar no PC.
+- `edge/teste_pc/main.cpp`: roda no PC os mesmos 31 autotestes do boot e confere se o `unsigned long` tem 4 bytes, como no ESP32.
+- `edge/teste_pc/testar.ps1`: um comando só, que roda os autotestes (g++) e compila o firmware inteiro para o ESP32 (arduino-cli).
+- Seção "Testar no PC" no `edge/README.md`.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi as ferramentas (g++ + arduino-cli) entre as alternativas apresentadas.
+- (preencher)

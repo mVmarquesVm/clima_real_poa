@@ -38,6 +38,7 @@ Depois de 10 min funcionando bem, o contador de reinícios volta a zero.
 | `autoteste.h` | Testes que rodam a cada boot |
 | `diagram.json` | O circuito no Wokwi |
 | `libraries.txt` | Bibliotecas que o Wokwi instala |
+| `teste_pc/` | Roda os autotestes e compila o firmware no PC (não vai para o Wokwi) |
 
 ## Ligações
 | DHT22 | ESP32 |
@@ -66,6 +67,19 @@ Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 rein
 - O autoteste mostra **"31 passaram, 0 falharam"**.
 - A cada 2 s aparece uma linha como `[E1] T=30.0 C  UR=50%  Sensacao=33.0 C | sensor=OK`.
 - Clique no DHT22 e mude a temperatura num pulo grande: a primeira leitura é **segurada** ("salto suspeito") e a seguinte é **aceita**.
+
+## Testar no PC (sem abrir o Wokwi)
+A pasta `teste_pc/` confere o código no próprio computador, em 2 etapas:
+1. **g++** compila e **roda** os 31 autotestes. As funções de `sensacao.h`, `defesa.h` e `vigia.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
+2. **arduino-cli** compila o **firmware inteiro** para o ESP32. Ele acha erros de compilação antes do Wokwi, mas não roda nada: sem a placa, o comportamento só aparece no Wokwi.
+
+```
+powershell -ExecutionPolicy Bypass -File edge\teste_pc\testar.ps1
+```
+
+Precisa do g++ (WinLibs) e do arduino-cli com o núcleo `esp32:esp32` e a biblioteca `DHT sensor library for ESPx`. Os arquivos gerados ficam na pasta temporária do Windows, fora do repositório.
+
+> **Não cole a pasta `teste_pc/` no Wokwi.** O `Arduino.h` falso só serve no PC.
 
 ## Limitação conhecida
 No Wokwi, o "desligar e religar" o sensor roda de verdade no código, mas o simulador não modela a energia dos componentes. Então o efeito não aparece lá. No hardware real, é isso que destrava um DHT22 travado.
