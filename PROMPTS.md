@@ -134,4 +134,31 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Escolhi o anemômetro por pulsos.
-- (preencher depois de rodar no Wokwi)
+- Rodei no meu Wokwi em 13/11: 49 passaram e 0 falharam. Com vento de 2 m/s, o Serial mostrou `Vento=2.0` e `Sensacao=34.6`; com o slider em 9,6, `Vento=9.3` (o degrau é de 0,33 m/s) e `Sensacao=28.4`, que conferi na conta.
+- O chip deu "Missing chip" no começo: era um erro de digitação no nome do arquivo (`anenometro`) e um `diagram.json` antigo, sem a peça do anemômetro.
+
+---
+
+## Passo 3 — Edge: LEDs de risco, relé com histerese e display (13/11/2026)
+
+**O que eu pedi**
+- Acelerar por causa do prazo: a IA implementa e eu testo, reviso o código e confiro se o projeto está no rumo certo. Quando eu sentir necessidade, peço uma atividade.
+- Escolhi o **LCD 20x4 I2C** (e não o 16x2), para caber o valor, o risco, o relé e a rede ao mesmo tempo, sem a tela alternar.
+- Autorizei a instalação da biblioteca `LiquidCrystal I2C` 1.1.2 no arduino-cli.
+
+**O que a IA gerou**
+- `edge/risco.h`: os 4 níveis (limites de 27, 32 e 41 °C, das categorias da NOAA), a histerese de 0,5 °C para a cor descer, o "amarelo piscando" quando não há dado confiável e a validação dos limites para a config remota do Passo 4.
+- `edge/rele.h`: a máquina de estados do relé: confirma o risco por 10 s, desliga só 2 °C abaixo do limite e depois de 20 s de calma, tem descanso mínimo de 30 s e máximo de 10 min ligado, e o fail-safe desliga na hora sem dado confiável.
+- `edge/display.h`: o texto das 4 linhas do LCD, sempre com 20 caracteres.
+- `edge/sketch.ino`: relé desligado como primeira linha do `setup()`, LEDs atualizados a cada volta do `loop()`, decisão de risco e relé a cada 2 s, LCD reescrito só nas linhas que mudam, e o risco e o relé no Serial.
+- `edge/config.h`, `edge/diagram.json` e `edge/libraries.txt`: pinos, limites, tempos, as peças novas e a biblioteca do LCD.
+- `edge/autoteste.h`: 28 testes novos, num total de 77.
+- `edge/README.md`: seções dos níveis de risco, do relé, do display (com as instruções de leitura) e das ligações.
+
+- A pedido meu, a IA colou os arquivos no meu projeto do Wokwi e rodou a simulação: 77 passaram, o LED laranja acendeu com 34,6 °C de sensação, e 10 s depois o relé e o LED azul do nebulizador ligaram.
+- Esse teste achou um bug: o `setup()` agora leva quase 2 s, e a primeira janela do vento ficava com poucos milissegundos, o que gerava um falso alerta do anemômetro. A IA corrigiu: o primeiro ciclo passou a ser agendado no fim do `setup()`. Ela também afastou os LEDs no diagrama, porque os nomes estavam encavalados.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi o LCD 20x4.
+- No meu teste, o vento ficava parado em 2,0 m/s mesmo mexendo no slider. A IA reproduziu o problema no Wokwi e achou a causa: o `diagram.json` fixava `"vento": "2"` nos `attrs` do chip, e com isso o Wokwi ignora o slider. Com `"attrs": {}`, o slider voltou a funcionar (7,1 m/s no slider deu `Vento=7.3` e `7.0` no Serial).
+- (preencher depois do meu teste no Wokwi)

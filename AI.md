@@ -10,7 +10,7 @@
 - Revisar textos e documentação.
 
 ## Como trabalhamos
-- A IA **não muda nada sem o meu ok**: antes de cada mudança, ela diz o que vai fazer, por quê e quais as alternativas.
+- No começo, a IA **não mudava nada sem o meu ok**. Desde 12/11, por causa do prazo, ela cria e edita os arquivos do passo combinado sozinha, explicando cada parte, e eu reviso o código e testo. Instalar, apagar ou mudar uma decisão de projeto continua precisando do meu ok.
 - As decisões de projeto são minhas (ver [`PROMPTS.md`](PROMPTS.md)).
 - Depois de cada passo, faço uma tarefa prática sozinho, que entra no código com a minha autoria.
 
@@ -21,3 +21,4 @@
 | 12/11/2026 | Edge: leitura do DHT22, Temperatura Aparente, watchdog, defesas e autoteste | Autoteste no boot do ESP32; valores esperados conferidos em Python; testes manuais no Wokwi (salto de temperatura e travamento com `w`) |
 | 12/11/2026 | Edge: teste no PC (`edge/teste_pc/`) | Os 31 autotestes rodam no PC com g++ (sem avisos com `-Wall -Wextra`) e o firmware compila para o ESP32 com arduino-cli |
 | 12/11/2026 | Edge: anemômetro (chip customizado), LDR e fórmula completa de Steadman | Valores esperados calculados à parte, em Python; 49 autotestes no PC; o chip roda num Wokwi falso e gera os pulsos do datasheet da SparkFun; o firmware compila sem avisos; a especificação do anemômetro e do LDR foi conferida no guia da SparkFun e na documentação do Wokwi |
+| 13/11/2026 | Edge: LEDs de risco, relé com histerese e fail-safe, LCD 20x4 | 77 autotestes no PC (incluindo casos de pico curto, histerese, descanso, fail-safe e largura das linhas do LCD); o firmware compila sem avisos no nosso código; teste no Wokwi feito por mim |

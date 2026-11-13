@@ -15,6 +15,10 @@
 #include "conversao.h"
 #include "defesa.h"
 #include "vigia.h"
+#include "risco.h"
+#include "rele.h"
+#include "display.h"
+#include <string.h>
 
 struct Placar {
   int passou = 0;
@@ -131,6 +135,89 @@ inline bool rodarAutoteste() {
             "já reiniciou demais: entra em MANUTENÇÃO em vez de reiniciar");
   verificar(p, decidirRecuperacao(loopRec, true, 20000 + ESPERA_MANUTENCAO_MS, MAX_REINICIOS_POR_SENSOR) == ACAO_RELIGAR_SENSOR,
             "em manutenção, tenta religar o sensor a cada 10 min");
+
+  // --- Nível de risco (a cor do LED) ---
+  LimitesRisco lim;
+  verificar(p, nivelDaSensacao(26.9f, lim) == RISCO_VERDE && nivelDaSensacao(27, lim) == RISCO_AMARELO,
+            "27 °C é onde o AMARELO começa");
+  verificar(p, nivelDaSensacao(35, lim) == RISCO_LARANJA && nivelDaSensacao(41, lim) == RISCO_VERMELHO,
+            "35 °C = LARANJA e 41 °C = VERMELHO");
+  verificar(p, nivelDaSensacao(NAN, lim) == RISCO_SEM_DADO, "sem sensação = SEM DADO (nunca verde)");
+  verificar(p, nivelComHisterese(RISCO_LARANJA, 31.8f, lim, HISTERESE_NIVEL_C) == RISCO_LARANJA,
+            "histerese: 31,8 °C ainda é LARANJA (a folga é 0,5 °C)");
+  verificar(p, nivelComHisterese(RISCO_LARANJA, 31.4f, lim, HISTERESE_NIVEL_C) == RISCO_AMARELO,
+            "histerese: 31,4 °C já desce para AMARELO");
+  verificar(p, nivelComHisterese(RISCO_VERDE, 41.5f, lim, HISTERESE_NIVEL_C) == RISCO_VERMELHO,
+            "para subir não há espera: VERDE vai direto a VERMELHO");
+  verificar(p, nivelComHisterese(RISCO_VERMELHO, 20, lim, HISTERESE_NIVEL_C) == RISCO_VERDE,
+            "esfriou muito: desce vários níveis de uma vez");
+
+  int acesos = 0;
+  for (int c = RISCO_VERDE; c <= RISCO_VERMELHO; c++) acesos += ledDeveAcender(RISCO_LARANJA, (NivelRisco)c, true);
+  verificar(p, acesos == 1 && ledDeveAcender(RISCO_LARANJA, RISCO_LARANJA, true), "só o LED da cor certa acende");
+  verificar(p, ledDeveAcender(RISCO_SEM_DADO, RISCO_AMARELO, true) && !ledDeveAcender(RISCO_SEM_DADO, RISCO_AMARELO, false)
+               && !ledDeveAcender(RISCO_SEM_DADO, RISCO_VERDE, true),
+            "SEM DADO: o amarelo pisca e o verde nunca acende");
+
+  LimitesRisco foraDeOrdem;  foraDeOrdem.laranja = 45;
+  LimitesRisco grudados;     grudados.laranja = 27.5f;
+  LimitesRisco comNaN;       comNaN.vermelho = NAN;
+  verificar(p, limitesValidos(lim), "limites iniciais (27/32/41) são válidos");
+  verificar(p, !limitesValidos(foraDeOrdem) && !limitesValidos(grudados) && !limitesValidos(comNaN),
+            "limites fora de ordem, a menos de 1 °C ou NaN são rejeitados");
+
+  // --- Relé: liga só com risco alto SEGUIDO (limite 32 °C) ---
+  ControleRele r;
+  verificar(p, !atualizarRele(r, 35, true, 32, 0) && r.motivo == RELE_CONFIRMANDO, "risco alto: primeiro confirma");
+  verificar(p, !atualizarRele(r, 35, true, 32, CONFIRMAR_RISCO_MS - 1),          "ainda não deu o tempo: desligado");
+  verificar(p,  atualizarRele(r, 35, true, 32, CONFIRMAR_RISCO_MS),               "risco alto por 10 s: LIGA");
+  verificar(p,  atualizarRele(r, 31, true, 32, 15000) && r.motivo == RELE_LIGADO_CALOR,
+            "histerese: 31 °C (acima de 32 − 2) continua ligado");
+  verificar(p,  atualizarRele(r, 29, true, 32, 16000) && r.motivo == RELE_LIGADO_ESFRIANDO,
+            "esfriou para 29 °C: ainda espera a calma se confirmar");
+  verificar(p, !atualizarRele(r, 29, true, 32, 16000 + CONFIRMAR_CALMA_MS), "calma por 20 s: DESLIGA");
+  unsigned long desligou = 16000 + CONFIRMAR_CALMA_MS;
+  atualizarRele(r, 35, true, 32, desligou + 1000);
+  verificar(p, !atualizarRele(r, 35, true, 32, desligou + 1000 + CONFIRMAR_RISCO_MS) && r.motivo == RELE_DESCANSO,
+            "calor voltou, mas respeita o descanso mínimo");
+  verificar(p,  atualizarRele(r, 35, true, 32, desligou + RELE_MIN_DESLIGADO_MS), "acabou o descanso: religa");
+  verificar(p, !atualizarRele(r, 35, false, 32, desligou + RELE_MIN_DESLIGADO_MS + 2000) && r.motivo == RELE_BLOQUEADO,
+            "fail-safe: sem dado confiável, desliga NA HORA");
+
+  ControleRele pico;
+  atualizarRele(pico, 35, true, 32, 0);
+  atualizarRele(pico, 30, true, 32, 4000);   // o pico passou: a contagem zera
+  atualizarRele(pico, 35, true, 32, 6000);   // novo pico: conta de novo a partir daqui
+  verificar(p, !atualizarRele(pico, 35, true, 32, 14000), "pico curto não liga: a contagem recomeça");
+
+  ControleRele maximo;
+  atualizarRele(maximo, 45, true, 32, 0);
+  atualizarRele(maximo, 45, true, 32, CONFIRMAR_RISCO_MS);
+  verificar(p, !atualizarRele(maximo, 45, true, 32, CONFIRMAR_RISCO_MS + RELE_MAX_LIGADO_MS) && maximo.motivo == RELE_DESCANSO,
+            "tempo máximo ligado: desliga e descansa, mesmo com calor");
+
+  // --- Display: 4 linhas de 20 caracteres ---
+  char tela[LCD_LINHAS][LCD_COLUNAS + 1];
+  DadosTela dt;
+  dt.ta = 34.6f;  dt.nivel = RISCO_LARANJA;  dt.temp = 30.2f;  dt.umid = 50;  dt.vento = 2;  dt.ventoOk = true;
+  dt.releLigado = true;  dt.releHaMs = 135000;  dt.estacao = "E1";
+  montarTela(dt, tela);
+  bool todas20 = true;
+  for (int i = 0; i < LCD_LINHAS; i++) todas20 = todas20 && strlen(tela[i]) == LCD_COLUNAS;
+  verificar(p, todas20, "display: as 4 linhas têm exatamente 20 caracteres");
+  verificar(p, strstr(tela[0], "34.6") && strstr(tela[0], "LARANJA"), "display: linha 1 mostra a sensação e o nível");
+  verificar(p, strstr(tela[2], "LIGADO") && strstr(tela[2], "02:15"), "display: relé ligado há 135 s = 02:15");
+  verificar(p, strstr(tela[3], "WiFi:--") && strstr(tela[3], "MQTT:--"), "display: sem rede mostra --");
+
+  DadosTela ruim;
+  ruim.problema = "SENSOR EM FALHA";  ruim.releMotivo = RELE_BLOQUEADO;  ruim.estacao = "E1";
+  ruim.temp = -40;  ruim.umid = 100;  ruim.vento = 50;  ruim.ventoOk = true;
+  montarTela(ruim, tela);
+  verificar(p, strstr(tela[0], "SEM DADO") && strstr(tela[1], "SENSOR EM FALHA") && strstr(tela[2], "falha"),
+            "display: sensor em falha aparece na tela e o relé fica bloqueado");
+  ruim.problema = nullptr;
+  montarTela(ruim, tela);
+  verificar(p, strlen(tela[1]) == LCD_COLUNAS, "display: valores extremos não estouram a linha");
 
   Serial.printf("== Resultado: %d passaram, %d falharam ==\n", p.passou, p.falhou);
   return p.falhou == 0;

@@ -16,6 +16,13 @@
                                // desligar e religar o sensor para destravá-lo (gasta ~2,5 mA)
 #define PINO_ANEMOMETRO   27   // chave magnética para o GND; usa o pull-up interno do ESP32
 #define PINO_LDR          34   // tem que ser do ADC1: o ADC2 para de funcionar com o WiFi ligado (Passo 4)
+#define PINO_LED_VERDE    32   // LEDs de risco (evitei o GPIO 12: no ESP32 real ele
+#define PINO_LED_AMARELO  33   // decide a tensão da flash no boot e pode impedir a placa de ligar)
+#define PINO_LED_LARANJA  25
+#define PINO_LED_VERMELHO 26
+#define PINO_RELE         18   // HIGH = relé ligado = nebulizador ligado
+// O LCD usa o I2C padrão do ESP32: SDA no GPIO 21 e SCL no GPIO 22
+#define LCD_ENDERECO_I2C  0x27
 
 // --- Tempo ---
 const unsigned long INTERVALO_LEITURA_MS = 2000;  // o DHT22 só gera leitura nova a cada 2 s
@@ -68,3 +75,22 @@ const float LUX_POR_W_M2         = 120.0f;    // luz do sol: ~120 lux = 1 W/m²
 const float FATOR_ABSORCAO_CORPO = 0.12f;     // fração que o corpo absorve, na média da pele
 const float LUX_MAX              = 120000.0f; // mais que o sol mais forte: corta aqui
 const float Q_PIOR_CASO          = 100.0f;    // = sol forte; usado se o LDR falhar
+
+// --- Níveis de risco (valores INICIAIS; no Passo 4 a nuvem pode mudar) ---
+// Categorias do índice de calor da NOAA (ver risco.h)
+const float LIMITE_AMARELO_C  = 27.0f;
+const float LIMITE_LARANJA_C  = 32.0f;
+const float LIMITE_VERMELHO_C = 41.0f;
+const float HISTERESE_NIVEL_C = 0.5f;   // a cor só DESCE 0,5 °C abaixo do limite (a do DHT22 é ±0,5)
+const float LIMITE_MIN_C      = 15.0f;  // faixa aceita para a config remota
+const float LIMITE_MAX_C      = 60.0f;
+const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por segundo
+
+// --- Relé do nebulizador (liga a partir do LARANJA) ---
+// Tempos CURTOS para dar para ver no Wokwi e no vídeo. Numa estação
+// de verdade: confirmar 2 min, calma 5 min, descanso 5 min, máximo 30 min.
+const float         HISTERESE_RELE_C      = 2.0f;           // desliga só 2 °C abaixo do limite
+const unsigned long CONFIRMAR_RISCO_MS    = 10000;          // risco alto por 10 s seguidos para ligar
+const unsigned long CONFIRMAR_CALMA_MS    = 20000;          // calma por 20 s seguidos para desligar
+const unsigned long RELE_MIN_DESLIGADO_MS = 30000;          // descanso mínimo de 30 s
+const unsigned long RELE_MAX_LIGADO_MS    = 10UL * 60UL * 1000UL;  // no máximo 10 min ligado direto

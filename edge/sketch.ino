@@ -3,18 +3,25 @@
 // Passo 2: a cada 2 s lê o DHT22, o anemômetro e o LDR e calcula a
 // Temperatura Aparente (com vento e sol), com watchdog do programa,
 // vigia do sensor, defesa da leitura e autoteste no boot.
+// Passo 3: LEDs de risco, relé do nebulizador com histerese e
+// fail-safe, e LCD 20x4 com o valor, o risco, o relé e a rede.
 // ============================================================
 
 #include <Arduino.h>
 #include <esp_task_wdt.h>   // watchdog de tarefas do ESP32
 #include <esp_system.h>     // motivo do último reinício
 #include "DHTesp.h"
+#include <Wire.h>                // I2C (SDA 21, SCL 22)
+#include <LiquidCrystal_I2C.h>
 
 #include "config.h"
 #include "sensacao.h"
 #include "conversao.h"
 #include "defesa.h"
 #include "vigia.h"
+#include "risco.h"
+#include "rele.h"
+#include "display.h"
 #include "autoteste.h"
 
 // ---------- Estado da estação ----------
@@ -87,6 +94,15 @@ unsigned long sensorProntoEmMs = 0;
 
 // Último aviso: vai aparecer no display (Passo 3) e no MQTT (Passo 4)
 char ultimoAlerta[96] = "nenhum";
+
+// ---------- Atuadores e display (Passo 3) ----------
+LiquidCrystal_I2C lcd(LCD_ENDERECO_I2C, LCD_COLUNAS, LCD_LINHAS);
+LimitesRisco limites;                    // no Passo 4, a nuvem pode mudar
+NivelRisco   nivelAtual = RISCO_SEM_DADO;
+ControleRele rele;
+bool wifiOk = false;                     // preenchidos no Passo 4
+bool mqttOk = false;
+char telaAnterior[LCD_LINHAS][LCD_COLUNAS + 1] = {"", "", "", ""};
 
 // Simulação de defeito, para testar e gravar o vídeo
 enum Simulacao { SIM_NENHUMA, SIM_FALHA, SIM_LOUCO };
@@ -327,6 +343,76 @@ void vigiarSensor(unsigned long agora) {
   }
 }
 
+// ---------- Risco e relé: a decisão tomada NA BORDA ----------
+// O ESP32 decide sozinho, sem esperar a nuvem: se a internet cair,
+// o nebulizador continua funcionando (critério do Edge: "atuador com
+// lógica processada na borda").
+void decidirRiscoERele(unsigned long agora) {
+  bool podeDecidir = !modoSeguro && dadoConfiavel(agora);
+
+  NivelRisco antes = nivelAtual;
+  nivelAtual = podeDecidir ? nivelComHisterese(nivelAtual, sensacaoC, limites, HISTERESE_NIVEL_C)
+                           : RISCO_SEM_DADO;
+  if (nivelAtual != antes) Serial.printf("  risco: %s -> %s\n", textoNivel(antes), textoNivel(nivelAtual));
+
+  bool estavaLigado = rele.ligado;
+  bool ligar = atualizarRele(rele, sensacaoC, podeDecidir, limites.laranja, agora);
+  digitalWrite(PINO_RELE, ligar ? HIGH : LOW);
+  if (ligar != estavaLigado) {
+    Serial.printf("  rele %s (%s)\n", ligar ? "LIGADO" : "DESLIGADO", textoMotivoRele(rele.motivo));
+  }
+}
+
+// Roda a cada volta do loop (e não só a cada 2 s) para o pisca ficar regular.
+void atualizarLeds(unsigned long agora) {
+  bool fase = (agora / PISCA_MS) % 2 == 0;
+  digitalWrite(PINO_LED_VERDE,    ledDeveAcender(nivelAtual, RISCO_VERDE,    fase) ? HIGH : LOW);
+  digitalWrite(PINO_LED_AMARELO,  ledDeveAcender(nivelAtual, RISCO_AMARELO,  fase) ? HIGH : LOW);
+  digitalWrite(PINO_LED_LARANJA,  ledDeveAcender(nivelAtual, RISCO_LARANJA,  fase) ? HIGH : LOW);
+  digitalWrite(PINO_LED_VERMELHO, ledDeveAcender(nivelAtual, RISCO_VERMELHO, fase) ? HIGH : LOW);
+}
+
+// O problema mais grave, em texto curto para a linha 2 do LCD.
+const char* problemaCurto(unsigned long agora) {
+  if (modoSeguro)                   return "MODO SEGURO";
+  if (recuperacao.emManutencao)     return "MANUTENCAO SENSOR";
+  if (saude.estado == SENSOR_FALHA) return "SENSOR EM FALHA";
+  if (instabilidade.instavel)       return "SENSOR INSTAVEL";
+  if (sensorTravado)                return "SENSOR TRAVADO";
+  if (!dadoConfiavel(agora))        return "AGUARDANDO SENSOR";
+  if (!ventoOk)                     return "VENTO ERRO: usa 0";
+  if (!luzOk)                       return "LDR ERRO: usa sol";
+  return nullptr;
+}
+
+void atualizarDisplay(unsigned long agora) {
+  DadosTela d;
+  d.ta         = sensacaoC;
+  d.nivel      = nivelAtual;
+  d.temp       = tempC;
+  d.umid       = umid;
+  d.vento      = ventoMs;
+  d.ventoOk    = ventoOk;
+  d.problema   = problemaCurto(agora);
+  d.releLigado = rele.ligado;
+  d.releMotivo = rele.motivo;
+  d.releHaMs   = agora - rele.mudouEmMs;
+  d.estacao    = ID_ESTACAO;
+  d.wifiOk     = wifiOk;
+  d.mqttOk     = mqttOk;
+
+  char linhas[LCD_LINHAS][LCD_COLUNAS + 1];
+  montarTela(d, linhas);
+  // Só reescreve a linha que mudou: o I2C é lento (~1 ms por letra)
+  for (int i = 0; i < LCD_LINHAS; i++) {
+    if (strcmp(linhas[i], telaAnterior[i]) != 0) {
+      lcd.setCursor(0, i);
+      lcd.print(linhas[i]);
+      strcpy(telaAnterior[i], linhas[i]);
+    }
+  }
+}
+
 void imprimirStatus(unsigned long agora) {
   const char* extra = modoSeguro ? " | MODO SEGURO"
                     : recuperacao.emManutencao ? " | MANUTENCAO" : "";
@@ -338,19 +424,40 @@ void imprimirStatus(unsigned long agora) {
   else         snprintf(textoLuz, sizeof(textoLuz), "ERRO adc=%d (usa Q=%.0f)", ultimoAdcLdr, Q_PIOR_CASO);
 
   if (dadoConfiavel(agora)) {
-    Serial.printf("[%s] T=%.1f C  UR=%.0f%%  Vento=%s  Luz=%s  Sensacao=%.1f C | sensor=%s | ativo ha %lus%s\n",
+    Serial.printf("[%s] T=%.1f C  UR=%.0f%%  Vento=%s  Luz=%s  Sensacao=%.1f C | risco=%s rele=%s(%s) | sensor=%s | ativo ha %lus%s\n",
                   ID_ESTACAO, tempC, umid, textoVento, textoLuz, sensacaoC,
+                  textoNivel(nivelAtual), rele.ligado ? "ON" : "OFF", textoMotivoRele(rele.motivo),
                   textoEstado(saude.estado), agora / 1000, extra);
   } else {
-    Serial.printf("[%s] SEM LEITURA CONFIAVEL | Vento=%s  Luz=%s | sensor=%s (falhas seguidas: %u) | ativo ha %lus%s\n",
-                  ID_ESTACAO, textoVento, textoLuz, textoEstado(saude.estado), saude.falhasSeguidas,
+    Serial.printf("[%s] SEM LEITURA CONFIAVEL | Vento=%s  Luz=%s | risco=%s rele=%s(%s) | sensor=%s (falhas seguidas: %u) | ativo ha %lus%s\n",
+                  ID_ESTACAO, textoVento, textoLuz,
+                  textoNivel(nivelAtual), rele.ligado ? "ON" : "OFF", textoMotivoRele(rele.motivo),
+                  textoEstado(saude.estado), saude.falhasSeguidas,
                   agora / 1000, extra);
   }
 }
 
 // ---------- setup: roda uma vez ao ligar ----------
 void setup() {
+  // FAIL-SAFE primeiro de tudo: o relé nasce DESLIGADO, antes de
+  // qualquer outra coisa (até do autoteste), para nunca ligar sozinho.
+  pinMode(PINO_RELE, OUTPUT);
+  digitalWrite(PINO_RELE, LOW);
+  pinMode(PINO_LED_VERDE, OUTPUT);
+  pinMode(PINO_LED_AMARELO, OUTPUT);
+  pinMode(PINO_LED_LARANJA, OUTPUT);
+  pinMode(PINO_LED_VERMELHO, OUTPUT);
+
   Serial.begin(115200);
+
+  Wire.begin();
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Forno Alegre ");
+  lcd.print(ID_ESTACAO);
+  lcd.setCursor(0, 1);
+  lcd.print("Autoteste...");
 
   esp_reset_reason_t motivo = esp_reset_reason();
   bool foiOVigia = (marcaReinicioDoVigia == MARCA_VIGIA);
@@ -376,6 +483,8 @@ void setup() {
   iniciarWatchdog();
 
   modoSeguro = !rodarAutoteste();
+  lcd.setCursor(0, 1);
+  lcd.print(modoSeguro ? "Autoteste FALHOU    " : "Autoteste OK        ");
   if (modoSeguro) {
     alertar("ALERTA", "MODO SEGURO: o autoteste falhou. Os atuadores ficam desligados.");
   }
@@ -393,6 +502,13 @@ void setup() {
   randomSeed(micros());   // só para a simulação de "sensor louco"
 
   Serial.println("Comandos no Serial: w = travar programa | f = sensor em falha | x = sensor louco | n = normal");
+
+  // O primeiro ciclo vem 2 s depois do FIM do setup (e não 2 s depois de
+  // ligar): o autoteste e o LCD levam quase 2 s, e a primeira janela do
+  // vento ficaria com poucos ms, o que transformaria 1 pulso em "vento de
+  // 60 m/s" e daria um falso alerta.
+  inicioJanelaVentoMs = millis();
+  proximoCicloMs      = inicioJanelaVentoMs + INTERVALO_LEITURA_MS;
 }
 
 // ---------- loop: roda para sempre, sem nunca bloquear ----------
@@ -402,6 +518,7 @@ void loop() {
   unsigned long agora = millis();
   verificarComandosSerial(agora);
   cuidarDaEnergiaDoSensor(agora);
+  atualizarLeds(agora);
 
   // (long)(agora - proximo) >= 0 funciona mesmo quando o millis() dá a volta
   if ((long)(agora - proximoCicloMs) >= 0) {
@@ -422,6 +539,8 @@ void loop() {
     }
     calcularSensacao();
     vigiarSensor(agora);
+    decidirRiscoERele(agora);
     imprimirStatus(agora);
+    atualizarDisplay(agora);
   }
 }

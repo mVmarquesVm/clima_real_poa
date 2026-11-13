@@ -16,7 +16,7 @@
       "id": "anem1",
       "top": 30,
       "left": 230,
-      "attrs": { "vento": "2" }
+      "attrs": {}
     },
     {
       "type": "wokwi-photoresistor-sensor",
@@ -24,7 +24,19 @@
       "top": 150,
       "left": 200,
       "attrs": { "lux": "50000" }
-    }
+    },
+    { "type": "wokwi-led", "id": "ledVerde", "top": -80, "left": -260, "attrs": { "color": "green", "label": "VERDE" } },
+    { "type": "wokwi-led", "id": "ledAmarelo", "top": -80, "left": -200, "attrs": { "color": "yellow", "label": "AMARELO" } },
+    { "type": "wokwi-led", "id": "ledLaranja", "top": -80, "left": -140, "attrs": { "color": "orange", "label": "LARANJA" } },
+    { "type": "wokwi-led", "id": "ledVermelho", "top": -80, "left": -80, "attrs": { "color": "red", "label": "VERMELHO" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 0, "left": -270, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 0, "left": -210, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": -150, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r4", "top": 0, "left": -90, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-relay-module", "id": "rele1", "top": 160, "left": -230, "attrs": {} },
+    { "type": "wokwi-led", "id": "ledNebulizador", "top": 260, "left": -120, "attrs": { "color": "blue", "label": "NEBULIZADOR" } },
+    { "type": "wokwi-resistor", "id": "r5", "top": 300, "left": -200, "attrs": { "value": "220" } },
+    { "type": "wokwi-lcd2004", "id": "lcd1", "top": -260, "left": -250, "attrs": { "pins": "i2c" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -36,7 +48,33 @@
     [ "anem1:GND", "esp:GND.2", "black", [] ],
     [ "ldr1:VCC", "esp:3V3", "red", [] ],
     [ "ldr1:GND", "esp:GND.2", "black", [] ],
-    [ "ldr1:AO", "esp:34", "blue", [] ]
+    [ "ldr1:AO", "esp:34", "blue", [] ],
+
+    [ "esp:32", "r1:2", "green", [] ],
+    [ "r1:1", "ledVerde:A", "green", [] ],
+    [ "esp:33", "r2:2", "gold", [] ],
+    [ "r2:1", "ledAmarelo:A", "gold", [] ],
+    [ "esp:25", "r3:2", "orange", [] ],
+    [ "r3:1", "ledLaranja:A", "orange", [] ],
+    [ "esp:26", "r4:2", "red", [] ],
+    [ "r4:1", "ledVermelho:A", "red", [] ],
+    [ "ledVerde:C", "esp:GND.1", "black", [] ],
+    [ "ledAmarelo:C", "esp:GND.1", "black", [] ],
+    [ "ledLaranja:C", "esp:GND.1", "black", [] ],
+    [ "ledVermelho:C", "esp:GND.1", "black", [] ],
+
+    [ "rele1:VCC", "esp:5V", "red", [] ],
+    [ "rele1:GND", "esp:GND.1", "black", [] ],
+    [ "rele1:IN", "esp:18", "purple", [] ],
+    [ "rele1:COM", "esp:3V3", "red", [] ],
+    [ "rele1:NO", "r5:1", "blue", [] ],
+    [ "r5:2", "ledNebulizador:A", "blue", [] ],
+    [ "ledNebulizador:C", "esp:GND.1", "black", [] ],
+
+    [ "lcd1:GND", "esp:GND.2", "black", [] ],
+    [ "lcd1:VCC", "esp:5V", "red", [] ],
+    [ "lcd1:SDA", "esp:21", "green", [] ],
+    [ "lcd1:SCL", "esp:22", "cyan", [] ]
   ],
   "dependencies": {}
 }
