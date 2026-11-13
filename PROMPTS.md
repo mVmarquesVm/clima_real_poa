@@ -81,4 +81,29 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Escolhi as ferramentas (g++ + arduino-cli) entre as alternativas apresentadas.
-- (preencher)
+- Rodei o projeto no Wokwi e achei um erro de compilação: o `config.h` tinha sido colado por cima da versão antiga, e não no lugar dela. Corrigi a colagem, rodei de novo e fiz os testes.
+
+---
+
+## Tarefa — Prever a Temperatura Aparente (12/11/2026)
+
+**A tarefa:** prever a TA para 35 °C, 60% de umidade e sem vento, antes de rodar, e depois conferir no Wokwi.
+
+**O que eu fiz**
+- 1ª tentativa, à mão: `0,6 × 6,105 × (17,27 × 35 ÷ 272,7) + 35 ≈ 43,1`. Errei em dois pontos: multipliquei pelo expoente em vez de usar `exp()`, e somei a pressão de vapor direto, sem o `× 0,33` e sem o `− 4,00`. Os dois erros se compensaram em parte, e o resultado ficou perto por coincidência.
+- A IA explicou o que é o `exp` (o *e* elevado a x, como juros compostos) e me deu um esqueleto em Python com lacunas. Eu preenchi as lacunas sozinho: `x = 17.27 * T / (237.7 + T)`, `e = (UR / 100) * 6.105 * math.exp(x)` e `ta = T + 0.33 * e - 4.00`.
+- Resultado: 42,09 °C para 35,0 °C e 60%.
+
+**Conferência no Wokwi**
+- O DHT22 do Wokwi ajusta a temperatura por scroll, e ficou em 35,2 °C. O Serial mostrou `T=35.2 C  UR=60%  Sensacao=42.4 C`.
+- A minha conta em Python com 35,2 °C dá 42,41 °C: bateu com o ESP32.
+
+**Parte 2: o filtro de salto na prática**
+- Mudei a temperatura no Wokwi de 35 °C para uns 25 °C e depois para 34 °C.
+- Na primeira leitura depois do pulo, o Serial mostrou `T=25.6 C | sensor=SUSPEITO`: o ESP32 segurou o 34,1, porque o pulo de 8,5 °C passou do limite de 5 °C (`SALTO_MAX_TEMP_C`).
+- Na leitura seguinte, o 34,1 se repetiu e foi aceito: `T=34.1 C | sensor=OK`.
+- Expliquei com as minhas palavras. A IA corrigiu: a regra é de repetição, e não de média, e ela não tem relação com a mudança climática (o filtro olha para 2 segundos). O motivo é que o ar não muda tão rápido, então um pulo assim costuma ser ruído, e o filtro impede que uma leitura errada ligue o relé.
+
+**O que eu aprendi**
+- Resultado perto não quer dizer conta certa: por isso o autoteste tem vários casos.
+- No calor, o `exp` amplifica: só 0,2 °C a mais muda a sensação em 0,3 °C.
