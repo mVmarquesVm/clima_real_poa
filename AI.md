@@ -10,7 +10,7 @@
 - Revisar textos e documentação.
 
 ## Como trabalhamos
-- No começo, a IA **não mudava nada sem o meu ok**. Desde 12/11, por causa do prazo, ela cria e edita os arquivos do passo combinado sozinha, explicando cada parte, e eu reviso o código e testo. Instalar, apagar ou mudar uma decisão de projeto continua precisando do meu ok.
+- A IA **não muda nada sem o meu ok**: ela só trabalha no passo que eu combinei com ela, explicando o que faz e por quê, e eu reviso o código e testo. Instalar, apagar ou mudar uma decisão de projeto ela sempre me pergunta antes.
 - As decisões de projeto são minhas (ver [`PROMPTS.md`](PROMPTS.md)).
 - Depois de cada passo, faço uma tarefa prática sozinho, que entra no código com a minha autoria.
 
