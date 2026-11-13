@@ -1,3 +1,4 @@
 # Bibliotecas que o Wokwi instala para este projeto
 DHT sensor library for ESPx
 LiquidCrystal I2C
+PubSubClient

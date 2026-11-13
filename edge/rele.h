@@ -16,6 +16,12 @@
 //      RELE_MAX_LIGADO_MS ligado (não esvazia a caixa d'água);
 //   4) FAIL-SAFE: sem dado confiável (sensor em falha, modo seguro),
 //      DESLIGA na hora. Melhor sem névoa do que névoa sem controle.
+//
+// Comando remoto (Passo 4, pela nuvem): "rele:on" liga na hora, sem
+// esperar calor, e volta sozinho ao automático depois de
+// RELE_MAX_LIGADO_MS; "rele:off" desliga até chegar "rele:auto"
+// (por exemplo, para a manutenção do nebulizador). O fail-safe vale
+// MESMO com comando remoto: a nuvem não liga o relé às cegas.
 // Tudo é lógica pura: recebe o "agora" e devolve a decisão.
 // ============================================================
 
@@ -28,8 +34,20 @@ enum MotivoRele {
   RELE_DESCANSO,       // desligado: risco alto, mas no tempo mínimo desligado
   RELE_BLOQUEADO,      // desligado: sem dado confiável (fail-safe)
   RELE_LIGADO_CALOR,   // ligado: risco alto confirmado
-  RELE_LIGADO_ESFRIANDO // ligado: já esfriou, mas esperando a calma se confirmar
+  RELE_LIGADO_ESFRIANDO, // ligado: já esfriou, mas esperando a calma se confirmar
+  RELE_REMOTO_LIGADO,    // ligado por comando da nuvem ("rele:on")
+  RELE_REMOTO_DESLIGADO  // desligado por comando da nuvem ("rele:off")
 };
+
+enum ModoRele { MODO_AUTO, MODO_LIGAR, MODO_DESLIGAR };
+
+inline const char* textoModoRele(ModoRele m) {
+  switch (m) {
+    case MODO_LIGAR:    return "on";
+    case MODO_DESLIGAR: return "off";
+    default:            return "auto";
+  }
+}
 
 struct ControleRele {
   bool          ligado         = false;
@@ -40,7 +58,14 @@ struct ControleRele {
   unsigned long riscoDesdeMs   = 0;
   bool          calmaContando  = false;
   unsigned long calmaDesdeMs   = 0;
+  ModoRele      modo           = MODO_AUTO;   // comando remoto
+  unsigned long modoDesdeMs    = 0;
 };
+
+inline void definirModoRele(ControleRele& r, ModoRele modo, unsigned long agora) {
+  r.modo        = modo;
+  r.modoDesdeMs = agora;
+}
 
 inline const char* textoMotivoRele(MotivoRele m) {
   switch (m) {
@@ -49,6 +74,8 @@ inline const char* textoMotivoRele(MotivoRele m) {
     case RELE_DESCANSO:         return "descanso";
     case RELE_BLOQUEADO:        return "bloqueado";
     case RELE_LIGADO_CALOR:     return "calor";
+    case RELE_REMOTO_LIGADO:    return "remoto-on";
+    case RELE_REMOTO_DESLIGADO: return "remoto-off";
     default:                    return "esfriando";
   }
 }
@@ -73,6 +100,21 @@ inline bool atualizarRele(ControleRele& r, float ta, bool confiavel,
     r.riscoContando = false;
     r.motivo = RELE_BLOQUEADO;
     return false;
+  }
+
+  // Comando remoto
+  if (r.modo == MODO_DESLIGAR) {
+    if (r.ligado) mudarRele(r, false, agora);
+    r.motivo = RELE_REMOTO_DESLIGADO;
+    return false;
+  }
+  if (r.modo == MODO_LIGAR) {
+    if (agora - r.modoDesdeMs < RELE_MAX_LIGADO_MS) {
+      if (!r.ligado) mudarRele(r, true, agora);
+      r.motivo = RELE_REMOTO_LIGADO;
+      return true;
+    }
+    r.modo = MODO_AUTO;   // passou do tempo máximo: volta ao automático
   }
 
   if (r.ligado) {

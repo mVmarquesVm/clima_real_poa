@@ -5,6 +5,8 @@
 // vigia do sensor, defesa da leitura e autoteste no boot.
 // Passo 3: LEDs de risco, relé do nebulizador com histerese e
 // fail-safe, e LCD 20x4 com o valor, o risco, o relé e a rede.
+// Passo 4: WiFi + MQTT no ThingSpeak (publica a cada 20 s, reconecta
+// com espera crescente) e comandos remotos pelo field8.
 // ============================================================
 
 #include <Arduino.h>
@@ -13,6 +15,9 @@
 #include "DHTesp.h"
 #include <Wire.h>                // I2C (SDA 21, SCL 22)
 #include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
+#include <PubSubClient.h>        // cliente MQTT
+#include <Preferences.h>         // memória flash (NVS): guarda os limites
 
 #include "config.h"
 #include "sensacao.h"
@@ -22,7 +27,10 @@
 #include "risco.h"
 #include "rele.h"
 #include "display.h"
+#include "rede.h"
+#include "nuvem.h"
 #include "autoteste.h"
+#include "secrets.h"             // senhas do ThingSpeak: fora do Git (ver secrets.example.h)
 
 // ---------- Estado da estação ----------
 DHTesp            dht;
@@ -100,9 +108,29 @@ LiquidCrystal_I2C lcd(LCD_ENDERECO_I2C, LCD_COLUNAS, LCD_LINHAS);
 LimitesRisco limites;                    // no Passo 4, a nuvem pode mudar
 NivelRisco   nivelAtual = RISCO_SEM_DADO;
 ControleRele rele;
-bool wifiOk = false;                     // preenchidos no Passo 4
+bool wifiOk = false;
 bool mqttOk = false;
 char telaAnterior[LCD_LINHAS][LCD_COLUNAS + 1] = {"", "", "", ""};
+
+// ---------- Nuvem (Passo 4) ----------
+WiFiClient       clienteTcp;
+PubSubClient     mqtt(clienteTcp);
+Preferences      memoria;
+Backoff          backoffWifi;
+Backoff          backoffMqtt;
+LimiteFrequencia freqComandos;
+bool             wifiEstavaOk        = false;
+bool             mqttEstavaOk        = false;
+unsigned long    proximaPublicacaoMs = 0;
+bool             redeDerrubada       = false;   // comando 'd' (simulação para o vídeo)
+unsigned long    redeVoltaEmMs       = 0;
+bool             mqttDerrubado       = false;   // comando 'm' (simulação para o vídeo)
+unsigned long    mqttVoltaEmMs       = 0;
+char             ultimoComando[72]   = "nenhum";
+
+// "channels/<id>/..." montado na compilação (o C junta textos vizinhos)
+const char* TOPICO_PUBLICAR = "channels/" SECRET_CANAL_ID "/publish";
+const char* TOPICO_COMANDO  = "channels/" SECRET_CANAL_ID "/subscribe/fields/field8";
 
 // Simulação de defeito, para testar e gravar o vídeo
 enum Simulacao { SIM_NENHUMA, SIM_FALHA, SIM_LOUCO };
@@ -185,6 +213,8 @@ bool sensorPronto(unsigned long agora) {
 //   f = sensor em FALHA por 60 s (testa a escada de recuperação)
 //   x = sensor LOUCO por 60 s (valores aleatórios: testa a instabilidade)
 //   n = volta ao normal
+//   d = derruba o WiFi por 30 s (testa a reconexão e o display)
+//   m = derruba só o MQTT (testa a reconexão do MQTT)
 void verificarComandosSerial(unsigned long agora) {
   while (Serial.available() > 0) {
     char c = (char)Serial.read();
@@ -202,6 +232,17 @@ void verificarComandosSerial(unsigned long agora) {
     } else if (c == 'n' || c == 'N') {
       simulacao = SIM_NENHUMA;
       Serial.println(">> Simulacao desligada");
+    } else if (c == 'd' || c == 'D') {
+      Serial.println(">> Simulando queda do WiFi por 30 s");
+      mqtt.disconnect();
+      WiFi.disconnect();
+      redeDerrubada = true;
+      redeVoltaEmMs = agora + SIM_QUEDA_REDE_MS;
+    } else if (c == 'm' || c == 'M') {
+      Serial.println(">> Simulando queda do MQTT por 30 s (o WiFi continua)");
+      mqtt.disconnect();
+      mqttDerrubado = true;
+      mqttVoltaEmMs = agora + SIM_QUEDA_REDE_MS;
     }
   }
   if (simulacao != SIM_NENHUMA && (long)(agora - simulacaoAteMs) >= 0) {
@@ -413,6 +454,170 @@ void atualizarDisplay(unsigned long agora) {
   }
 }
 
+// ---------- Limites guardados na flash (NVS) ----------
+// Analogia: anotar no caderno em vez de guardar de cabeça. Se a
+// placa reiniciar, os limites mandados pela nuvem continuam valendo.
+void carregarLimites() {
+  memoria.begin("forno", false);
+  LimitesRisco salvo;
+  salvo.amarelo  = memoria.getFloat("amarelo",  LIMITE_AMARELO_C);
+  salvo.laranja  = memoria.getFloat("laranja",  LIMITE_LARANJA_C);
+  salvo.vermelho = memoria.getFloat("vermelho", LIMITE_VERMELHO_C);
+  memoria.end();
+  if (limitesValidos(salvo)) limites = salvo;   // memória estranha? fica com o padrão
+  Serial.printf("Limites de risco: amarelo %.1f | laranja %.1f | vermelho %.1f C\n",
+                limites.amarelo, limites.laranja, limites.vermelho);
+}
+
+void salvarLimites() {
+  memoria.begin("forno", false);
+  memoria.putFloat("amarelo",  limites.amarelo);
+  memoria.putFloat("laranja",  limites.laranja);
+  memoria.putFloat("vermelho", limites.vermelho);
+  memoria.end();
+}
+
+// ---------- Comando que chega pelo field8 ----------
+void registrarComando(const char* texto, const char* resultado) {
+  snprintf(ultimoComando, sizeof(ultimoComando), "%s %s", texto, resultado);
+  Serial.printf("[CONFIG][%s] %s\n", ID_ESTACAO, ultimoComando);
+}
+
+// Chamada pelo mqtt.loop() quando chega mensagem num tópico assinado.
+// Nada aqui é aplicado sem passar pela validação do nuvem.h.
+void aoReceberMqtt(char* topico, byte* dados, unsigned int tamanho) {
+  if (strcmp(topico, TOPICO_COMANDO) != 0) return;
+  Comando c = interpretarComando((const char*)dados, tamanho);
+  if (c.tipo == CMD_NADA) return;                     // atualização vazia do canal
+
+  char texto[CONFIG_MAX_TAMANHO + 1];                  // cópia "imprimível" só para o registro
+  unsigned int n = tamanho < CONFIG_MAX_TAMANHO ? tamanho : CONFIG_MAX_TAMANHO;
+  for (unsigned int i = 0; i < n; i++) texto[i] = isprint(dados[i]) ? (char)dados[i] : '?';
+  texto[n] = '\0';
+
+  unsigned long agora = millis();
+  if (!frequenciaOk(freqComandos, agora)) { registrarComando(texto, "REJEITADO: muitos comandos seguidos"); return; }
+  if (c.tipo == CMD_INVALIDO) {
+    char motivo[56];
+    snprintf(motivo, sizeof(motivo), "REJEITADO: %s", c.erro);
+    registrarComando(texto, motivo);
+    return;
+  }
+  if (c.tipo == CMD_LIMITES) {
+    limites = c.limites;
+    salvarLimites();
+  } else {
+    definirModoRele(rele, c.modo, agora);
+  }
+  registrarComando(texto, "OK");
+}
+
+// ---------- WiFi e MQTT: conecta e reconecta SEM travar o loop ----------
+void iniciarRede() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(false);   // quem decide quando tentar de novo é o nosso backoff
+  mqtt.setServer(MQTT_SERVIDOR, MQTT_PORTA);
+  mqtt.setCallback(aoReceberMqtt);
+  mqtt.setBufferSize(MQTT_TAMANHO_BUFFER);
+  mqtt.setSocketTimeout(3);       // segundos: a conexão nunca chega perto dos 8 s do watchdog
+  mqtt.setKeepAlive(30);
+}
+
+void avisarMudancaDeRede() {
+  if (wifiOk != wifiEstavaOk) {
+    if (wifiOk) alertar("OK", "WiFi conectado");
+    else        alertar("ALERTA", "WiFi caiu. Reconectando com espera crescente.");
+  }
+  if (mqttOk != mqttEstavaOk) {
+    if (mqttOk) alertar("OK", "MQTT conectado ao ThingSpeak");
+    else        alertar("ALERTA", "MQTT desconectado. Os dados ficam so no display ate voltar.");
+  }
+  wifiEstavaOk = wifiOk;
+  mqttEstavaOk = mqttOk;
+}
+
+void cuidarDaRede(unsigned long agora) {
+  if (redeDerrubada) {                                   // simulação do comando 'd'
+    if ((long)(agora - redeVoltaEmMs) < 0) {
+      wifiOk = false;
+      mqttOk = false;
+      avisarMudancaDeRede();
+      return;
+    }
+    redeDerrubada = false;
+    Serial.println(">> Fim da queda simulada: reconectando");
+  }
+
+  wifiOk = WiFi.status() == WL_CONNECTED;
+  if (!wifiOk) {
+    mqttOk = false;
+    if (backoffPodeTentar(backoffWifi, agora)) {
+      backoffTentou(backoffWifi, agora, WIFI_ESPERA_MIN_MS, REDE_ESPERA_MAX_MS);
+      Serial.printf("  WiFi: tentando conectar (se nao der, tenta de novo em %lu s)\n", backoffWifi.esperaMs / 1000);
+      WiFi.disconnect();
+      WiFi.begin(WIFI_SSID, "", WIFI_CANAL);   // não bloqueia: a conexão acontece "por trás"
+    }
+  } else {
+    backoffConectou(backoffWifi);
+    if (mqttDerrubado) {                        // simulação do comando 'm'
+      if ((long)(agora - mqttVoltaEmMs) < 0) {
+        mqttOk = false;
+        avisarMudancaDeRede();
+        return;
+      }
+      mqttDerrubado = false;
+      Serial.println(">> Fim da queda simulada do MQTT: reconectando");
+    }
+    if (mqtt.connected()) {
+      mqtt.loop();                              // recebe os comandos e mantém a conexão viva
+    } else if (mqttOk) {
+      // Caiu agora: registra a queda ANTES de tentar de novo. Sem isso, uma
+      // reconexão imediata esconderia a queda do Serial, do LCD e do status.
+      mqttOk = false;
+      avisarMudancaDeRede();
+    } else if (backoffPodeTentar(backoffMqtt, agora)) {
+      backoffTentou(backoffMqtt, agora, MQTT_ESPERA_MIN_MS, REDE_ESPERA_MAX_MS);
+      esp_task_wdt_reset();                     // a conexão pode levar alguns segundos
+      if (mqtt.connect(SECRET_MQTT_CLIENT_ID, SECRET_MQTT_USUARIO, SECRET_MQTT_SENHA)) {
+        backoffConectou(backoffMqtt);
+        mqtt.subscribe(TOPICO_COMANDO);
+      } else {
+        Serial.printf("  MQTT: falhou (codigo %d). Tenta de novo em %lu s\n",
+                      mqtt.state(), backoffMqtt.esperaMs / 1000);
+      }
+      esp_task_wdt_reset();
+    }
+    mqttOk = mqtt.connected();
+  }
+  avisarMudancaDeRede();
+}
+
+// ---------- Publica no ThingSpeak (a cada 20 s, logo depois de uma leitura) ----------
+void publicar(unsigned long agora) {
+  if (!mqttOk || (long)(agora - proximaPublicacaoMs) < 0) return;
+  proximaPublicacaoMs = agora + PUBLICAR_A_CADA_MS;
+
+  // Dado não confiável NÃO vai para a nuvem: o campo fica vazio
+  bool confiavel = !modoSeguro && dadoConfiavel(agora);
+  Leitura l;
+  if (confiavel) { l.temp = tempC; l.umid = umid; l.ta = sensacaoC; }
+  if (ventoOk)   l.vento = ventoMs;
+  if (luzOk)     l.lux = luxAtual;
+  l.nivel      = nivelAtual;
+  l.releLigado = rele.ligado;
+
+  char status[200];
+  snprintf(status, sizeof(status), "%s | cmd: %s | lim %.1f/%.1f/%.1f | rele %s",
+           ultimoAlerta, ultimoComando, limites.amarelo, limites.laranja, limites.vermelho,
+           textoModoRele(rele.modo));
+  l.status = status;
+
+  char msg[MQTT_TAMANHO_BUFFER - 64];   // sobra espaço para o tópico e o cabeçalho do MQTT
+  if (!montarMensagem(l, msg, sizeof(msg))) Serial.println("  aviso: mensagem cortada");
+  bool ok = mqtt.publish(TOPICO_PUBLICAR, msg);
+  Serial.printf("  MQTT: %s -> %s\n", ok ? "publicado" : "FALHOU ao publicar", msg);
+}
+
 void imprimirStatus(unsigned long agora) {
   const char* extra = modoSeguro ? " | MODO SEGURO"
                     : recuperacao.emManutencao ? " | MANUTENCAO" : "";
@@ -501,7 +706,11 @@ void setup() {
   analogReadResolution(12);   // 0 a 4095 (ADC_MAX)
   randomSeed(micros());   // só para a simulação de "sensor louco"
 
+  carregarLimites();
+  iniciarRede();
+
   Serial.println("Comandos no Serial: w = travar programa | f = sensor em falha | x = sensor louco | n = normal");
+  Serial.println("                    d = derrubar o WiFi por 30 s | m = derrubar o MQTT por 30 s");
 
   // O primeiro ciclo vem 2 s depois do FIM do setup (e não 2 s depois de
   // ligar): o autoteste e o LCD levam quase 2 s, e a primeira janela do
@@ -519,6 +728,7 @@ void loop() {
   verificarComandosSerial(agora);
   cuidarDaEnergiaDoSensor(agora);
   atualizarLeds(agora);
+  cuidarDaRede(agora);
 
   // (long)(agora - proximo) >= 0 funciona mesmo quando o millis() dá a volta
   if ((long)(agora - proximoCicloMs) >= 0) {
@@ -542,5 +752,6 @@ void loop() {
     decidirRiscoERele(agora);
     imprimirStatus(agora);
     atualizarDisplay(agora);
+    publicar(agora);
   }
 }

@@ -8,7 +8,7 @@
 //
 //   TA  34.6C  LARANJA     <- valor atual e nível de risco
 //   T30.2C U50% V2.0m/s    <- leituras (ou o problema, se houver)
-//   Rele:LIGADO   02:15    <- status do atuador
+//   Rele:LIGADO   02:15    <- status do atuador (REMOTO = ligado pela nuvem)
 //   E1 WiFi:OK  MQTT:OK    <- estação e conexão
 //
 // Cada linha tem SEMPRE 20 caracteres (completa com espaços): assim
@@ -61,17 +61,19 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
   // Linha 2: o relé (ligado mostra há quanto tempo, em mm:ss)
   if (d.releLigado) {
     unsigned long s = d.releHaMs / 1000;
-    snprintf(tmp, sizeof(tmp), "Rele:LIGADO   %02lu:%02lu", s / 60, s % 60);
+    snprintf(tmp, sizeof(tmp), "Rele:%-8s %02lu:%02lu",
+             d.releMotivo == RELE_REMOTO_LIGADO ? "REMOTO" : "LIGADO", s / 60, s % 60);
   } else {
     const char* porque = d.releMotivo == RELE_CONFIRMANDO ? "DESL confirma"
                        : d.releMotivo == RELE_DESCANSO    ? "DESL descanso"
                        : d.releMotivo == RELE_BLOQUEADO   ? "DESL (falha)"
+                       : d.releMotivo == RELE_REMOTO_DESLIGADO ? "DESL remoto"
                                                           : "desligado";
     snprintf(tmp, sizeof(tmp), "Rele:%s", porque);
   }
   ajustarLinha(linhas[2], tmp);
 
-  // Linha 3: estação e conexão (o WiFi e o MQTT chegam no Passo 4)
+  // Linha 3: estação e conexão
   snprintf(tmp, sizeof(tmp), "%s WiFi:%s  MQTT:%s", d.estacao,
            d.wifiOk ? "OK" : "--", d.mqttOk ? "OK" : "--");
   ajustarLinha(linhas[3], tmp);

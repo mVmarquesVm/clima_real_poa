@@ -162,3 +162,31 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Escolhi o LCD 20x4.
 - No meu teste, o vento ficava parado em 2,0 m/s mesmo mexendo no slider. A IA reproduziu o problema no Wokwi e achou a causa: o `diagram.json` fixava `"vento": "2"` nos `attrs` do chip, e com isso o Wokwi ignora o slider. Com `"attrs": {}`, o slider voltou a funcionar (7,1 m/s no slider deu `Vento=7.3` e `7.0` no Serial).
 - (preencher depois do meu teste no Wokwi)
+
+---
+
+## Passo 4 — Edge: WiFi, MQTT no ThingSpeak e comandos remotos (13/11/2026)
+
+**O que eu pedi**
+- Continuar o projeto com o Passo 4.
+- Decidi, entre as opções que a IA mostrou:
+  - a configuração remota chega pelo **field8 do próprio canal no ThingSpeak** (e não por um broker público), para ficar tudo na plataforma IoT que a rubrica pede;
+  - a senha MQTT fica num `secrets.h` fora do Git, com uma credencial do ThingSpeak que **só acessa o canal da E1**, porque o projeto no Wokwi é visível para quem tem o link;
+  - autorizei a instalação da biblioteca `PubSubClient` 2.8 no arduino-cli.
+
+**O que a IA gerou**
+- `edge/rede.h`: a espera crescente (backoff) das reconexões: WiFi em 5 s, 10 s, 20 s... e MQTT em 2 s, 4 s, 8 s..., até 1 min.
+- `edge/nuvem.h`: a mensagem publicada (7 campos + status; dado não confiável não é enviado) e a validação dos comandos do field8 (`lim:A,B,C`, `rele:on|off|auto`), com limite de tamanho, formato, faixa, ordem e frequência.
+- `edge/rele.h`: o acionamento remoto (`rele:on` volta sozinho ao automático depois de 10 min; o fail-safe continua acima de tudo).
+- `edge/sketch.ino`: conexão WiFi/MQTT sem travar o `loop()`, publicação a cada 20 s, recepção dos comandos, limites guardados na flash (NVS) e os comandos `d` (queda do WiFi por 30 s) e `m` (queda do MQTT) para o vídeo.
+- `edge/secrets.example.h`, `edge/config.h`, `edge/display.h`, `edge/libraries.txt` e o `testar.ps1` (compila com o modelo se o `secrets.h` não existir).
+- `edge/autoteste.h`: 22 testes novos, num total de 99, incluindo comandos maliciosos ou malformados.
+- `edge/README.md`: seção da nuvem, com os campos do canal, os comandos, o motivo da credencial restrita e o passo a passo no ThingSpeak.
+- Com a minha autorização, a IA criou pelo meu Chrome o dispositivo MQTT `estacao-E1`, com acesso só ao canal 3578427, e colocou o Channel ID no `secrets.h`. As credenciais quem copiou e colou fui eu.
+- Correção achada no teste do Wokwi: o comando `m` derrubava o MQTT, mas a estação reconectava na mesma hora, e a queda não aparecia nem no LCD nem no Serial. Agora o `m` segura a queda por 30 s, como o `d`, e toda queda é registrada antes da nova tentativa de conexão.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi o field8 para a configuração remota e a credencial restrita ao canal.
+- Criei a conta e o canal no ThingSpeak, dei nome aos campos e colei as credenciais MQTT no `secrets.h` do Wokwi.
+- (preencher: mandar um comando pelo navegador)
+

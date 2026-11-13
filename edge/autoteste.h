@@ -18,6 +18,8 @@
 #include "risco.h"
 #include "rele.h"
 #include "display.h"
+#include "rede.h"
+#include "nuvem.h"
 #include <string.h>
 
 struct Placar {
@@ -218,6 +220,79 @@ inline bool rodarAutoteste() {
   ruim.problema = nullptr;
   montarTela(ruim, tela);
   verificar(p, strlen(tela[1]) == LCD_COLUNAS, "display: valores extremos não estouram a linha");
+
+  // --- Relé: comando remoto (Passo 4) ---
+  ControleRele remoto;
+  definirModoRele(remoto, MODO_LIGAR, 0);
+  verificar(p, atualizarRele(remoto, 25, true, 32, 0) && remoto.motivo == RELE_REMOTO_LIGADO,
+            "rele:on liga na hora, mesmo sem calor");
+  verificar(p, !atualizarRele(remoto, 25, false, 32, 2000), "fail-safe vence o rele:on: sem dado confiável, desliga");
+  ControleRele expira;
+  definirModoRele(expira, MODO_LIGAR, 0);
+  atualizarRele(expira, 25, true, 32, 0);
+  verificar(p, !atualizarRele(expira, 25, true, 32, RELE_MAX_LIGADO_MS) && expira.modo == MODO_AUTO,
+            "rele:on volta sozinho ao automático depois do tempo máximo");
+  ControleRele manutencao;
+  definirModoRele(manutencao, MODO_DESLIGAR, 0);
+  bool ficouDesligado = true;
+  for (unsigned long t = 0; t <= 60000; t += 2000) ficouDesligado &= !atualizarRele(manutencao, 45, true, 32, t);
+  verificar(p, ficouDesligado && manutencao.motivo == RELE_REMOTO_DESLIGADO, "rele:off segura desligado mesmo com 45 °C");
+  dt.releMotivo = RELE_REMOTO_LIGADO;
+  montarTela(dt, tela);
+  verificar(p, strstr(tela[2], "REMOTO") && strlen(tela[2]) == LCD_COLUNAS, "display: relé ligado pela nuvem mostra REMOTO");
+
+  // --- Rede: espera crescente (backoff) ---
+  Backoff b;
+  verificar(p, backoffPodeTentar(b, 0), "backoff: a primeira tentativa é na hora");
+  backoffTentou(b, 0, 5000, 60000);
+  verificar(p, !backoffPodeTentar(b, 4999) && backoffPodeTentar(b, 5000), "backoff: depois da 1ª falha, espera 5 s");
+  backoffTentou(b, 5000, 5000, 60000);
+  verificar(p, b.esperaMs == 10000, "backoff: a espera dobra (10 s)");
+  for (int i = 0; i < 6; i++) backoffTentou(b, 0, 5000, 60000);
+  verificar(p, b.esperaMs == 60000, "backoff: a espera para em 1 min");
+  backoffConectou(b);
+  verificar(p, backoffPodeTentar(b, 1) && b.esperaMs == 0, "backoff: conectou, a próxima queda recomeça do início");
+
+  // --- Nuvem: a mensagem publicada ---
+  char msg[200];
+  Leitura l;
+  l.temp = 30;  l.umid = 50;  l.vento = 2;  l.lux = 50064;  l.ta = 34.6f;
+  l.nivel = RISCO_LARANJA;  l.releLigado = true;  l.status = "OK";
+  verificar(p, montarMensagem(l, msg, sizeof(msg)) &&
+               strcmp(msg, "field1=30.0&field2=50&field3=2.0&field4=50064&field5=34.6&field6=2&field7=1&status=OK") == 0,
+            "mensagem: os 7 campos e o status no formato do ThingSpeak");
+  Leitura semDado;
+  montarMensagem(semDado, msg, sizeof(msg));
+  verificar(p, strcmp(msg, "field6=4&field7=0") == 0, "mensagem: sem leitura confiável, só vai o risco (4) e o relé");
+  semDado.status = "a&b=c";
+  montarMensagem(semDado, msg, sizeof(msg));
+  verificar(p, strstr(msg, "status=a b:c") != nullptr, "mensagem: '&' e '=' no status não quebram a mensagem");
+  char pequeno[12];
+  verificar(p, !montarMensagem(l, pequeno, sizeof(pequeno)) && strlen(pequeno) < sizeof(pequeno),
+            "mensagem: buffer pequeno não estoura (avisa que não coube)");
+
+  // --- Nuvem: comandos que chegam pelo field8 ---
+  Comando c = interpretarComando("lim:28,33,40", 12);
+  verificar(p, c.tipo == CMD_LIMITES && c.limites.amarelo == 28 && c.limites.laranja == 33 && c.limites.vermelho == 40,
+            "comando lim:28,33,40 é aceito");
+  const char* bagunca = " LIM: 28, 33 ,40 ";
+  verificar(p, interpretarComando(bagunca, strlen(bagunca)).tipo == CMD_LIMITES, "comando aceita espaços e maiúsculas");
+  const char* invalidos[] = {"lim:33,28,40", "lim:28,33", "lim:28,33,40,50", "lim:abc,33,40",
+                             "lim:nan,33,40", "lim:5,33,40", "rele:talvez", "apagar:tudo"};
+  bool todosRejeitados = true;
+  for (const char* x : invalidos) todosRejeitados &= interpretarComando(x, strlen(x)).tipo == CMD_INVALIDO;
+  verificar(p, todosRejeitados, "comandos fora de ordem, incompletos, NaN, fora da faixa ou desconhecidos são rejeitados");
+  const char* longo = "lim:28.000000000,33.000000000,40.00000000";   // 41 letras
+  verificar(p, interpretarComando(longo, strlen(longo)).tipo == CMD_INVALIDO, "mensagem com mais de 40 letras é rejeitada");
+  verificar(p, interpretarComando("rele:on", 7).modo == MODO_LIGAR && interpretarComando("RELE:OFF", 8).modo == MODO_DESLIGAR
+               && interpretarComando("rele:auto", 9).modo == MODO_AUTO,
+            "comandos rele:on, rele:off e rele:auto");
+  verificar(p, interpretarComando("rele:onXYZ", 7).modo == MODO_LIGAR, "lê só o tamanho recebido (o MQTT não manda o '\0')");
+  verificar(p, interpretarComando("", 0).tipo == CMD_NADA && interpretarComando("null", 4).tipo == CMD_NADA,
+            "mensagem vazia (da própria publicação) é ignorada sem erro");
+  LimiteFrequencia freq;
+  verificar(p, frequenciaOk(freq, 0) && !frequenciaOk(freq, 4999) && frequenciaOk(freq, 5000),
+            "no máximo 1 comando a cada 5 s");
 
   Serial.printf("== Resultado: %d passaram, %d falharam ==\n", p.passou, p.falhou);
   return p.falhou == 0;

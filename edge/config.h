@@ -94,3 +94,20 @@ const unsigned long CONFIRMAR_RISCO_MS    = 10000;          // risco alto por 10
 const unsigned long CONFIRMAR_CALMA_MS    = 20000;          // calma por 20 s seguidos para desligar
 const unsigned long RELE_MIN_DESLIGADO_MS = 30000;          // descanso mínimo de 30 s
 const unsigned long RELE_MAX_LIGADO_MS    = 10UL * 60UL * 1000UL;  // no máximo 10 min ligado direto
+                                                                   // (vale também para o "rele:on" remoto)
+
+// --- Rede: WiFi e MQTT do ThingSpeak (as senhas ficam no secrets.h) ---
+#define WIFI_SSID          "Wokwi-GUEST"   // a rede do Wokwi: aberta, sem senha
+#define WIFI_CANAL         6               // dizer o canal acelera a conexão no Wokwi
+#define MQTT_SERVIDOR      "mqtt3.thingspeak.com"
+#define MQTT_PORTA         1883
+const unsigned long PUBLICAR_A_CADA_MS  = 20000;   // o ThingSpeak grátis aceita 1 gravação a cada 15 s
+const unsigned long WIFI_ESPERA_MIN_MS  = 5000;    // backoff do WiFi: 5 s, 10 s, 20 s... (o WiFi leva uns segundos)
+const unsigned long MQTT_ESPERA_MIN_MS  = 2000;    // backoff do MQTT: 2 s, 4 s, 8 s...
+const unsigned long REDE_ESPERA_MAX_MS  = 60000;   // ...até no máximo 1 min entre tentativas
+const unsigned long SIM_QUEDA_REDE_MS   = 30000;   // comandos 'd' (WiFi) e 'm' (MQTT): queda simulada de 30 s (para o vídeo)
+const uint16_t      MQTT_TAMANHO_BUFFER = 512;     // a mensagem com os 7 campos e o status passa de 256 bytes
+
+// --- Configuração remota (chega pelo field8) ---
+const unsigned int  CONFIG_MAX_TAMANHO      = 40;    // mensagem maior que isso é rejeitada
+const unsigned long CONFIG_MIN_INTERVALO_MS = 5000;  // no máximo 1 comando a cada 5 s (anti-enxurrada)

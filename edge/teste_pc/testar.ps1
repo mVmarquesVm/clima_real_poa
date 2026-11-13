@@ -41,6 +41,11 @@ Write-Host "`n### Etapa 3: compilar o firmware do ESP32 (arduino-cli)" -Foregrou
 $sketch = Join-Path $build 'sketch'
 New-Item -ItemType Directory -Force $sketch | Out-Null
 Copy-Item "$edge\sketch.ino", "$edge\*.h" $sketch -Force
+# Sem o secrets.h de verdade (ele fica fora do Git), compila com o modelo
+if (-not (Test-Path "$edge\secrets.h")) {
+    Copy-Item "$edge\secrets.example.h" "$sketch\secrets.h" -Force
+    Write-Host 'secrets.h nao existe: compilando com o secrets.example.h' -ForegroundColor Yellow
+}
 arduino-cli compile --fqbn esp32:esp32:esp32 --warnings default $sketch
 if ($LASTEXITCODE -ne 0) { Write-Host 'ERRO: o firmware nao compilou' -ForegroundColor Red; exit 1 }
 
