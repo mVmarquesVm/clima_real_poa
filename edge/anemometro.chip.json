@@ -1,0 +1,15 @@
+{
+  "name": "Anemometro (SparkFun SEN-15901)",
+  "author": "Matheus Marques De Souza",
+  "pins": ["SIG", "GND"],
+  "controls": [
+    {
+      "id": "vento",
+      "label": "Vento (m/s)",
+      "type": "range",
+      "min": 0,
+      "max": 40,
+      "step": 0.1
+    }
+  ]
+}

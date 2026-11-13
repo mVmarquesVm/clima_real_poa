@@ -14,6 +14,8 @@
 #define PINO_DHT          15
 #define PINO_ENERGIA_DHT   4   // o DHT22 é alimentado por este pino: assim o ESP32 consegue
                                // desligar e religar o sensor para destravá-lo (gasta ~2,5 mA)
+#define PINO_ANEMOMETRO   27   // chave magnética para o GND; usa o pull-up interno do ESP32
+#define PINO_LDR          34   // tem que ser do ADC1: o ADC2 para de funcionar com o WiFi ligado (Passo 4)
 
 // --- Tempo ---
 const unsigned long INTERVALO_LEITURA_MS = 2000;  // o DHT22 só gera leitura nova a cada 2 s
@@ -46,5 +48,23 @@ const uint32_t      MAX_REINICIOS_POR_SENSOR   = 2;       // depois disso, para 
 const unsigned long ESPERA_MANUTENCAO_MS       = 10UL * 60UL * 1000UL;  // em manutenção, tenta a cada 10 min
 const unsigned long ESTAVEL_PARA_ZERAR_MS      = 10UL * 60UL * 1000UL;  // 10 min bem = zera os reinícios
 
-// --- Vento: fica em 0 até o anemômetro entrar (Passo 2.3) ---
-const float VENTO_SEM_SENSOR_MS = 0.0f;
+// --- Anemômetro (SparkFun SEN-15901): 1 pulso por segundo = 2,4 km/h ---
+const float         MS_POR_PULSO_POR_S     = 2.4f / 3.6f;  // = 0,667 m/s
+const unsigned long DEBOUNCE_ANEMOMETRO_US = 5000;   // 2 pulsos a menos de 5 ms = "tremida" da chave
+                                                     // (5 ms = 200 pulsos/s = 133 m/s: nunca é vento real)
+const float         VENTO_MAX_MS           = 50.0f;  // 180 km/h: acima disso é ruído, não vento
+
+// --- LDR (módulo do Wokwi: LDR em série com 10 kΩ) ---
+const float LDR_RL10_OHMS   = 50000.0f;  // resistência a 10 lux (atributo "rl10" do Wokwi)
+const float LDR_GAMMA       = 0.7f;      // inclinação da curva do LDR (atributo "gamma")
+const float LDR_R_FIXO_OHMS = 10000.0f;
+const float ADC_VREF        = 3.3f;      // o módulo é ligado no 3V3
+const int   ADC_MAX         = 4095;      // ADC de 12 bits
+const int   ADC_LDR_MIN     = 5;         // grudado no 0 ou no máximo = fio solto ou curto
+const int   ADC_LDR_MAX     = 4090;      // (sol forte dá ~32; noite de lua dá ~4060)
+
+// --- Da luz para a radiação no corpo (APROXIMAÇÃO: ver README) ---
+const float LUX_POR_W_M2         = 120.0f;    // luz do sol: ~120 lux = 1 W/m²
+const float FATOR_ABSORCAO_CORPO = 0.12f;     // fração que o corpo absorve, na média da pele
+const float LUX_MAX              = 120000.0f; // mais que o sol mais forte: corta aqui
+const float Q_PIOR_CASO          = 100.0f;    // = sol forte; usado se o LDR falhar

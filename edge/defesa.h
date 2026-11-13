@@ -29,6 +29,24 @@ inline bool leituraValida(float t, float ur) {
   return true;
 }
 
+// --- Barreira 1 do anemômetro e do LDR ---
+// O vento muda de verdade em rajadas, então NÃO passa pelo filtro de
+// salto: um pulo de vento é normal. Só a faixa física é conferida.
+inline bool ventoValido(float v) {
+  return !isnan(v) && v >= 0.0f && v <= VENTO_MAX_MS;
+}
+
+inline bool ldrValido(int adc) {
+  return adc >= ADC_LDR_MIN && adc <= ADC_LDR_MAX;
+}
+
+// Leitura ruim de vento ou de luz: usa o PIOR CASO, não um chute.
+// Sem vento e com sol forte, a sensação calculada é a mais alta possível.
+// Analogia: com a balança quebrada, o elevador assume que está lotado.
+// Errar para o lado do alerta é melhor do que deixar alguém passar mal.
+inline float ventoSeguro(bool valido, float v)    { return valido ? v : 0.0f; }
+inline float radiacaoSegura(bool valido, float q) { return valido ? q : Q_PIOR_CASO; }
+
 // --- Barreira 2: filtro de salto ---
 // Analogia: se o amigo que sempre chega às 8h aparece às 3h da manhã,
 // você desconfia. Se ele aparecer de novo no mesmo horário amanhã,

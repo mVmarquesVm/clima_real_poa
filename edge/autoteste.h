@@ -12,6 +12,7 @@
 #include <math.h>
 #include "config.h"
 #include "sensacao.h"
+#include "conversao.h"
 #include "defesa.h"
 #include "vigia.h"
 
@@ -36,9 +37,32 @@ inline bool rodarAutoteste() {
 
   // --- Física da sensação térmica ---
   verificar(p, perto(pressaoVapor(30, 100), 42.29f, 0.05f),        "pressão de vapor a 30 °C e 100% ≈ 42,29 hPa");
-  verificar(p, perto(temperaturaAparente(30, 50, 0), 32.98f, 0.05f), "TA a 30 °C, 50%, sem vento ≈ 32,98 °C");
-  verificar(p, perto(temperaturaAparente(30, 50, 2), 31.58f, 0.05f), "vento de 2 m/s baixa a TA em 1,4 °C");
-  verificar(p, temperaturaAparente(20, 40, 0) < 20.0f,              "ar seco e ameno parece mais fresco que o termômetro");
+  verificar(p, perto(temperaturaAparente(30, 50, 0, 0), 33.11f, 0.05f),   "TA a 30 °C, 50%, sombra e sem vento ≈ 33,11 °C");
+  verificar(p, perto(temperaturaAparente(30, 50, 0, 0), 32.98f, 0.20f),   "sem sol, fica a menos de 0,2 °C da versão de sombra");
+  verificar(p, perto(temperaturaAparente(30, 50, 2, 0), 31.71f, 0.05f),   "vento de 2 m/s baixa a TA em 1,4 °C");
+  verificar(p, perto(temperaturaAparente(30, 50, 0, 100), 40.11f, 0.05f), "sol forte (Q=100) sem vento soma 7 °C");
+  verificar(p, temperaturaAparente(30, 50, 5, 100) - temperaturaAparente(30, 50, 5, 0) < 5.0f,
+            "com vento de 5 m/s, o mesmo sol soma menos (≈ 4,7 °C)");
+  verificar(p, temperaturaAparente(20, 40, 0, 0) < 20.0f,                 "ar seco e ameno parece mais fresco que o termômetro");
+
+  // --- Conversões: anemômetro e LDR ---
+  verificar(p, perto(ventoDePulsos(3, 2000), 1.0f, 0.01f), "3 pulsos em 2 s = 1,0 m/s (2,4 km/h por pulso/s)");
+  verificar(p, ventoDePulsos(0, 2000) == 0.0f,             "nenhum pulso = sem vento");
+  verificar(p, isnan(ventoDePulsos(5, 0)),                 "janela de tempo zero não divide por zero");
+  verificar(p, perto(luxDoAdc(3412), 10.0f, 0.1f),         "ADC 3412 = 10 lux (LDR com 50 kΩ)");
+  verificar(p, luxDoAdc(32) > 90000.0f,                    "ADC 32 = sol forte (~100.000 lux)");
+  verificar(p, perto(radiacaoDeLux(100000), 100.0f, 0.5f), "100.000 lux = Q de 100 W/m²");
+  verificar(p, radiacaoDeLux(0) == 0.0f && radiacaoDeLux(NAN) == 0.0f, "escuro (ou NaN) = sem sol");
+  verificar(p, perto(radiacaoDeLux(1e9f), radiacaoDeLux(LUX_MAX), 0.01f), "luz absurda é cortada no máximo");
+
+  // --- Barreira 1 do anemômetro e do LDR ---
+  verificar(p,  ventoValido(10),                       "vento de 10 m/s é aceito");
+  verificar(p, !ventoValido(60) && !ventoValido(-1),   "vento acima de 180 km/h ou negativo é rejeitado");
+  verificar(p, !ventoValido(NAN),                      "vento NaN é rejeitado");
+  verificar(p,  ldrValido(2048),                       "LDR no meio da faixa é aceito");
+  verificar(p, !ldrValido(0) && !ldrValido(ADC_MAX),   "LDR grudado no 0 ou no máximo = fio solto ou curto");
+  verificar(p, ventoSeguro(false, 8) == 0.0f,          "vento com defeito vira 0 (pior caso)");
+  verificar(p, radiacaoSegura(false, 10) == Q_PIOR_CASO, "LDR com defeito vira sol forte (pior caso)");
 
   // --- Barreira 1: faixa física ---
   verificar(p,  leituraValida(25, 50),  "leitura normal é aceita");

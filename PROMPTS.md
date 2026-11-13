@@ -107,3 +107,31 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu aprendi**
 - Resultado perto não quer dizer conta certa: por isso o autoteste tem vários casos.
 - No calor, o `exp` amplifica: só 0,2 °C a mais muda a sensação em 0,3 °C.
+
+---
+
+## Passos 2.3 e 2.4 — Edge: anemômetro, LDR e fórmula completa (12/11/2026)
+
+**O que eu pedi**
+- Continuar o projeto a partir do Passo 2.3: explicar a fórmula completa de Steadman (com vento e sol) antes do código, e depois implementar o anemômetro e o LDR.
+- Entre as duas opções de anemômetro (analógico, como o da Adafruit, ou por pulsos, como o da SparkFun), **escolhi o por pulsos**, mesmo sendo o mais trabalhoso, por ser mais fiel ao hardware real.
+
+**O que a IA explicou antes do código**
+- A fórmula completa: `TA = T + 0,348·e − 0,70·v + 0,70·Q/(v + 10) − 4,25`, e por que o vento divide o termo do sol.
+- Por que os coeficientes mudam em relação à versão de sombra: são dois ajustes (como regressões) do modelo grande do Steadman, um com o sol e outro sem; com Q = 0, a diferença fica perto de 0,1 °C, menor que o erro do DHT22.
+- A conversão do LDR: ADC → lux (curva do LDR) → W/m² (~120 lux por W/m²) → Q (o corpo absorve ~12%). É uma aproximação, declarada no README.
+
+**O que a IA gerou**
+- `edge/anemometro.chip.json` e `edge/anemometro.chip.c`: chip customizado do Wokwi que imita o anemômetro da SparkFun (1 fechamento por segundo = 2,4 km/h), com slider de vento.
+- `edge/conversao.h`: pulsos → vento (m/s), ADC → lux, lux → Q.
+- `edge/sensacao.h`: troca para a fórmula completa de Steadman.
+- `edge/defesa.h`: faixa física do vento e do LDR, e o **pior caso** quando a leitura falha (vento 0 e sol forte).
+- `edge/sketch.ino`: interrupção que conta os pulsos (com debounce e seção crítica), leitura do LDR no ADC1, avisos de erro e impressão no Serial de temperatura, umidade, vento, luz e sensação.
+- `edge/config.h` e `edge/diagram.json`: pinos (anemômetro no GPIO 27, LDR no GPIO 34) e as constantes novas.
+- `edge/autoteste.h`: 18 testes novos, num total de 49. O caso de 35 °C e 60% continua fora dos testes.
+- `edge/teste_pc/wokwi-api.h` e `edge/teste_pc/teste_chip.c`: um Wokwi falso que roda o chip no PC e confere os pulsos; o `testar.ps1` ganhou essa etapa.
+- `edge/README.md`: seções da fórmula, da aproximação do LDR, do anemômetro, das defesas, das ligações e das limitações.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi o anemômetro por pulsos.
+- (preencher depois de rodar no Wokwi)

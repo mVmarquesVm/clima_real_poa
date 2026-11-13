@@ -20,3 +20,4 @@
 | 12/11/2026 | Estrutura do repositório e arquivos-base | Revisei os arquivos e fiz o primeiro commit sozinho |
 | 12/11/2026 | Edge: leitura do DHT22, Temperatura Aparente, watchdog, defesas e autoteste | Autoteste no boot do ESP32; valores esperados conferidos em Python; testes manuais no Wokwi (salto de temperatura e travamento com `w`) |
 | 12/11/2026 | Edge: teste no PC (`edge/teste_pc/`) | Os 31 autotestes rodam no PC com g++ (sem avisos com `-Wall -Wextra`) e o firmware compila para o ESP32 com arduino-cli |
+| 12/11/2026 | Edge: anemômetro (chip customizado), LDR e fórmula completa de Steadman | Valores esperados calculados à parte, em Python; 49 autotestes no PC; o chip roda num Wokwi falso e gera os pulsos do datasheet da SparkFun; o firmware compila sem avisos; a especificação do anemômetro e do LDR foi conferida no guia da SparkFun e na documentação do Wokwi |

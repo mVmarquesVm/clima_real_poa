@@ -1,8 +1,8 @@
 // ============================================================
 // Forno Alegre — estação de "calor real"
-// Passo 2: lê o DHT22 a cada 2 s, calcula a Temperatura Aparente,
-// com watchdog do programa, vigia do sensor, defesa da leitura
-// e autoteste no boot.
+// Passo 2: a cada 2 s lê o DHT22, o anemômetro e o LDR e calcula a
+// Temperatura Aparente (com vento e sol), com watchdog do programa,
+// vigia do sensor, defesa da leitura e autoteste no boot.
 // ============================================================
 
 #include <Arduino.h>
@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include "sensacao.h"
+#include "conversao.h"
 #include "defesa.h"
 #include "vigia.h"
 #include "autoteste.h"
@@ -28,6 +29,50 @@ Recuperacao       recuperacao;
 float tempC     = NAN;   // últimos valores ACEITOS
 float umid      = NAN;
 float sensacaoC = NAN;
+
+// Vento e luz: se a leitura vier ruim, o cálculo usa o pior caso (defesa.h)
+float ventoMs        = 0.0f;
+bool  ventoOk        = false;
+bool  haviaErroVento = false;
+float luxAtual       = 0.0f;
+float radiacaoQ      = 0.0f;
+bool  luzOk          = false;
+bool  haviaErroLuz   = false;
+int   ultimoAdcLdr   = 0;
+
+// ---------- Anemômetro: contagem de pulsos por interrupção ----------
+// Analogia: a interrupção é a campainha. O ESP32 não fica olhando o
+// pino o tempo todo; quando a chave fecha, a campainha toca, ele marca
+// +1 e volta ao que estava fazendo. Assim nenhum pulso se perde, nem
+// quando o loop está ocupado lendo o DHT22.
+// volatile: avisa o compilador que essa variável muda "por fora"
+// (na interrupção), então ele tem que ler da memória toda vez.
+volatile uint32_t pulsosVento   = 0;
+volatile uint32_t ultimoPulsoUs = 0;
+portMUX_TYPE      travaVento    = portMUX_INITIALIZER_UNLOCKED;
+unsigned long     inicioJanelaVentoMs = 0;
+
+// IRAM_ATTR: a função fica na RAM interna, que responde na hora
+// (uma interrupção não pode esperar a memória flash).
+void IRAM_ATTR aoPulsoDoAnemometro() {
+  uint32_t agora = micros();
+  portENTER_CRITICAL_ISR(&travaVento);
+  if (agora - ultimoPulsoUs >= DEBOUNCE_ANEMOMETRO_US) {   // ignora a "tremida" da chave
+    pulsosVento = pulsosVento + 1;   // (o "++" em volatile é obsoleto no C++20)
+    ultimoPulsoUs = agora;
+  }
+  portEXIT_CRITICAL_ISR(&travaVento);
+}
+
+// Pega o total e zera, sem deixar a interrupção mexer no meio.
+// Analogia: o caixa do banco fecha a porta enquanto conta o dinheiro.
+uint32_t pegarEZerarPulsos() {
+  portENTER_CRITICAL(&travaVento);
+  uint32_t n = pulsosVento;
+  pulsosVento = 0;
+  portEXIT_CRITICAL(&travaVento);
+  return n;
+}
 
 unsigned long proximoCicloMs   = INTERVALO_LEITURA_MS;
 bool          modoSeguro       = false;
@@ -182,10 +227,48 @@ void lerSensor(unsigned long agora) {
   // Passou por tudo: agora sim vira o valor oficial da estação
   tempC     = d.temperature;
   umid      = d.humidity;
-  sensacaoC = temperaturaAparente(tempC, umid, VENTO_SEM_SENSOR_MS);
   registrarSucesso(saude, agora);   // Barreira 3: zera o contador de falhas
 
   sensorTravado = DETECTAR_VALOR_TRAVADO && valorTravado(travamento, tempC, umid, agora);
+}
+
+// ---------- Vento: pulsos contados desde a última leitura ----------
+void lerVento(unsigned long agora) {
+  uint32_t pulsos = pegarEZerarPulsos();
+  unsigned long janela = agora - inicioJanelaVentoMs;   // tempo REAL desde a última contagem
+  inicioJanelaVentoMs = agora;
+
+  float v = ventoDePulsos(pulsos, janela);
+  ventoOk = ventoValido(v);
+  if (ventoOk) ventoMs = v;
+
+  if (!ventoOk && !haviaErroVento) alertar("ALERTA", "anemometro com leitura impossivel. Usando vento 0 (pior caso).");
+  if (ventoOk && haviaErroVento)   alertar("OK", "anemometro voltou ao normal");
+  haviaErroVento = !ventoOk;
+}
+
+// ---------- Luz: LDR -> lux -> radiação no corpo (Q) ----------
+void lerLuz() {
+  ultimoAdcLdr = analogRead(PINO_LDR);
+  luzOk = ldrValido(ultimoAdcLdr);
+  if (luzOk) {
+    luxAtual  = luxDoAdc(ultimoAdcLdr);
+    radiacaoQ = radiacaoDeLux(luxAtual);
+  }
+
+  if (!luzOk && !haviaErroLuz) alertar("ALERTA", "LDR com leitura impossivel (fio solto ou curto). Usando sol forte (pior caso).");
+  if (luzOk && haviaErroLuz)   alertar("OK", "LDR voltou ao normal");
+  haviaErroLuz = !luzOk;
+}
+
+// ---------- Sensação térmica: junta os 4 valores ----------
+// Só existe se o DHT22 tem leitura aceita. Vento ou luz com defeito
+// entram como pior caso (ventoSeguro / radiacaoSegura, em defesa.h).
+void calcularSensacao() {
+  if (isnan(tempC) || isnan(umid)) return;
+  sensacaoC = temperaturaAparente(tempC, umid,
+                                  ventoSeguro(ventoOk, ventoMs),
+                                  radiacaoSegura(luzOk, radiacaoQ));
 }
 
 // O dado pode ser usado para DECIDIR (relé, alerta ao público)?
@@ -247,13 +330,20 @@ void vigiarSensor(unsigned long agora) {
 void imprimirStatus(unsigned long agora) {
   const char* extra = modoSeguro ? " | MODO SEGURO"
                     : recuperacao.emManutencao ? " | MANUTENCAO" : "";
+  char textoVento[24];
+  char textoLuz[40];
+  if (ventoOk) snprintf(textoVento, sizeof(textoVento), "%.1f m/s", ventoMs);
+  else         snprintf(textoVento, sizeof(textoVento), "ERRO (usa 0)");
+  if (luzOk)   snprintf(textoLuz, sizeof(textoLuz), "%.0f lux (Q=%.0f W/m2)", luxAtual, radiacaoQ);
+  else         snprintf(textoLuz, sizeof(textoLuz), "ERRO adc=%d (usa Q=%.0f)", ultimoAdcLdr, Q_PIOR_CASO);
+
   if (dadoConfiavel(agora)) {
-    Serial.printf("[%s] T=%.1f C  UR=%.0f%%  Sensacao=%.1f C | sensor=%s | ativo ha %lus%s\n",
-                  ID_ESTACAO, tempC, umid, sensacaoC, textoEstado(saude.estado),
-                  agora / 1000, extra);
+    Serial.printf("[%s] T=%.1f C  UR=%.0f%%  Vento=%s  Luz=%s  Sensacao=%.1f C | sensor=%s | ativo ha %lus%s\n",
+                  ID_ESTACAO, tempC, umid, textoVento, textoLuz, sensacaoC,
+                  textoEstado(saude.estado), agora / 1000, extra);
   } else {
-    Serial.printf("[%s] SEM LEITURA CONFIAVEL | sensor=%s (falhas seguidas: %u) | ativo ha %lus%s\n",
-                  ID_ESTACAO, textoEstado(saude.estado), saude.falhasSeguidas,
+    Serial.printf("[%s] SEM LEITURA CONFIAVEL | Vento=%s  Luz=%s | sensor=%s (falhas seguidas: %u) | ativo ha %lus%s\n",
+                  ID_ESTACAO, textoVento, textoLuz, textoEstado(saude.estado), saude.falhasSeguidas,
                   agora / 1000, extra);
   }
 }
@@ -292,6 +382,14 @@ void setup() {
 
   pinMode(PINO_ENERGIA_DHT, OUTPUT);
   ligarSensor(millis());
+
+  // Anemômetro: a chave liga o pino ao GND; o pull-up interno segura o
+  // HIGH quando ela abre. FALLING = conta quando a linha CAI (a chave fecha).
+  pinMode(PINO_ANEMOMETRO, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PINO_ANEMOMETRO), aoPulsoDoAnemometro, FALLING);
+  inicioJanelaVentoMs = millis();
+
+  analogReadResolution(12);   // 0 a 4095 (ADC_MAX)
   randomSeed(micros());   // só para a simulação de "sensor louco"
 
   Serial.println("Comandos no Serial: w = travar programa | f = sensor em falha | x = sensor louco | n = normal");
@@ -315,11 +413,14 @@ void loop() {
     }
 
     atualizarJanela(instabilidade, agora);
+    lerVento(agora);   // vento e luz não dependem do DHT22: são lidos sempre
+    lerLuz();
     if (sensorPronto(agora)) {
       lerSensor(agora);
     } else {
       Serial.println("  sensor desligado ou aquecendo, leitura pulada");
     }
+    calcularSensacao();
     vigiarSensor(agora);
     imprimirStatus(agora);
   }
