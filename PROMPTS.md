@@ -63,7 +63,7 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Pedi o watchdog, as defesas e os testes.
 - Achei a falha de projeto: o watchdog só protegia o programa, não o sensor.
-- (preencher depois de rodar no Wokwi)
+- Rodei no Wokwi e testei à mão o salto de temperatura (o filtro só aceita o pulo quando ele se repete) e o travamento com o comando `w` (o watchdog reinicia o ESP32).
 
 ---
 
@@ -161,7 +161,7 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Escolhi o LCD 20x4.
 - No meu teste, o vento ficava parado em 2,0 m/s mesmo mexendo no slider. A IA reproduziu o problema no Wokwi e achou a causa: o `diagram.json` fixava `"vento": "2"` nos `attrs` do chip, e com isso o Wokwi ignora o slider. Com `"attrs": {}`, o slider voltou a funcionar (7,1 m/s no slider deu `Vento=7.3` e `7.0` no Serial).
-- (preencher depois do meu teste no Wokwi)
+- Pedi para acelerar o ritmo: a IA implementa, e eu testo e reviso o código. Testei no Wokwi junto com a IA (77/77 autotestes, LED laranja com TA de 34,6 °C, relé ligando 10 s depois e o LCD mostrando tudo) e pedi para mudar alguns dados.
 
 ---
 
@@ -188,7 +188,7 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Escolhi o field8 para a configuração remota e a credencial restrita ao canal.
 - Criei a conta e o canal no ThingSpeak, dei nome aos campos e colei as credenciais MQTT no `secrets.h` do Wokwi.
-- (preencher: mandar um comando pelo navegador)
+- Testei o envio de um comando pelo field8, pelo navegador, com a URL de update do ThingSpeak.
 
 ## Passo 4.3 — Edge: nome do produto e dashboard no ThingSpeak (13/11/2026)
 
@@ -211,5 +211,47 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
   - medidor no ThingSpeak ampliado para −10 a 60 °C, com uma faixa azul de frio; depois **pedi para ir até 65 °C**, pensando no aquecimento global e na urbanização sem verde (a IA conferiu: 43 °C, 55% e sol forte, sem vento, já dão TA de 62 °C);
   - `edge/README.md`: explicação do frio e duas limitações novas;
   - teste no Wokwi (feito pela IA, pelo meu Chrome, com o meu ok): 105/105 no ESP32. Com 2 °C e 80%, o LCD mostrou `TA 3.2C FRIO`, com o LED verde aceso, o relé desligando depois da calma e a nuvem recebendo TA 3,2, risco 0 e relé 0. Com vento de 8 m/s, mostrou `TA -3.9C FRIO`.
-- (preencher: conferir o dashboard numa janela anônima)
+- Pedi para a IA conferir o acesso público. Em 13/11, sem login, a página do canal abriu com o nome e o widget da sensação térmica, e a API pública (`feeds.json`, sem chave) devolveu os dados.
+
+## Python 1 — Dados oficiais, simulador das estações e ranking (13/11/2026)
+
+**O que eu pedi**
+- Passar para a disciplina de Python e entender onde entra o cálculo da sensação térmica (no Edge, no Python ou na Matemática).
+- Autorizei criar um `venv` em `python/.venv` e instalar `pandas`, `matplotlib` e `requests`. A IA também instalou o `pytest` sem ter pedido antes e me avisou; ele ficou separado no `requirements.txt`.
+- Escolhi que as estações simuladas fiquem **em CSV agora**; publicar no ThingSpeak fica para depois.
+
+**O que a IA gerou**
+- `python/sensacao.py`: a fórmula de Steadman e os níveis de risco, iguais aos do ESP32, e `test_sensacao.py`, com os mesmos casos do autoteste do ESP32 (4 testes).
+- `python/oficial.py`: baixa do Open-Meteo (reanálise ERA5) os dados horários do Centro de POA e calcula a sensação na sombra e ao sol. Salva em `dados/` para rodar sem internet.
+- `python/simulador.py`: gera as 4 estações aplicando o efeito de cada tipo de local (hipóteses documentadas, a calibrar com as estações reais). A E1 também é simulada nessa análise, porque os dados dela no ThingSpeak vêm do Wokwi, e não de fevereiro de 2025.
+- `python/ranking.py`: horas por dia em risco, dose de calor (°C·h acima de 32 °C), sensação máxima e diferença em relação à previsão; ranking e 2 gráficos (paleta validada para daltonismo, com rótulos diretos).
+- `python/README.md` com o problema, o que o programa faz, o Quickstart, o resultado, as hipóteses, as fontes e as limitações.
+- Resultado da semana de 03 a 09/02/2025: a previsão mostrou no máximo 37,5 °C, e a sensação ao sol com os mesmos dados oficiais chegou a 47,0 °C; o concreto do Harmonia lidera o ranking, e o refúgio sob as árvores fica ~10 °C abaixo ao meio-dia.
+
+**O que eu mudei ou fiz sozinho**
+- Decidi o ambiente isolado e a ordem (CSV antes da nuvem).
+- **Não aceitei as hipóteses** e pedi dados reais (sugeri uma API de clima, como a do Google). Ver "Python 2".
+
+## Python 2 — Só dados reais: INMET + satélite (13/11/2026)
+
+**O que eu pedi**
+- "Faça com dados reais, sem hipóteses", por exemplo com uma weather API do Google.
+- A IA conferiu e explicou que a Google Weather API só guarda as últimas 24 h e que qualquer API de clima é dado de modelo numa grade de quilômetros: nos 4 locais (1 a 3 km de distância), ela daria quase o mesmo número e esconderia a ilha de calor. Ela testou e mostrou as fontes medidas.
+- Escolhi: **satélite + INMET**; autorizei baixar o arquivo de 2025 do INMET (91 MB, só a estação A801 fica no projeto); e mandei **apagar o simulador**.
+
+**O que a IA gerou**
+- `python/locais.py`: as áreas reais dos 4 locais, do OpenStreetMap (polígonos do largo e dos parques; círculo de 60 m no calçadão), salvas em `dados/locais.geojson`.
+- `python/oficial.py` reescrito: lê o CSV oficial da estação A801 (UTC → horário de Brasília, kJ/m² → W/m², -9999 = sem dado) e calcula a sensação na sombra e ao sol.
+- `python/satelite.py`: acha as 6 passagens de verão do Landsat sem nuvens (2024/25 e 2025/26) e o Sentinel-2 de 10/02/2025, e pede ao Microsoft Planetary Computer a média, o mínimo e o máximo da superfície e do NDVI em cada área. Não precisa de chave nem de biblioteca nova.
+- `python/ranking.py` reescrito: ranking pela superfície média do verão, NDVI e diferença em relação ao ar do INMET; 2 gráficos.
+- `python/test_dados.py`: 4 testes novos (kJ → W, banda térmica, círculo, leitura do arquivo real do INMET com a hora convertida), num total de 8.
+- Apagados: `simulador.py` e os CSVs e o gráfico gerados pela versão com hipóteses.
+- README do Python reescrito, com o que os dados reais mostram e o que **não** mostram.
+- Resultados: o INMET mediu no máximo 37,3 °C no ar, e a sensação ao sol chegou a 47,0 °C (04/02/2025, 15h). Ranking da superfície: Harmonia (41,5 °C) > Largo (39,5) > Marinha (37,7) > calçadão (35,7). O dado real derrubou uma hipótese da versão anterior: o calçadão, sombreado pelos prédios às 10h e perto da Praça da Alfândega, é o mais fresco.
+- A IA errou e corrigiu: gravou um arquivo temporário fora do projeto (apagado) e escreveu no README duas frases que os dados não sustentavam (a ordem "igual nas 6 passagens" e o pixel "parecido" com os 61 °C do InGá).
+
+**O que eu mudei ou fiz sozinho**
+- Recusei os dados com hipóteses e escolhi as fontes reais.
+- Rodei o `ranking.py` (a 1ª tentativa falhou porque eu estava na raiz do projeto, e não em `python/`).
+- **Observei que as médias de superfície não mostram a sensação térmica de fato.** A IA confirmou e separou três coisas: o satélite mede o piso, e não o ar nem a sensação; a média da área esconde os extremos (no Harmonia, a média é 41,5 °C, mas o pixel mais quente chega a 50,4 °C); e a passagem às 10h20 perde o pico da tarde. A medida em si é boa (erro de 1 a 2 °C); o problema é o que ela representa. Isso mostra por que as estações no local são necessárias.
 

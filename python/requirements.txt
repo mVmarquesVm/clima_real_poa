@@ -1,0 +1,8 @@
+# Forno Alegre — Python (Computational Thinking)
+# Instalar:  pip install -r requirements.txt
+pandas==3.1.1        # tabelas (as séries horárias das estações)
+matplotlib==3.11.2   # gráficos
+requests==2.34.2     # buscar dados na internet (Open-Meteo e ThingSpeak)
+
+# Só para rodar os testes (python -m pytest)
+pytest==9.2.0
