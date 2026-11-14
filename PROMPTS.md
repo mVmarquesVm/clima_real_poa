@@ -293,4 +293,25 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Verificação: `npm run build` e `npm run lint` sem erros.
 
 **O que eu mudei ou fiz sozinho**
-- (preencher)
+- Escolhi que o app lê os dados direto do navegador, sem servidor, para o professor conseguir rodar só com `npm install` e `npm run dev`.
+- Escolhi o que o mapa mostra: a E1 ao vivo + os 4 locais pelo ranking do satélite, sem estações simuladas.
+- Autorizei a instalação dos pacotes, só dentro de `frontend/`.
+- Fiz o commit da base pelo GitHub Desktop.
+
+
+## Front-end 2 — Tabela acessível dos locais (14/11/2026)
+
+**O que eu pedi**
+- Fazer primeiro o básico (mapa, funções e botões) e deixar para uma fase própria, depois, o design system (cores, layout, botões e comportamentos).
+- Lembrei a IA da regra dos subagentes para as tarefas pesadas.
+
+**O que a IA gerou**
+- `python/exportar_front.py`: junta as áreas do OSM, o ranking do satélite e as datas das passagens em `frontend/src/dados/locais.json` (o app importa o JSON pronto, sem rodar Python).
+- `frontend/src/lib/formato.js`: números e datas no padrão brasileiro e o NDVI em palavras (pouco verde, verde médio, muito verde).
+- `frontend/src/componentes/TabelaLocais.jsx`: a tabela dos 4 locais, com legenda (`caption`), cabeçalhos de coluna e de linha (o leitor de tela anuncia "Parque Harmonia, Piso no verão, 41,5 °C") e rolagem própria no celular, que recebe foco pelo teclado.
+- A IA avisou que o satélite mede o **piso**, e não a sensação térmica, então a tabela não leva selo de risco; o selo entra com a E1 ao vivo.
+- Verificação: `npm run build` e `npm run lint` sem erros; um subagente conferiu a página no navegador (desktop e celular) e devolveu só o resumo.
+
+**O que eu mudei ou fiz sozinho**
+- Decidi a ordem do Front: primeiro o básico (mapa, funções e botões), com estilo simples, e depois uma fase só para o design system.
+- Cobrei a regra dos subagentes no meio do passo; por isso a conferência no navegador foi feita por um subagente, que trouxe só o resumo.

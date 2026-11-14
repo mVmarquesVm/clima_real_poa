@@ -1,5 +1,8 @@
-// Esqueleto da página. Cada parte (mapa, lista, gráfico...) vira um componente
-// próprio nos próximos passos; aqui fica só a estrutura semântica.
+import TabelaLocais from './componentes/TabelaLocais'
+import dadosLocais from './dados/locais.json'
+
+// Esqueleto da página. Cada parte (mapa, lista, gráfico...) é um componente
+// próprio; aqui fica só a estrutura semântica e a ligação com os dados.
 export default function App() {
   return (
     <>
@@ -16,8 +19,11 @@ export default function App() {
         <p className="text-sm">Medindo a ilha de calor do Centro de Porto Alegre</p>
       </header>
 
-      <main id="conteudo" className="mx-auto max-w-6xl p-4">
-        <p>Em construção: mapa, lista de locais e melhor horário.</p>
+      <main id="conteudo" className="mx-auto max-w-6xl space-y-4 p-4">
+        <section aria-labelledby="titulo-locais" className="space-y-2">
+          <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
+          <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />
+        </section>
       </main>
     </>
   )
