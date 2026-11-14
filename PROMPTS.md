@@ -255,3 +255,26 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Rodei o `ranking.py` (a 1ª tentativa falhou porque eu estava na raiz do projeto, e não em `python/`).
 - **Observei que as médias de superfície não mostram a sensação térmica de fato.** A IA confirmou e separou três coisas: o satélite mede o piso, e não o ar nem a sensação; a média da área esconde os extremos (no Harmonia, a média é 41,5 °C, mas o pixel mais quente chega a 50,4 °C); e a passagem às 10h20 perde o pico da tarde. A medida em si é boa (erro de 1 a 2 °C); o problema é o que ela representa. Isso mostra por que as estações no local são necessárias.
 
+
+## Matemática — Derivada, integral e limite com o dia 04/02/2025 (13/11/2026)
+
+**O que eu pedi**
+- Uma regra fixa para a IA: em tarefa pesada (arquivo grande, muitas buscas), usar um subagente que traga só um resumo, para gastar menos tokens.
+- Aprovei o plano: o dia **04/02/2025** (o mesmo do Harmonia e do Python) e **só o NumPy** (sem instalar o SciPy).
+- Pedi que a IA escrevesse o código, porque o professor não ensinou a aplicar o Cálculo em Python.
+
+**O que a IA gerou**
+- Um subagente leu o CSV do INMET e devolveu só a tabela hora a hora de 04 e 05/02 e os picos, sem colar o arquivo na conversa.
+- `matematica/calculo.py`: as ferramentas de Cálculo, só com NumPy: ajuste de ondas de 24 h por mínimos quadrados, derivada, 2ª derivada e primitiva exatas, bisseção, somas de Riemann e o ajuste da lei de Newton.
+- `matematica/analise.py`: lê o INMET pelo `python/oficial.py` e roda M1 (modelo), M2 (derivada), M3 (integral) e M4 (limite); grava o `resultados.json`.
+- `matematica/graficos.py`: 4 gráficos, com a mesma paleta do Python.
+- `matematica/test_calculo.py`: 9 testes com funções de resposta conhecida.
+- README da Matemática com o problema, o modelo, as análises, a interpretação, as limitações e o Quickstart.
+- Resultados: pico de 46,9 °C às 14h07 (medido: 47,0 °C às 15h); aquecimento máximo de 3,2 °C/h às 09h55; dose de 116,4 °C·h acima de 32 °C, em 13,7 h; a noite tende a 23,3 °C (noite tropical).
+- A IA ajustou o próprio trabalho: escolheu 2 ondas comparando os erros de 1 a 4 ondas; tirou os símbolos que o terminal do Windows não mostra; e, como as regras de Riemann deram o mesmo número (a dose vale 0 nas pontas), deixou uma só no gráfico e explicou o porquê.
+- Relatório técnico (escolhi o formato: documento do Claude exportado em PDF): 9 seções (problema, dados, modelo, derivada, integral, limite, interpretação, limitações, conclusão e referências), com os 4 gráficos, salvo em `matematica/relatorio_matematica.pdf` (10 páginas). Ao revisar o texto, a IA corrigiu 4 frases que diziam mais do que os dados mostravam (ex.: "passaram de 35 °C" → "chegaram a 35 °C ou mais"; a madrugada não é "segura", e sim nível amarelo).
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi o dia 04/02/2025, só o NumPy e o formato do relatório (documento exportado em PDF).
+- Revisei o relatório e observei: "ele aprofunda, mostra o que o nosso modelo cobre, o que ele não foi feito para cobrir (como medidas gerais, e sim medidas mais precisas) e o que os outros dados cobrem mas deixam lacunas, como o calor no ar de fato, principalmente pelo fato dele não medir ilhas de calor intenso e como isso afeta as pessoas."
+- A IA ajustou a direção: o modelo da Matemática usa o dado geral (INMET, num gramado) e por isso mostra o **piso** do problema; o satélite mede o piso dos locais, e não o ar; só a estação Forno Alegre mede o ar e a sensação no ponto onde a pessoa está.

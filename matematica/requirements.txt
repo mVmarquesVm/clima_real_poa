@@ -1,0 +1,4 @@
+# Forno Alegre — Matemática (Differentiated Problem Solving)
+# Usa o mesmo ambiente do python/ (ele já tem o NumPy, que vem com o pandas).
+-r ../python/requirements.txt
+numpy==2.5.4         # álgebra linear (mínimos quadrados), senos, exponenciais
