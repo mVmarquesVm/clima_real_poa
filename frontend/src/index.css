@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/*
+  Cores do Forno Alegre (tokens do tema).
+  O Tailwind 4 transforma cada --color-* em classes: bg-risco-verde, text-risco-vermelho...
+  As cores de risco seguem as do LED da estação (edge/risco.h), para o app e o
+  equipamento falarem a mesma língua. A cor NUNCA vai sozinha: sempre com ícone + texto.
+*/
+@theme {
+  --color-risco-verde: #1a7f37;
+  --color-risco-amarelo: #f2c200;
+  --color-risco-laranja: #e8590c;
+  --color-risco-vermelho: #c92a2a;
+  --color-risco-frio: #1c7ed6;
+  --color-risco-semdado: #6b7280;
+
+  --color-marca: #c2410c;
+  --color-fundo: #fffaf5;
+  --color-texto: #1f2328;
+}
+
+html {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+}
+
+/* Quem pede menos movimento no sistema não recebe animações. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

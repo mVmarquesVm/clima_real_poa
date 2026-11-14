@@ -278,3 +278,19 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Escolhi o dia 04/02/2025, só o NumPy e o formato do relatório (documento exportado em PDF).
 - Revisei o relatório e observei: "ele aprofunda, mostra o que o nosso modelo cobre, o que ele não foi feito para cobrir (como medidas gerais, e sim medidas mais precisas) e o que os outros dados cobrem mas deixam lacunas, como o calor no ar de fato, principalmente pelo fato dele não medir ilhas de calor intenso e como isso afeta as pessoas."
 - A IA ajustou a direção: o modelo da Matemática usa o dado geral (INMET, num gramado) e por isso mostra o **piso** do problema; o satélite mede o piso dos locais, e não o ar; só a estação Forno Alegre mede o ar e a sensação no ponto onde a pessoa está.
+
+
+## Front-end 1 — Plano e base do app (14/11/2026)
+
+**O que eu pedi**
+- Seguir para o Front-end.
+- Decidi, entre as opções da IA: o app lê os dados **direto, sem servidor** (ThingSpeak público e Open-Meteo, sem chave; o ranking do satélite vira um JSON), para o professor rodar só com `npm install` e `npm run dev`; o mapa mostra **a E1 ao vivo + os 4 locais pelo ranking do satélite**, e a previsão responde "quando ir".
+- Autorizei instalar os pacotes só dentro de `frontend/`: React, Vite, Tailwind 4, MapLibre GL e Apache ECharts.
+
+**O que a IA gerou**
+- Um plano com 12 componentes e ~16 commits pequenos (`feat(front): ...`).
+- A base do app em `frontend/`: modelo React + Vite (sem os arquivos de exemplo), Tailwind 4 ligado no `vite.config.js`, cores de risco iguais às dos LEDs da estação, página em `pt-BR`, link "pular para o conteúdo" e respeito a quem pede menos animação.
+- Verificação: `npm run build` e `npm run lint` sem erros.
+
+**O que eu mudei ou fiz sozinho**
+- (preencher)
