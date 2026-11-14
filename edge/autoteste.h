@@ -221,6 +221,32 @@ inline bool rodarAutoteste() {
   montarTela(ruim, tela);
   verificar(p, strlen(tela[1]) == LCD_COLUNAS, "display: valores extremos não estouram a linha");
 
+  // --- Extremos do RS: TA acima de 50 e abaixo de zero ---
+  LimitesRisco padrao;
+  float taCalorao = temperaturaAparente(40, 60, 0, 100);   // 40 °C, 60%, sem vento, sol forte
+  float taMinuano = temperaturaAparente(2, 80, 8, 0);      // 2 °C, 80%, vento de 8 m/s, sem sol
+  verificar(p, perto(taCalorao, 58.09f, 0.05f) && nivelDaSensacao(taCalorao, padrao) == RISCO_VERMELHO,
+            "40 °C, 60% e sol forte: TA ≈ 58,1 °C (passa de 50), VERMELHO");
+  verificar(p, perto(taMinuano, -5.89f, 0.05f), "2 °C, 80% e vento de 8 m/s: TA ≈ −5,9 °C (negativa)");
+  DadosTela extremo;
+  extremo.estacao = "E1";  extremo.temp = 2;  extremo.umid = 80;  extremo.vento = 8;  extremo.ventoOk = true;
+  extremo.ta = taMinuano;  extremo.nivel = nivelDaSensacao(taMinuano, padrao);
+  montarTela(extremo, tela);
+  verificar(p, strstr(tela[0], "-5.9") && strstr(tela[0], "FRIO") && !strstr(tela[0], "VERDE")
+               && strlen(tela[0]) == LCD_COLUNAS, "display: TA negativa mostra FRIO, e não VERDE");
+  ControleRele noFrio;
+  bool releFicouDesligado = true;
+  for (unsigned long t = 0; t <= 60000; t += 2000)
+    releFicouDesligado &= !atualizarRele(noFrio, taMinuano, true, padrao.laranja, t);
+  verificar(p, releFicouDesligado, "no frio, o relé (nebulizador) nunca liga");
+  extremo.ta = taCalorao;  extremo.nivel = RISCO_VERMELHO;
+  montarTela(extremo, tela);
+  verificar(p, strstr(tela[0], "58.1") && strstr(tela[0], "VERMELHO") && strlen(tela[0]) == LCD_COLUNAS,
+            "display: TA de 58,1 °C cabe na linha");
+  extremo.ta = 9.0f;  extremo.nivel = RISCO_VERDE;
+  montarTela(extremo, tela);
+  verificar(p, strstr(tela[0], "VERDE") != nullptr, "display: exatamente no limite do frio (9 °C) ainda é VERDE");
+
   // --- Relé: comando remoto (Passo 4) ---
   ControleRele remoto;
   definirModoRele(remoto, MODO_LIGAR, 0);

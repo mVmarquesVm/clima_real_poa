@@ -82,6 +82,11 @@ const float LIMITE_AMARELO_C  = 27.0f;
 const float LIMITE_LARANJA_C  = 32.0f;
 const float LIMITE_VERMELHO_C = 41.0f;
 const float HISTERESE_NIVEL_C = 0.5f;   // a cor só DESCE 0,5 °C abaixo do limite (a do DHT22 é ±0,5)
+// Abaixo disto, o LCD mostra FRIO em vez de VERDE. É SÓ um aviso de
+// texto: os níveis, os LEDs, o relé e o field6 continuam medindo o
+// risco de CALOR (o foco do projeto). 9 °C é onde a escala UTCI começa
+// o "estresse por frio leve"; é outro índice, então vale como referência.
+const float LIMITE_FRIO_C     = 9.0f;
 const float LIMITE_MIN_C      = 15.0f;  // faixa aceita para a config remota
 const float LIMITE_MAX_C      = 60.0f;
 const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por segundo

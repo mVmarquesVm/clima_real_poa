@@ -1,5 +1,7 @@
 # Forno Alegre
 
+> Medindo a ilha de calor do Centro de Porto Alegre (projeto *Hot Island in the City*).
+
 Estações de "calor real" em locais de lazer de Porto Alegre: medem a sensação térmica onde as pessoas realmente ficam, avisam o risco e recomendam o local e o horário mais seguros para cada atividade.
 
 ## Ficha da CitizenTech

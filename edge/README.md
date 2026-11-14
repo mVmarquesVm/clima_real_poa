@@ -58,6 +58,7 @@ Uma estação de verdade usaria um **piranômetro** (sensor de radiação solar)
 - **Fonte dos limites:** as categorias do índice de calor da NOAA (27, 32, 41 e 54 °C; juntamos as duas últimas no vermelho). Elas servem para a nossa Temperatura Aparente porque o índice da NOAA é uma regressão (Rothfusz, 1990) das tabelas do próprio Steadman.
 - **Configuráveis:** os limites ficam numa variável (`LimitesRisco`), e não fixos no código, para que no Passo 4 a nuvem possa mudá-los. A função `limitesValidos` já confere a ordem (amarelo < laranja < vermelho, com pelo menos 1 °C entre eles) e a faixa (15 a 60 °C).
 - **Histerese de 0,5 °C:** a cor **sobe na hora**, mas só **desce** quando a sensação fica 0,5 °C abaixo do limite. Sem isso, com a TA oscilando entre 31,9 e 32,0 °C, a luz ficaria piscando entre amarelo e laranja. A folga de 0,5 °C é a mesma do erro do DHT22.
+- **E o frio?** A TA não tem teto nem piso no código: com 2 °C, umidade de 80% e minuano de 8 m/s, ela dá **−5,9 °C**; com 40 °C, 60% e sol forte sem vento, dá **58,1 °C** (os dois casos estão no autoteste). Os níveis medem **só o risco de calor**, que é o foco do projeto, então no frio o LED fica verde (sem risco de calor) e o nebulizador nunca liga. Para o verde não passar a ideia de "tudo bem", com a TA **abaixo de 9 °C** o LCD mostra `FRIO` em vez de `VERDE`. É só um aviso: o frio não tem alerta, nem LED próprio, nem valor no field6. Os 9 °C vêm da escala UTCI, onde começa o "estresse por frio leve"; ela é outro índice, então serve só de referência.
 
 ## O relé do nebulizador (lógica na borda)
 O ESP32 decide sozinho, sem depender da nuvem: se a internet cair, o nebulizador continua funcionando. No Wokwi, o nebulizador é o **LED azul** ligado ao contato do relé.
@@ -81,7 +82,7 @@ E1 WiFi:--  MQTT:--      <- estação e conexão (o WiFi e o MQTT entram no Pass
 ```
 
 **Como ler cada linha:**
-- **Linha 1:** a sensação térmica (`TA`) e a cor do risco. `TA --.-C SEM DADO` quer dizer que não há leitura confiável.
+- **Linha 1:** a sensação térmica (`TA`) e a cor do risco. `TA --.-C SEM DADO` quer dizer que não há leitura confiável. `TA  -5.9C  FRIO` aparece no lugar de `VERDE` quando a TA está abaixo de 9 °C.
 - **Linha 2:** as leituras. Se houver problema, ela mostra o mais grave, começando com `!`: `!MODO SEGURO`, `!MANUTENCAO SENSOR`, `!SENSOR EM FALHA`, `!SENSOR INSTAVEL`, `!SENSOR TRAVADO`, `!AGUARDANDO SENSOR`, `!VENTO ERRO: usa 0` ou `!LDR ERRO: usa sol`.
 - **Linha 3:** o relé.
   - `LIGADO mm:ss`: ligado há tanto tempo;
@@ -115,6 +116,21 @@ Analogia: o MQTT é um grupo de WhatsApp. A estação **posta** os dados no tóp
 - **Reconexão com espera crescente (backoff):** o WiFi tenta de novo em 5 s, 10 s, 20 s... até 1 min; o MQTT, em 2 s, 4 s, 8 s... até 1 min. Analogia: ligar para quem não atende, esperando cada vez mais entre as ligações. O `loop()` nunca fica parado esperando a rede: os sensores, os LEDs e o relé continuam funcionando sem internet.
 - **Avisos:** queda e volta do WiFi e do MQTT aparecem no Serial (`ALERTA`/`OK`), na linha 4 do LCD (`WiFi:--`, `MQTT:--`) e no status do canal.
 
+### Dashboard
+**Canal público da E1:** https://thingspeak.mathworks.com/channels/3578427 (Public View: qualquer pessoa com o link vê os dados, mas só escreve no canal quem tem a chave).
+
+Além dos 8 gráficos (um por campo, com o histórico), o painel tem 3 widgets que se atualizam a cada 15 s:
+
+| Widget | Campo | Como ler |
+|---|---|---|
+| Medidor "Sensacao termica (TA)" | field5 | Ponteiro de −10 a 65 °C, com marcas de 15 em 15. A TA passa de 50 no calor extremo (43 °C, 55% e sol forte, sem vento, já dão 62 °C), e a folga até 65 é para o aquecimento global e a urbanização sem verde. Com frio e vento, ela fica negativa. Faixas: azul abaixo de 9 (frio, só aviso), verde de 9 a 27, amarelo de 27 a 32, laranja de 32 a 41 e vermelho acima de 41, nas cores dos LEDs. Fora da escala, o ponteiro para no fim, mas o número embaixo mostra o valor real |
+| Lâmpada "Nebulizador (rele)" | field7 | Azul = relé ligado; apagada = desligado |
+| Número "Nivel de risco" | field6 | 0 verde, 1 amarelo, 2 laranja, 3 vermelho, 4 sem dado |
+
+As faixas do medidor são fixas (são as padrão, 27/32/41). Se a nuvem mudar os limites com `lim:`, os LEDs e o LCD seguem os novos valores, mas o medidor continua com as faixas padrão.
+
+No ThingSpeak, a visão pública (*Public View*) e a privada (*Private View*) têm layouts separados, e os widgets acima estão na **pública**.
+
 ### Comandos remotos (field8)
 | Comando | O que faz |
 |---|---|
@@ -144,7 +160,7 @@ As credenciais ficam no `secrets.h`, que está no `.gitignore` e **nunca vai par
 
 ### Como criar o canal e a credencial no ThingSpeak
 1. Crie uma conta grátis em [thingspeak.mathworks.com](https://thingspeak.mathworks.com).
-2. *Channels > My Channels > New Channel*: nome `Forno Alegre E1 - Largo Glenio Peres`, marque os 8 campos e dê os nomes da tabela acima. Salve e anote o **Channel ID**.
+2. *Channels > My Channels > New Channel*: nome `Forno Alegre - E1 Largo Glênio Peres`, marque os 8 campos e dê os nomes da tabela acima. Salve e anote o **Channel ID**.
 3. *Devices > MQTT > Add a new device*: nome `estacao-E1`; em *Authorize channels*, escolha **só** o canal da E1, com *Publish* e *Subscribe*. Salve e baixe as credenciais (Client ID, Username e Password).
 4. Copie o `secrets.example.h` para `secrets.h` e preencha o Channel ID e as 3 credenciais. No Wokwi, abra o arquivo `secrets.h` e cole os mesmos valores.
 
@@ -272,7 +288,11 @@ Precisa do g++ (WinLibs) e do arduino-cli com o núcleo `esp32:esp32` e as bibli
 - **ADC do ESP32 real:** no Wokwi o ADC é linear de 0 a 3,3 V. No ESP32 de verdade, ele perde precisão perto dos extremos e precisaria de calibração.
 - **Comando no field8 e o limite de 15 s:** o ThingSpeak grátis recusa uma gravação feita menos de 15 s depois da anterior, e a estação grava a cada 20 s. Então um comando pode ser recusado e precisa ser repetido; o back-end fará isso sozinho.
 - **Comando perdido com a estação desligada:** o MQTT do ThingSpeak não guarda a mensagem para quem estava fora. Se a estação estiver desconectada quando o comando chegar, ele precisa ser mandado de novo.
+- **Sem alerta de frio:** os níveis de risco, os LEDs e o field6 tratam só do calor. No frio, o LCD avisa `FRIO`, mas não há alerta; isso fica como trabalho futuro.
+- **Os 61 °C do Parque Harmonia não são sensação térmica:** esse valor é a temperatura do **piso de concreto** (superfície), medida pelo InGá em 04/02/2025. A estação mede o **ar** com o DHT22 e calcula a TA a partir dele, então os dois números não se comparam diretamente.
 - **Energia do sensor:** no Wokwi, o "desligar e religar" o sensor roda de verdade no código, mas o simulador não modela a energia dos componentes. Então o efeito não aparece lá. No hardware real, é isso que destrava um DHT22 travado.
 
 ## A preencher
-- Link da simulação no Wokwi, link do canal no ThingSpeak, diagrama e vídeo de demonstração.
+- **Simulação no Wokwi:** https://wokwi.com/projects/480541510887151617
+- **Canal no ThingSpeak (dashboard):** https://thingspeak.mathworks.com/channels/3578427
+- Ainda falta: diagrama, vídeo de demonstração e integrantes.

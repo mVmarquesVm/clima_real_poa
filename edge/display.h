@@ -47,8 +47,11 @@ inline void ajustarLinha(char destino[LCD_COLUNAS + 1], const char* texto) {
 inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS + 1]) {
   char tmp[48];
 
-  // Linha 0: sensação e nível
+  // Linha 0: sensação e nível. No frio, "VERDE" passaria a ideia de
+  // "tudo bem"; então troca o texto por FRIO (só o texto: ver config.h).
   if (d.nivel == RISCO_SEM_DADO || isnan(d.ta)) snprintf(tmp, sizeof(tmp), "TA  --.-C  SEM DADO");
+  else if (d.nivel == RISCO_VERDE && d.ta < LIMITE_FRIO_C)
+                                                snprintf(tmp, sizeof(tmp), "TA %5.1fC  FRIO", d.ta);
   else                                          snprintf(tmp, sizeof(tmp), "TA %5.1fC  %s", d.ta, textoNivel(d.nivel));
   ajustarLinha(linhas[0], tmp);
 

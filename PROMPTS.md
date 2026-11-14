@@ -190,3 +190,26 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Criei a conta e o canal no ThingSpeak, dei nome aos campos e colei as credenciais MQTT no `secrets.h` do Wokwi.
 - (preencher: mandar um comando pelo navegador)
 
+## Passo 4.3 — Edge: nome do produto e dashboard no ThingSpeak (13/11/2026)
+
+**O que eu pedi**
+- Continuar o projeto, começando pela conversa sobre o nome.
+- Escolhi, entre as opções que a IA mostrou, usar **os dois nomes**: o produto se chama "Forno Alegre", e "Hot Island in the City" vira o nome do projeto, com o subtítulo "Medindo a ilha de calor do Centro de Porto Alegre".
+- Autorizei a IA a mexer no meu canal pelo Chrome (nome, descrição e widgets) e escolhi deixar o canal **público** (Public View), para o professor ver sem precisar de conta.
+
+**O que a IA gerou**
+- Subtítulo no `README.md` da raiz.
+- No canal 3578427, pelo meu Chrome: o nome passou a ser "Forno Alegre - E1 Largo Glênio Peres"; a descrição foi reescrita dentro do limite de 255 caracteres, porque a antiga estava cortada e tinha "o previsão"; o canal passou a ser público; e foram criados 3 widgets na visão pública: o medidor da TA (field5, com as faixas 27/32/41 nas cores dos LEDs), a lâmpada do relé (field7) e o número do nível de risco (field6).
+- `edge/README.md`: seção "Dashboard", com o link do canal e como ler cada widget; os links do Wokwi e do canal em "A preencher"; e o nome do canal atualizado no passo a passo.
+
+**O que eu mudei ou fiz sozinho**
+- Decidi o nome e a visibilidade do canal.
+- **Achei uma falha na documentação:** o medidor ia só de 15 a 50 °C, mas no RS a sensação pode passar de 50 e também ficar negativa (minuano). A IA confirmou com a fórmula (58,1 °C com 40 °C, 60% e sol forte; −5,9 °C com 2 °C, 80% e vento de 8 m/s) e explicou que os 61 °C do Parque Harmonia eram do piso, e não do ar. Ela também mostrou que, no frio, a estação marcava "verde". Escolhi **mostrar o frio sem alertar**:
+  - `config.h`: `LIMITE_FRIO_C = 9` (início do "estresse por frio leve" na escala UTCI);
+  - `display.h`: o LCD mostra `FRIO` em vez de `VERDE` abaixo de 9 °C (os LEDs, o relé e o field6 não mudam);
+  - `autoteste.h`: 6 testes novos (TA de 58,1 e de −5,9 °C, `FRIO` no LCD, relé desligado no frio, linha com 20 caracteres, limite exato de 9 °C), num total de 105;
+  - medidor no ThingSpeak ampliado para −10 a 60 °C, com uma faixa azul de frio; depois **pedi para ir até 65 °C**, pensando no aquecimento global e na urbanização sem verde (a IA conferiu: 43 °C, 55% e sol forte, sem vento, já dão TA de 62 °C);
+  - `edge/README.md`: explicação do frio e duas limitações novas;
+  - teste no Wokwi (feito pela IA, pelo meu Chrome, com o meu ok): 105/105 no ESP32. Com 2 °C e 80%, o LCD mostrou `TA 3.2C FRIO`, com o LED verde aceso, o relé desligando depois da calma e a nuvem recebendo TA 3,2, risco 0 e relé 0. Com vento de 8 m/s, mostrou `TA -3.9C FRIO`.
+- (preencher: conferir o dashboard numa janela anônima)
+
