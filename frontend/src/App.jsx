@@ -1,3 +1,4 @@
+import EstacaoAoVivo from './componentes/EstacaoAoVivo'
 import TabelaLocais from './componentes/TabelaLocais'
 import dadosLocais from './dados/locais.json'
 
@@ -20,6 +21,11 @@ export default function App() {
       </header>
 
       <main id="conteudo" className="mx-auto max-w-6xl space-y-4 p-4">
+        <section aria-labelledby="titulo-e1" className="space-y-2">
+          <h2 id="titulo-e1" className="text-xl font-bold">Agora no Largo Glênio Peres</h2>
+          <EstacaoAoVivo />
+        </section>
+
         <section aria-labelledby="titulo-locais" className="space-y-2">
           <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />

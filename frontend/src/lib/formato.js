@@ -21,3 +21,22 @@ export function descreverVerde(ndvi) {
   if (ndvi < 0.5) return 'verde médio'
   return 'muito verde'
 }
+
+// Data e hora no fuso de Porto Alegre: "15/11/2026, 18:30".
+export function dataHora(data) {
+  return data.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
+// Segundos -> "há 12 s", "há 3 min", "há 2 h", "há 4 dias".
+export function tempoDesde(segundos) {
+  const s = Math.max(0, Math.round(segundos))
+  if (s < 60) return `há ${s} s`
+  if (s < 3600) return `há ${Math.floor(s / 60)} min`
+  if (s < 86400) return `há ${Math.floor(s / 3600)} h`
+  const dias = Math.floor(s / 86400)
+  return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`
+}
