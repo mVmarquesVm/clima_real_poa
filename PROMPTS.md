@@ -339,3 +339,48 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
   - **a proteção sem app:** a estação deve avisar o risco, mandar procurar sombra e se hidratar e indicar o refúgio mais perto, sem depender do app (ideia minha);
   - **a frase do problema:** "Porto Alegre já mede o tempo em 16 pontos, mas nenhum diz quanto calor a pessoa sente na praça, nem avisa, nem refresca.";
   - **a IA do rascunho:** foi o Gemini (registrado no `AI.md`).
+
+## Edge — Orientação sem app: conselho e refúgio mais perto no LCD (15/11/2026)
+
+**O que eu pedi**
+- Que a própria estação, sem depender do app, mande procurar sombra e se hidratar e indique o lugar mais perto para se refrescar.
+- Que o refúgio possa ser também o shopping mais próximo, se ele estiver mais perto que uma praça.
+- Que isso fique só no LCD por enquanto; no app, só se sobrar tempo.
+
+**O que a IA gerou**
+- `edge/refugio.h`: escolhe o refúgio mais perto que está aberto agora (praça 24 h ou shopping, pela hora e pelo dia da semana do NTP); sem relógio, só indica o que é 24 h.
+- Letreiro na linha 2 do LCD (`display.h`): com risco LARANJA ou VERMELHO, alterna as leituras, o conselho (`Beba agua e descanse` / `SAIA DO SOL + AGUA`) e o refúgio (`Va: Praca XV 24m`).
+- Lista da E1 no `config.h`, com dados do OpenStreetMap levantados por um subagente: a Praça XV fica a 24 m e ganha sempre; o Rua da Praia Shopping fica a 448 m, com o horário mais curto entre o OSM e o Jornal do Comércio (o site oficial não abriu). Não há bebedouro mapeado a menos de 1 km.
+- 12 autotestes novos (117 no total), README do Edge atualizado; `testar.ps1`: 117/117, chip OK, firmware em 75% da flash.
+
+**O que eu mudei ou fiz sozinho**
+- A ideia da orientação na própria estação, sem app, e a regra do shopping mais perto.
+## Edge, Python e Matemática — Régua de risco da Secretaria de Saúde de POA (15/11/2026)
+
+**O que eu pedi**
+- Aumentar a régua de risco: 30,2 °C com 50% de umidade é um dia comum em Porto Alegre e não devia acender o laranja nem mandar a pessoa para o refúgio.
+- Trouxe uma tabela com 5 faixas (27/34/40/51 °C) e os efeitos à saúde.
+
+**O que a IA gerou**
+- Um subagente achou a fonte da tabela: a **Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre** (atualizada em 04/02/2026), com 5 cores (verde, amarelo, laranja, vermelho e roxo). Os nomes dos níveis, o "abaixo de 26" e alguns efeitos da minha tabela não estão na nota; ficaram de fora.
+- Mostrou que a nota usa o índice de calor na sombra e que a nossa TA inclui o sol (a NOAA diz que o sol pleno soma até 8 °C), e que mudar o 32 mexia também no Python e na Matemática.
+- Edge: 5 níveis (27/34/40/52 °C), LED roxo no GPIO 19, `lim:` com 4 valores, field6 com 4 = roxo e 5 = sem dado, conselho `SUSPENDA ATIVIDADES` no roxo; 120/120 autotestes, firmware em 75% da flash.
+- Python: os mesmos limites no `sensacao.py` (8/8 testes); semana do INMET: 71 h com sensação ao sol de 34 °C ou mais (eram 80 h com 32 °C).
+- Matemática: a dose agora é acima de 34 °C: 91,0 °C·h em 11,8 h (era 116,4 °C·h em 13,7 h); Riemann nos dados: 91,9 °C·h; 9/9 testes; gráficos, README e relatório atualizados.
+
+**O que eu mudei ou fiz sozinho**
+- Percebi que a régua estava curta para Porto Alegre e trouxe a tabela.
+- Decidi: as 5 faixas da nota técnica, um LED roxo novo, a TA com sol decidindo o nível e refazer o Python e a Matemática com 34 °C.
+## Edge — Segundo LCD: medição e orientação separadas (15/11/2026)
+
+**O que eu pedi**
+- Colocar uma segunda tela LCD, para ter mais espaço para a leitura.
+
+**O que a IA gerou**
+- LCD 1 "Medição" (I2C 0x27): TA e nível, T/UR/vento (ou o problema), luz do sol e Q (novo) e o relé.
+- LCD 2 "Orientação" (I2C 0x26, mesmo fio I2C): conselho por nível (segundo a nota técnica da SMS), refúgio mais perto e aberto (do laranja para cima), hora do NTP e WiFi/MQTT. O letreiro que trocava a cada 2 s saiu.
+- Sem dado: o LCD 2 mostra `Sem leitura agora` e `Na duvida: sombra`, sem mandar ao refúgio.
+- `diagram.json` com o 2º LCD; 126 autotestes (126/126 no PC); firmware compila (75% da flash). Arquivos colocados no Wokwi pelo meu Chrome e projeto salvo.
+
+**O que eu mudei ou fiz sozinho**
+- A ideia da segunda tela.

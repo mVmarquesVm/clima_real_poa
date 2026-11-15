@@ -18,7 +18,7 @@ Porto Alegre tem verões cada vez mais quentes. No Centro Histórico e na Praia 
 | Parque Harmonia, 04/02/2025, ~13h–13h30 | piso de concreto com **mais de 60 °C**; gramado à sombra perto de 31 °C | superfície | Sul21, 05/02/2025 (61 °C) e GZH, 10/02/2025 (mais de 62 °C) |
 | Parque Harmonia, 10/02/2025, ~10h30 | gramado: 33 °C ao sol e 26 °C na sombra; asfalto fresado 54 °C | ar + superfície | GZH, 10/02/2025 |
 | Diferença entre bairros de POA | até **20 °C** (Sarandi e Rubem Berta com 47,3 °C × Morro São Pedro com 27,8 °C; Rodoviária 45,4 °C × Parque Farroupilha 35,2 °C) | superfície (Landsat 8, média de 10 verões) | Matinal, 18/12/2023 (estudo da Arquitetura/UFRGS de Carolina Cristófoli Falcão) |
-| INMET A801, 04/02/2025 | ar 37,3 °C; sensação ao sol 47,0 °C; dose de **116,4 °C·h** acima de 32 °C | ar (estação oficial, num gramado) | `python/` e `matematica/` deste repositório |
+| INMET A801, 04/02/2025 | ar 37,3 °C; sensação ao sol 47,0 °C; dose de **91,0 °C·h** acima de 34 °C (onde começa o laranja da nota técnica da SMS de POA) | ar (estação oficial, num gramado) | `python/` e `matematica/` deste repositório |
 | Nossos 4 locais, satélite, 6 passagens de verão | piso médio de 41,5 °C (Harmonia) a 35,7 °C (calçadão); o piso fica de 8 a 14 °C acima do ar oficial | superfície | `python/` (Landsat 8/9 e Sentinel-2) |
 | Bebedouros públicos | **menos da metade funciona** | levantamento jornalístico | Band RS, 06/02/2026 |
 | Pessoas em situação de rua | a prefeitura distribuiu água a mais de 5 mil pessoas na força-tarefa do calor | — | Band RS, 06/02/2026 |
@@ -81,7 +81,7 @@ Porto Alegre tem verões cada vez mais quentes. No Centro Histórico e na Praia 
 | Problema | Resposta no projeto |
 |---|---|
 | Fadiga de alerta | Histerese de 0,5 °C na cor e relé que só liga com 10 s de risco confirmado (`edge/risco.h`, `edge/rele.h`) |
-| Quem não tem ou não pode usar celular | LEDs, display e nebulizador na própria estação; com risco alto, o display manda procurar sombra e água e indica o refúgio mais perto (a implementar no Edge) |
+| Quem não tem ou não pode usar celular | LEDs, display e nebulizador na própria estação; com risco alto, o display manda procurar sombra e água e indica o refúgio mais perto que esteja aberto (na E1, a Praça XV, a 24 m; ver `edge/refugio.h`) |
 | Saber se o refúgio é mesmo fresco | Estação de controle no Marinha (E4), que valida o refúgio |
 | Falta de água | Cadastro de pontos de hidratação (parte do Web) |
 | Calor invisível nos dados oficiais | Sensação térmica com vento e sol, medida no ponto |
