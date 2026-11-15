@@ -104,7 +104,9 @@ unsigned long sensorProntoEmMs = 0;
 char ultimoAlerta[96] = "nenhum";
 
 // ---------- Atuadores e display (Passo 3) ----------
-LiquidCrystal_I2C lcd(LCD_ENDERECO_I2C, LCD_COLUNAS, LCD_LINHAS);
+LiquidCrystal_I2C lcd(LCD_ENDERECO_I2C, LCD_COLUNAS, LCD_LINHAS);     // LCD 1: medição
+LiquidCrystal_I2C lcd2(LCD2_ENDERECO_I2C, LCD_COLUNAS, LCD_LINHAS);   // LCD 2: orientação
+char telaAnterior2[LCD_LINHAS][LCD_COLUNAS + 1] = {"", "", "", ""};
 LimitesRisco limites;                    // no Passo 4, a nuvem pode mudar
 NivelRisco   nivelAtual = RISCO_SEM_DADO;
 ControleRele rele;
@@ -411,6 +413,7 @@ void atualizarLeds(unsigned long agora) {
   digitalWrite(PINO_LED_AMARELO,  ledDeveAcender(nivelAtual, RISCO_AMARELO,  fase) ? HIGH : LOW);
   digitalWrite(PINO_LED_LARANJA,  ledDeveAcender(nivelAtual, RISCO_LARANJA,  fase) ? HIGH : LOW);
   digitalWrite(PINO_LED_VERMELHO, ledDeveAcender(nivelAtual, RISCO_VERMELHO, fase) ? HIGH : LOW);
+  digitalWrite(PINO_LED_ROXO,     ledDeveAcender(nivelAtual, RISCO_ROXO,     fase) ? HIGH : LOW);
 }
 
 // O problema mais grave, em texto curto para a linha 2 do LCD.
@@ -426,14 +429,45 @@ const char* problemaCurto(unsigned long agora) {
   return nullptr;
 }
 
+// Hora (0 a 23), minuto e dia da semana (0 = domingo) pelo relógio da
+// internet (NTP), ou -1 em todos se ainda não sincronizou.
+// O 0 no getLocalTime = não espera: nunca trava o loop.
+void relogioLocal(int& hora, int& minuto, int& dia) {
+  struct tm agoraTm;
+  if (!getLocalTime(&agoraTm, 0)) { hora = -1; minuto = -1; dia = -1; return; }
+  hora   = agoraTm.tm_hour;
+  minuto = agoraTm.tm_min;
+  dia    = agoraTm.tm_wday;
+}
+
+// Só reescreve a linha que mudou: o I2C é lento (~1 ms por letra)
+void escreverLcd(LiquidCrystal_I2C& tela, char linhas[LCD_LINHAS][LCD_COLUNAS + 1],
+                 char anterior[LCD_LINHAS][LCD_COLUNAS + 1]) {
+  for (int i = 0; i < LCD_LINHAS; i++) {
+    if (strcmp(linhas[i], anterior[i]) != 0) {
+      tela.setCursor(0, i);
+      tela.print(linhas[i]);
+      strcpy(anterior[i], linhas[i]);
+    }
+  }
+}
+
 void atualizarDisplay(unsigned long agora) {
+  int hora, minuto, dia;
+  relogioLocal(hora, minuto, dia);
   DadosTela d;
+  d.hora       = hora;
+  d.minuto     = minuto;
+  d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia);
   d.ta         = sensacaoC;
   d.nivel      = nivelAtual;
   d.temp       = tempC;
   d.umid       = umid;
   d.vento      = ventoMs;
   d.ventoOk    = ventoOk;
+  d.lux        = luxAtual;
+  d.q          = radiacaoQ;
+  d.luzOk      = luzOk;
   d.problema   = problemaCurto(agora);
   d.releLigado = rele.ligado;
   d.releMotivo = rele.motivo;
@@ -443,37 +477,39 @@ void atualizarDisplay(unsigned long agora) {
   d.mqttOk     = mqttOk;
 
   char linhas[LCD_LINHAS][LCD_COLUNAS + 1];
-  montarTela(d, linhas);
-  // Só reescreve a linha que mudou: o I2C é lento (~1 ms por letra)
-  for (int i = 0; i < LCD_LINHAS; i++) {
-    if (strcmp(linhas[i], telaAnterior[i]) != 0) {
-      lcd.setCursor(0, i);
-      lcd.print(linhas[i]);
-      strcpy(telaAnterior[i], linhas[i]);
-    }
-  }
+  montarTela(d, linhas);              // LCD 1: medição
+  escreverLcd(lcd, linhas, telaAnterior);
+  montarTelaOrientacao(d, linhas);    // LCD 2: orientação
+  escreverLcd(lcd2, linhas, telaAnterior2);
 }
 
 // ---------- Limites guardados na flash (NVS) ----------
 // Analogia: anotar no caderno em vez de guardar de cabeça. Se a
 // placa reiniciar, os limites mandados pela nuvem continuam valendo.
+// A "gaveta" mudou de nome ("forno" -> "forno5") quando a régua passou
+// a ter 5 níveis: uma placa que guardou a régua antiga (27/32/41)
+// começa com a nova, em vez de misturar as duas.
+#define GAVETA_LIMITES "forno5"
+
 void carregarLimites() {
-  memoria.begin("forno", false);
+  memoria.begin(GAVETA_LIMITES, false);
   LimitesRisco salvo;
   salvo.amarelo  = memoria.getFloat("amarelo",  LIMITE_AMARELO_C);
   salvo.laranja  = memoria.getFloat("laranja",  LIMITE_LARANJA_C);
   salvo.vermelho = memoria.getFloat("vermelho", LIMITE_VERMELHO_C);
+  salvo.roxo     = memoria.getFloat("roxo",     LIMITE_ROXO_C);
   memoria.end();
   if (limitesValidos(salvo)) limites = salvo;   // memória estranha? fica com o padrão
-  Serial.printf("Limites de risco: amarelo %.1f | laranja %.1f | vermelho %.1f C\n",
-                limites.amarelo, limites.laranja, limites.vermelho);
+  Serial.printf("Limites de risco: amarelo %.1f | laranja %.1f | vermelho %.1f | roxo %.1f C\n",
+                limites.amarelo, limites.laranja, limites.vermelho, limites.roxo);
 }
 
 void salvarLimites() {
-  memoria.begin("forno", false);
+  memoria.begin(GAVETA_LIMITES, false);
   memoria.putFloat("amarelo",  limites.amarelo);
   memoria.putFloat("laranja",  limites.laranja);
   memoria.putFloat("vermelho", limites.vermelho);
+  memoria.putFloat("roxo",     limites.roxo);
   memoria.end();
 }
 
@@ -525,7 +561,12 @@ void iniciarRede() {
 
 void avisarMudancaDeRede() {
   if (wifiOk != wifiEstavaOk) {
-    if (wifiOk) alertar("OK", "WiFi conectado");
+    if (wifiOk) {
+      alertar("OK", "WiFi conectado");
+      // Pede a hora à internet (roda por trás, sem travar). Serve para
+      // saber se o shopping está aberto antes de indicar ele no LCD.
+      configTime(FUSO_HORARIO_S, 0, NTP_SERVIDOR);
+    }
     else        alertar("ALERTA", "WiFi caiu. Reconectando com espera crescente.");
   }
   if (mqttOk != mqttEstavaOk) {
@@ -607,8 +648,8 @@ void publicar(unsigned long agora) {
   l.releLigado = rele.ligado;
 
   char status[200];
-  snprintf(status, sizeof(status), "%s | cmd: %s | lim %.1f/%.1f/%.1f | rele %s",
-           ultimoAlerta, ultimoComando, limites.amarelo, limites.laranja, limites.vermelho,
+  snprintf(status, sizeof(status), "%s | cmd: %s | lim %.1f/%.1f/%.1f/%.1f | rele %s",
+           ultimoAlerta, ultimoComando, limites.amarelo, limites.laranja, limites.vermelho, limites.roxo,
            textoModoRele(rele.modo));
   l.status = status;
 
@@ -652,6 +693,7 @@ void setup() {
   pinMode(PINO_LED_AMARELO, OUTPUT);
   pinMode(PINO_LED_LARANJA, OUTPUT);
   pinMode(PINO_LED_VERMELHO, OUTPUT);
+  pinMode(PINO_LED_ROXO, OUTPUT);
 
   Serial.begin(115200);
 
@@ -663,6 +705,13 @@ void setup() {
   lcd.print(ID_ESTACAO);
   lcd.setCursor(0, 1);
   lcd.print("Autoteste...");
+  lcd2.init();
+  lcd2.backlight();
+  lcd2.setCursor(0, 0);
+  lcd2.print("Orientacao ");
+  lcd2.print(ID_ESTACAO);
+  lcd2.setCursor(0, 1);
+  lcd2.print("Aguarde...");
 
   esp_reset_reason_t motivo = esp_reset_reason();
   bool foiOVigia = (marcaReinicioDoVigia == MARCA_VIGIA);

@@ -142,21 +142,25 @@ inline bool rodarAutoteste() {
   LimitesRisco lim;
   verificar(p, nivelDaSensacao(26.9f, lim) == RISCO_VERDE && nivelDaSensacao(27, lim) == RISCO_AMARELO,
             "27 °C é onde o AMARELO começa");
-  verificar(p, nivelDaSensacao(35, lim) == RISCO_LARANJA && nivelDaSensacao(41, lim) == RISCO_VERMELHO,
-            "35 °C = LARANJA e 41 °C = VERMELHO");
+  verificar(p, nivelDaSensacao(33.9f, lim) == RISCO_AMARELO && nivelDaSensacao(34, lim) == RISCO_LARANJA,
+            "33,9 °C ainda é AMARELO e 34 °C é LARANJA (faixas da SMS de POA)");
+  verificar(p, nivelDaSensacao(39.9f, lim) == RISCO_LARANJA && nivelDaSensacao(40, lim) == RISCO_VERMELHO,
+            "40 °C é onde o VERMELHO começa");
+  verificar(p, nivelDaSensacao(51.9f, lim) == RISCO_VERMELHO && nivelDaSensacao(52, lim) == RISCO_ROXO,
+            "51,9 °C ainda é VERMELHO (faixa 40-51) e 52 °C é ROXO");
   verificar(p, nivelDaSensacao(NAN, lim) == RISCO_SEM_DADO, "sem sensação = SEM DADO (nunca verde)");
-  verificar(p, nivelComHisterese(RISCO_LARANJA, 31.8f, lim, HISTERESE_NIVEL_C) == RISCO_LARANJA,
-            "histerese: 31,8 °C ainda é LARANJA (a folga é 0,5 °C)");
-  verificar(p, nivelComHisterese(RISCO_LARANJA, 31.4f, lim, HISTERESE_NIVEL_C) == RISCO_AMARELO,
-            "histerese: 31,4 °C já desce para AMARELO");
+  verificar(p, nivelComHisterese(RISCO_LARANJA, 33.8f, lim, HISTERESE_NIVEL_C) == RISCO_LARANJA,
+            "histerese: 33,8 °C ainda é LARANJA (a folga é 0,5 °C)");
+  verificar(p, nivelComHisterese(RISCO_LARANJA, 33.4f, lim, HISTERESE_NIVEL_C) == RISCO_AMARELO,
+            "histerese: 33,4 °C já desce para AMARELO");
   verificar(p, nivelComHisterese(RISCO_VERDE, 41.5f, lim, HISTERESE_NIVEL_C) == RISCO_VERMELHO,
             "para subir não há espera: VERDE vai direto a VERMELHO");
   verificar(p, nivelComHisterese(RISCO_VERMELHO, 20, lim, HISTERESE_NIVEL_C) == RISCO_VERDE,
             "esfriou muito: desce vários níveis de uma vez");
 
   int acesos = 0;
-  for (int c = RISCO_VERDE; c <= RISCO_VERMELHO; c++) acesos += ledDeveAcender(RISCO_LARANJA, (NivelRisco)c, true);
-  verificar(p, acesos == 1 && ledDeveAcender(RISCO_LARANJA, RISCO_LARANJA, true), "só o LED da cor certa acende");
+  for (int c = RISCO_VERDE; c <= RISCO_ROXO; c++) acesos += ledDeveAcender(RISCO_LARANJA, (NivelRisco)c, true);
+  verificar(p, acesos == 1 && ledDeveAcender(RISCO_LARANJA, RISCO_LARANJA, true), "só o LED da cor certa acende (1 de 5)");
   verificar(p, ledDeveAcender(RISCO_SEM_DADO, RISCO_AMARELO, true) && !ledDeveAcender(RISCO_SEM_DADO, RISCO_AMARELO, false)
                && !ledDeveAcender(RISCO_SEM_DADO, RISCO_VERDE, true),
             "SEM DADO: o amarelo pisca e o verde nunca acende");
@@ -164,9 +168,12 @@ inline bool rodarAutoteste() {
   LimitesRisco foraDeOrdem;  foraDeOrdem.laranja = 45;
   LimitesRisco grudados;     grudados.laranja = 27.5f;
   LimitesRisco comNaN;       comNaN.vermelho = NAN;
-  verificar(p, limitesValidos(lim), "limites iniciais (27/32/41) são válidos");
-  verificar(p, !limitesValidos(foraDeOrdem) && !limitesValidos(grudados) && !limitesValidos(comNaN),
-            "limites fora de ordem, a menos de 1 °C ou NaN são rejeitados");
+  LimitesRisco roxoBaixo;    roxoBaixo.roxo = 39;
+  LimitesRisco roxoAlto;     roxoAlto.roxo = 65;
+  verificar(p, limitesValidos(lim), "limites iniciais (27/34/40/52) são válidos");
+  verificar(p, !limitesValidos(foraDeOrdem) && !limitesValidos(grudados) && !limitesValidos(comNaN)
+               && !limitesValidos(roxoBaixo) && !limitesValidos(roxoAlto),
+            "limites fora de ordem, a menos de 1 °C, NaN ou fora da faixa são rejeitados");
 
   // --- Relé: liga só com risco alto SEGUIDO (limite 32 °C) ---
   ControleRele r;
@@ -203,20 +210,27 @@ inline bool rodarAutoteste() {
   DadosTela dt;
   dt.ta = 34.6f;  dt.nivel = RISCO_LARANJA;  dt.temp = 30.2f;  dt.umid = 50;  dt.vento = 2;  dt.ventoOk = true;
   dt.releLigado = true;  dt.releHaMs = 135000;  dt.estacao = "E1";
+  dt.lux = 50064;  dt.q = 50;  dt.luzOk = true;
   montarTela(dt, tela);
   bool todas20 = true;
   for (int i = 0; i < LCD_LINHAS; i++) todas20 = todas20 && strlen(tela[i]) == LCD_COLUNAS;
-  verificar(p, todas20, "display: as 4 linhas têm exatamente 20 caracteres");
-  verificar(p, strstr(tela[0], "34.6") && strstr(tela[0], "LARANJA"), "display: linha 1 mostra a sensação e o nível");
-  verificar(p, strstr(tela[2], "LIGADO") && strstr(tela[2], "02:15"), "display: relé ligado há 135 s = 02:15");
-  verificar(p, strstr(tela[3], "WiFi:--") && strstr(tela[3], "MQTT:--"), "display: sem rede mostra --");
+  verificar(p, todas20, "LCD 1: as 4 linhas têm exatamente 20 caracteres");
+  verificar(p, strstr(tela[0], "34.6") && strstr(tela[0], "LARANJA"), "LCD 1: linha 1 mostra a sensação e o nível");
+  verificar(p, strstr(tela[2], "50064lx") && strstr(tela[2], "Q 50"), "LCD 1: linha 3 mostra a luz (lux) e o Q");
+  verificar(p, strstr(tela[3], "LIGADO") && strstr(tela[3], "02:15"), "LCD 1: relé ligado há 135 s = 02:15");
+  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[3], "WiFi:--") && strstr(tela[3], "MQTT:--"), "LCD 2: sem rede mostra --");
+  verificar(p, strstr(tela[2], "Hora --:--") != nullptr, "LCD 2: sem relógio da internet, a hora fica --:--");
+  dt.hora = 9;  dt.minuto = 5;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[2], "Hora 09:05") != nullptr, "LCD 2: hora com dois dígitos (09:05)");
 
   DadosTela ruim;
   ruim.problema = "SENSOR EM FALHA";  ruim.releMotivo = RELE_BLOQUEADO;  ruim.estacao = "E1";
   ruim.temp = -40;  ruim.umid = 100;  ruim.vento = 50;  ruim.ventoOk = true;
   montarTela(ruim, tela);
-  verificar(p, strstr(tela[0], "SEM DADO") && strstr(tela[1], "SENSOR EM FALHA") && strstr(tela[2], "falha"),
-            "display: sensor em falha aparece na tela e o relé fica bloqueado");
+  verificar(p, strstr(tela[0], "SEM DADO") && strstr(tela[1], "SENSOR EM FALHA") && strstr(tela[3], "falha")
+               && strstr(tela[2], "pior"),
+            "LCD 1: sensor em falha aparece, o relé fica bloqueado e o sol ruim mostra o pior caso");
   ruim.problema = nullptr;
   montarTela(ruim, tela);
   verificar(p, strlen(tela[1]) == LCD_COLUNAS, "display: valores extremos não estouram a linha");
@@ -225,8 +239,8 @@ inline bool rodarAutoteste() {
   LimitesRisco padrao;
   float taCalorao = temperaturaAparente(40, 60, 0, 100);   // 40 °C, 60%, sem vento, sol forte
   float taMinuano = temperaturaAparente(2, 80, 8, 0);      // 2 °C, 80%, vento de 8 m/s, sem sol
-  verificar(p, perto(taCalorao, 58.09f, 0.05f) && nivelDaSensacao(taCalorao, padrao) == RISCO_VERMELHO,
-            "40 °C, 60% e sol forte: TA ≈ 58,1 °C (passa de 50), VERMELHO");
+  verificar(p, perto(taCalorao, 58.09f, 0.05f) && nivelDaSensacao(taCalorao, padrao) == RISCO_ROXO,
+            "40 °C, 60% e sol forte: TA ≈ 58,1 °C (passa de 51), ROXO");
   verificar(p, perto(taMinuano, -5.89f, 0.05f), "2 °C, 80% e vento de 8 m/s: TA ≈ −5,9 °C (negativa)");
   DadosTela extremo;
   extremo.estacao = "E1";  extremo.temp = 2;  extremo.umid = 80;  extremo.vento = 8;  extremo.ventoOk = true;
@@ -239,10 +253,10 @@ inline bool rodarAutoteste() {
   for (unsigned long t = 0; t <= 60000; t += 2000)
     releFicouDesligado &= !atualizarRele(noFrio, taMinuano, true, padrao.laranja, t);
   verificar(p, releFicouDesligado, "no frio, o relé (nebulizador) nunca liga");
-  extremo.ta = taCalorao;  extremo.nivel = RISCO_VERMELHO;
+  extremo.ta = taCalorao;  extremo.nivel = RISCO_ROXO;
   montarTela(extremo, tela);
-  verificar(p, strstr(tela[0], "58.1") && strstr(tela[0], "VERMELHO") && strlen(tela[0]) == LCD_COLUNAS,
-            "display: TA de 58,1 °C cabe na linha");
+  verificar(p, strstr(tela[0], "58.1") && strstr(tela[0], "ROXO") && strlen(tela[0]) == LCD_COLUNAS,
+            "display: TA de 58,1 °C cabe na linha e mostra ROXO");
   extremo.ta = 9.0f;  extremo.nivel = RISCO_VERDE;
   montarTela(extremo, tela);
   verificar(p, strstr(tela[0], "VERDE") != nullptr, "display: exatamente no limite do frio (9 °C) ainda é VERDE");
@@ -265,7 +279,50 @@ inline bool rodarAutoteste() {
   verificar(p, ficouDesligado && manutencao.motivo == RELE_REMOTO_DESLIGADO, "rele:off segura desligado mesmo com 45 °C");
   dt.releMotivo = RELE_REMOTO_LIGADO;
   montarTela(dt, tela);
-  verificar(p, strstr(tela[2], "REMOTO") && strlen(tela[2]) == LCD_COLUNAS, "display: relé ligado pela nuvem mostra REMOTO");
+  verificar(p, strstr(tela[3], "REMOTO") && strlen(tela[3]) == LCD_COLUNAS, "LCD 1: relé ligado pela nuvem mostra REMOTO");
+
+  // --- Refúgio mais perto e orientação sem app ---
+  const Refugio teste[] = { {"Praca", 400, -1, 0, true}, {"Shopping", 200, 10, 21, false} };
+  verificar(p, refugioMaisPerto(teste, 2, 15, 3) == &teste[1], "refúgio: quarta às 15h, o shopping aberto e mais perto ganha da praça");
+  verificar(p, refugioMaisPerto(teste, 2, 23, 3) == &teste[0], "refúgio: às 23h, o shopping fechado sai e fica a praça");
+  verificar(p, refugioMaisPerto(teste, 2, 15, 0) == &teste[0], "refúgio: no domingo, o shopping que não abre sai");
+  verificar(p, refugioMaisPerto(teste, 2, -1, -1) == &teste[0], "refúgio: sem relógio, só indica o que é 24 h");
+  verificar(p, refugioMaisPerto(&teste[1], 1, -1, -1) == nullptr, "refúgio: sem relógio e só com shopping, não indica nenhum");
+  char dist[8];
+  textoDistancia(dist, sizeof(dist), 90);
+  bool metros = strcmp(dist, "90m") == 0;
+  textoDistancia(dist, sizeof(dist), 1260);
+  verificar(p, metros && strcmp(dist, "1.3km") == 0, "refúgio: distância em m até 999 e em km depois");
+
+  // LCD 2 (orientação): conselho, refúgio, hora e rede, tudo na tela ao mesmo tempo
+  dt.releMotivo = RELE_CALMO;  dt.refugio = &teste[0];   // dt está em LARANJA (34,6 °C)
+  montarTelaOrientacao(dt, tela);
+  todas20 = true;
+  for (int i = 0; i < LCD_LINHAS; i++) todas20 = todas20 && strlen(tela[i]) == LCD_COLUNAS;
+  verificar(p, todas20 && strstr(tela[0], "Beba agua e descanse") && strstr(tela[1], "Va: Praca 400m"),
+            "LCD 2: no LARANJA, conselho e refúgio aparecem juntos (4 linhas de 20)");
+  montarTela(dt, tela);
+  verificar(p, strstr(tela[1], "T30.2C") != nullptr, "LCD 1: com risco alto, as leituras continuam na tela");
+  dt.nivel = RISCO_VERMELHO;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "SAIA DO SOL") != nullptr, "LCD 2: no VERMELHO, o conselho é sair do sol");
+  dt.nivel = RISCO_ROXO;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "SUSPENDA ATIVIDADES") != nullptr, "LCD 2: no ROXO, o conselho é suspender as atividades");
+  dt.nivel = RISCO_VERMELHO;  dt.refugio = nullptr;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[1], "Procure uma sombra") != nullptr, "LCD 2: sem refúgio aberto, manda procurar sombra");
+  const Refugio longe = {"NomeMuitoComprido", 9900, -1, 0, true};
+  dt.refugio = &longe;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[1], "9.9km") && strlen(tela[1]) == LCD_COLUNAS, "LCD 2: nome longo e 9,9 km cabem na linha");
+  dt.nivel = RISCO_AMARELO;  dt.refugio = &teste[0];  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "beba agua") && strstr(tela[1], "Pausas na sombra") && !strstr(tela[1], "Va:"),
+            "LCD 2: no AMARELO, água e pausas, sem mandar ao refúgio");
+  dt.nivel = RISCO_VERDE;  dt.ta = 22;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "Sem risco de calor") != nullptr, "LCD 2: no VERDE, sem risco de calor");
+  dt.ta = 3;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "Frio") != nullptr, "LCD 2: abaixo de 9 °C, avisa o frio");
+  ruim.refugio = &teste[0];
+  montarTelaOrientacao(ruim, tela);
+  verificar(p, strstr(tela[0], "Sem leitura") && strstr(tela[1], "Na duvida") && !strstr(tela[1], "Va:"),
+            "LCD 2: SEM DADO nunca manda ao refúgio (não sabe se há risco), mas aconselha a sombra");
 
   // --- Rede: espera crescente (backoff) ---
   Backoff b;
@@ -289,7 +346,7 @@ inline bool rodarAutoteste() {
             "mensagem: os 7 campos e o status no formato do ThingSpeak");
   Leitura semDado;
   montarMensagem(semDado, msg, sizeof(msg));
-  verificar(p, strcmp(msg, "field6=4&field7=0") == 0, "mensagem: sem leitura confiável, só vai o risco (4) e o relé");
+  verificar(p, strcmp(msg, "field6=5&field7=0") == 0, "mensagem: sem leitura confiável, só vai o risco (5 = sem dado) e o relé");
   semDado.status = "a&b=c";
   montarMensagem(semDado, msg, sizeof(msg));
   verificar(p, strstr(msg, "status=a b:c") != nullptr, "mensagem: '&' e '=' no status não quebram a mensagem");
@@ -298,18 +355,21 @@ inline bool rodarAutoteste() {
             "mensagem: buffer pequeno não estoura (avisa que não coube)");
 
   // --- Nuvem: comandos que chegam pelo field8 ---
-  Comando c = interpretarComando("lim:28,33,40", 12);
-  verificar(p, c.tipo == CMD_LIMITES && c.limites.amarelo == 28 && c.limites.laranja == 33 && c.limites.vermelho == 40,
-            "comando lim:28,33,40 é aceito");
-  const char* bagunca = " LIM: 28, 33 ,40 ";
+  const char* novo = "lim:28,35,41,52";
+  Comando c = interpretarComando(novo, strlen(novo));
+  verificar(p, c.tipo == CMD_LIMITES && c.limites.amarelo == 28 && c.limites.laranja == 35 && c.limites.vermelho == 41
+               && c.limites.roxo == 52,
+            "comando lim:28,35,41,52 é aceito (os 4 limites)");
+  const char* bagunca = " LIM: 28, 35 ,41, 52 ";
   verificar(p, interpretarComando(bagunca, strlen(bagunca)).tipo == CMD_LIMITES, "comando aceita espaços e maiúsculas");
-  const char* invalidos[] = {"lim:33,28,40", "lim:28,33", "lim:28,33,40,50", "lim:abc,33,40",
-                             "lim:nan,33,40", "lim:5,33,40", "rele:talvez", "apagar:tudo"};
+  const char* invalidos[] = {"lim:35,28,41,52", "lim:28,35,41", "lim:28,35,41,52,55", "lim:abc,35,41,52",
+                             "lim:nan,35,41,52", "lim:5,35,41,52", "lim:28,35,41,65", "rele:talvez", "apagar:tudo"};
   bool todosRejeitados = true;
   for (const char* x : invalidos) todosRejeitados &= interpretarComando(x, strlen(x)).tipo == CMD_INVALIDO;
-  verificar(p, todosRejeitados, "comandos fora de ordem, incompletos, NaN, fora da faixa ou desconhecidos são rejeitados");
-  const char* longo = "lim:28.000000000,33.000000000,40.00000000";   // 41 letras
-  verificar(p, interpretarComando(longo, strlen(longo)).tipo == CMD_INVALIDO, "mensagem com mais de 40 letras é rejeitada");
+  verificar(p, todosRejeitados, "comandos fora de ordem, incompletos (3 limites), NaN, fora da faixa ou desconhecidos são rejeitados");
+  const char* longo = "lim:28.00000000,35.00000000,41.0000,52.00";   // 41 letras
+  verificar(p, strlen(longo) == 41 && interpretarComando(longo, strlen(longo)).tipo == CMD_INVALIDO,
+            "mensagem com mais de 40 letras é rejeitada");
   verificar(p, interpretarComando("rele:on", 7).modo == MODO_LIGAR && interpretarComando("RELE:OFF", 8).modo == MODO_DESLIGAR
                && interpretarComando("rele:auto", 9).modo == MODO_AUTO,
             "comandos rele:on, rele:off e rele:auto");

@@ -33,10 +33,13 @@
     { "type": "wokwi-resistor", "id": "r2", "top": 0, "left": -210, "rotate": 90, "attrs": { "value": "220" } },
     { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": -150, "rotate": 90, "attrs": { "value": "220" } },
     { "type": "wokwi-resistor", "id": "r4", "top": 0, "left": -90, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "ledRoxo", "top": -80, "left": -20, "attrs": { "color": "purple", "label": "ROXO" } },
+    { "type": "wokwi-resistor", "id": "r6", "top": 0, "left": -30, "rotate": 90, "attrs": { "value": "220" } },
     { "type": "wokwi-relay-module", "id": "rele1", "top": 160, "left": -230, "attrs": {} },
     { "type": "wokwi-led", "id": "ledNebulizador", "top": 260, "left": -120, "attrs": { "color": "blue", "label": "NEBULIZADOR" } },
     { "type": "wokwi-resistor", "id": "r5", "top": 300, "left": -200, "attrs": { "value": "220" } },
-    { "type": "wokwi-lcd2004", "id": "lcd1", "top": -260, "left": -250, "attrs": { "pins": "i2c" } }
+    { "type": "wokwi-lcd2004", "id": "lcd1", "top": -260, "left": -250, "attrs": { "pins": "i2c" } },
+    { "type": "wokwi-lcd2004", "id": "lcd2", "top": -260, "left": 120, "attrs": { "pins": "i2c", "i2cAddress": "0x26" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -62,6 +65,9 @@
     [ "ledAmarelo:C", "esp:GND.1", "black", [] ],
     [ "ledLaranja:C", "esp:GND.1", "black", [] ],
     [ "ledVermelho:C", "esp:GND.1", "black", [] ],
+    [ "esp:19", "r6:2", "purple", [] ],
+    [ "r6:1", "ledRoxo:A", "purple", [] ],
+    [ "ledRoxo:C", "esp:GND.1", "black", [] ],
 
     [ "rele1:VCC", "esp:5V", "red", [] ],
     [ "rele1:GND", "esp:GND.1", "black", [] ],
@@ -74,7 +80,11 @@
     [ "lcd1:GND", "esp:GND.2", "black", [] ],
     [ "lcd1:VCC", "esp:5V", "red", [] ],
     [ "lcd1:SDA", "esp:21", "green", [] ],
-    [ "lcd1:SCL", "esp:22", "cyan", [] ]
+    [ "lcd1:SCL", "esp:22", "cyan", [] ],
+    [ "lcd2:GND", "esp:GND.2", "black", [] ],
+    [ "lcd2:VCC", "esp:5V", "red", [] ],
+    [ "lcd2:SDA", "esp:21", "green", [] ],
+    [ "lcd2:SCL", "esp:22", "cyan", [] ]
   ],
   "dependencies": {}
 }

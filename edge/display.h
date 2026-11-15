@@ -1,14 +1,22 @@
 #pragma once
 // ============================================================
-// display.h — o TEXTO das 4 linhas do LCD 20x4.
+// display.h — o TEXTO dos dois LCDs 20x4.
 //
-// Só monta o texto; quem escreve no LCD é o sketch.ino. Separado
-// assim, o autoteste confere a tela sem precisar do LCD.
+// Só monta o texto; quem escreve nos LCDs é o sketch.ino. Separado
+// assim, o autoteste confere as telas sem precisar dos LCDs.
 // Analogia: o redator escreve a manchete; a gráfica só imprime.
 //
-//   TA  34.6C  LARANJA     <- valor atual e nível de risco
-//   T30.2C U50% V2.0m/s    <- leituras (ou o problema, se houver)
+// LCD 1 — MEDICAO (endereço I2C 0x27): o que a estação mede e faz
+//   TA  36.6C  LARANJA     <- valor atual e nível de risco
+//   T30.0C U50% V0.0m/s    <- leituras (ou o problema, se houver)
+//   Sol  50000lx Q 50      <- luz do sol e a radiação que entra na conta
 //   Rele:LIGADO   02:15    <- status do atuador (REMOTO = ligado pela nuvem)
+//
+// LCD 2 — ORIENTACAO (endereço I2C 0x26): o que a pessoa deve fazer,
+// sem depender de app (conselhos da nota técnica da SMS de POA)
+//   Beba agua e descanse   <- conselho do nível
+//   Va: Praca XV 24m       <- refúgio mais perto e aberto (do LARANJA para cima)
+//   Hora 15:42             <- relógio da internet (NTP)
 //   E1 WiFi:OK  MQTT:OK    <- estação e conexão
 //
 // Cada linha tem SEMPRE 20 caracteres (completa com espaços): assim
@@ -19,6 +27,7 @@
 #include <stdio.h>
 #include "risco.h"
 #include "rele.h"
+#include "refugio.h"
 
 const int LCD_COLUNAS = 20;
 const int LCD_LINHAS  = 4;
@@ -30,6 +39,9 @@ struct DadosTela {
   float         umid      = NAN;
   float         vento     = 0;
   bool          ventoOk   = false;
+  float         lux       = 0;
+  float         q         = 0;         // radiação absorvida pelo corpo (W/m²)
+  bool          luzOk     = false;
   const char*   problema  = nullptr;   // texto curto do problema, ou nullptr se está tudo bem
   bool          releLigado = false;
   MotivoRele    releMotivo = RELE_CALMO;
@@ -37,13 +49,23 @@ struct DadosTela {
   const char*   estacao   = "";
   bool          wifiOk    = false;
   bool          mqttOk    = false;
+  int           hora      = -1;        // -1 = a estação ainda não sabe a hora (sem NTP)
+  int           minuto    = -1;
+  const Refugio* refugio  = nullptr;   // o refúgio mais perto e aberto, ou nullptr se não há
 };
+
+// Indica o refúgio? Só com risco alto e com dado confiável
+// (SEM DADO também cobre o modo seguro: ver decidirRiscoERele).
+inline bool deveOrientar(const DadosTela& d) {
+  return d.nivel != RISCO_SEM_DADO && d.nivel >= RISCO_LARANJA && !isnan(d.ta);
+}
 
 // Copia o texto e completa com espaços até 20 (corta se passar).
 inline void ajustarLinha(char destino[LCD_COLUNAS + 1], const char* texto) {
   snprintf(destino, LCD_COLUNAS + 1, "%-20.20s", texto);
 }
 
+// ---------- LCD 1: MEDICAO ----------
 inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS + 1]) {
   char tmp[48];
 
@@ -61,7 +83,12 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
   else                        snprintf(tmp, sizeof(tmp), "T%.1fC U%.0f%% V--", d.temp, d.umid);
   ajustarLinha(linhas[1], tmp);
 
-  // Linha 2: o relé (ligado mostra há quanto tempo, em mm:ss)
+  // Linha 2: o sol. Com o LDR ruim, a conta usa o pior caso (Q = 100).
+  if (d.luzOk) snprintf(tmp, sizeof(tmp), "Sol %6.0flx Q%3.0f", d.lux, d.q);
+  else         snprintf(tmp, sizeof(tmp), "Sol  --  Q100 pior");
+  ajustarLinha(linhas[2], tmp);
+
+  // Linha 3: o relé (ligado mostra há quanto tempo, em mm:ss)
   if (d.releLigado) {
     unsigned long s = d.releHaMs / 1000;
     snprintf(tmp, sizeof(tmp), "Rele:%-8s %02lu:%02lu",
@@ -74,6 +101,50 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
                                                           : "desligado";
     snprintf(tmp, sizeof(tmp), "Rele:%s", porque);
   }
+  ajustarLinha(linhas[3], tmp);
+}
+
+// ---------- LCD 2: ORIENTACAO ----------
+// Os conselhos seguem a nota técnica da SMS de POA (hidratação e
+// pausas na sombra no amarelo; evitar o sol do laranja para cima;
+// suspender as atividades no roxo), em até 20 letras.
+inline const char* conselhoDoNivel(const DadosTela& d) {
+  switch (d.nivel) {
+    case RISCO_ROXO:     return "SUSPENDA ATIVIDADES";
+    case RISCO_VERMELHO: return "SAIA DO SOL + AGUA";
+    case RISCO_LARANJA:  return "Beba agua e descanse";
+    case RISCO_AMARELO:  return "Calor: beba agua";
+    case RISCO_VERDE:    return (!isnan(d.ta) && d.ta < LIMITE_FRIO_C) ? "Frio: se agasalhe" : "Sem risco de calor";
+    default:             return "Sem leitura agora";
+  }
+}
+
+inline void montarTelaOrientacao(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS + 1]) {
+  char tmp[48];
+  char dist[8];
+
+  // Linha 0: o conselho
+  ajustarLinha(linhas[0], conselhoDoNivel(d));
+
+  // Linha 1: para onde ir. Do LARANJA para cima, o refúgio mais perto
+  // que está aberto; no AMARELO, pausas; sem dado, o lado seguro.
+  if (deveOrientar(d) && d.refugio != nullptr) {
+    textoDistancia(dist, sizeof(dist), d.refugio->distanciaM);
+    snprintf(tmp, sizeof(tmp), "Va: %.10s %s", d.refugio->nome, dist);
+  } else if (deveOrientar(d)) {
+    snprintf(tmp, sizeof(tmp), "Procure uma sombra");   // nenhum refúgio aberto agora
+  } else if (d.nivel == RISCO_AMARELO) {
+    snprintf(tmp, sizeof(tmp), "Pausas na sombra");
+  } else if (d.nivel == RISCO_SEM_DADO) {
+    snprintf(tmp, sizeof(tmp), "Na duvida: sombra");
+  } else {
+    tmp[0] = '\0';
+  }
+  ajustarLinha(linhas[1], tmp);
+
+  // Linha 2: a hora (mostra que o relógio da internet está valendo)
+  if (d.hora >= 0 && d.minuto >= 0) snprintf(tmp, sizeof(tmp), "Hora %02d:%02d", d.hora, d.minuto);
+  else                              snprintf(tmp, sizeof(tmp), "Hora --:--");
   ajustarLinha(linhas[2], tmp);
 
   // Linha 3: estação e conexão

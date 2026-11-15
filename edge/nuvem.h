@@ -11,12 +11,12 @@
 //   field1 temperatura (°C)      field5 sensação térmica (°C)
 //   field2 umidade (%)           field6 nível de risco (0 verde,
 //   field3 vento (m/s)                  1 amarelo, 2 laranja,
-//   field4 luz (lux)                    3 vermelho, 4 sem dado)
+//   field4 luz (lux)                    3 vermelho, 4 roxo, 5 sem dado)
 //   field7 relé (0/1)            field8 COMANDO (escrito pela nuvem,
 //   status: o último aviso              nunca pela estação)
 //
 // Comandos aceitos no field8 (um por mensagem):
-//   lim:28,33,40      -> limites do amarelo, laranja e vermelho
+//   lim:27,34,40,52   -> onde começam o amarelo, o laranja, o vermelho e o roxo
 //   rele:on | rele:off | rele:auto
 // Tudo que chega é conferido: tamanho, formato, faixa e ordem dos
 // limites (limitesValidos) e frequência. O inválido é ignorado e
@@ -123,7 +123,7 @@ inline Comando interpretarComando(const char* dados, unsigned int tamanho) {
   if (dados == nullptr || tamanho == 0) return Comando();             // vazio: nada a fazer
   if (tamanho > CONFIG_MAX_TAMANHO) return comandoInvalido("mensagem longa demais");
 
-  // Copia sem espaços e em minúsculas: " LIM: 28, 33 ,40 " vira "lim:28,33,40"
+  // Copia sem espaços e em minúsculas: " LIM: 28, 35 ,41, 52 " vira "lim:28,35,41,52"
   char t[CONFIG_MAX_TAMANHO + 1];
   size_t n = 0;
   for (unsigned int i = 0; i < tamanho; i++) {
@@ -137,11 +137,12 @@ inline Comando interpretarComando(const char* dados, unsigned int tamanho) {
 
   if (strncmp(t, "lim:", 4) == 0) {
     const char* p = t + 4;
-    float v[3];
-    for (int k = 0; k < 3; k++) {
-      if (!lerNumero(p, v[k])) return comandoInvalido("numero invalido (use lim:A,B,C)");
-      if (k < 2) {
-        if (*p != ',') return comandoInvalido("faltou virgula (use lim:A,B,C)");
+    const int N = 4;   // amarelo, laranja, vermelho e roxo
+    float v[N];
+    for (int k = 0; k < N; k++) {
+      if (!lerNumero(p, v[k])) return comandoInvalido("numero invalido (use lim:A,B,C,D)");
+      if (k < N - 1) {
+        if (*p != ',') return comandoInvalido("faltou virgula (use lim:A,B,C,D)");
         p++;
       }
     }
@@ -150,6 +151,7 @@ inline Comando interpretarComando(const char* dados, unsigned int tamanho) {
     c.limites.amarelo  = v[0];
     c.limites.laranja  = v[1];
     c.limites.vermelho = v[2];
+    c.limites.roxo     = v[3];
     if (!limitesValidos(c.limites)) return comandoInvalido("limites fora da faixa ou da ordem");
     c.tipo = CMD_LIMITES;
     return c;

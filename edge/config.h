@@ -20,9 +20,11 @@
 #define PINO_LED_AMARELO  33   // decide a tensão da flash no boot e pode impedir a placa de ligar)
 #define PINO_LED_LARANJA  25
 #define PINO_LED_VERMELHO 26
+#define PINO_LED_ROXO     19   // 5º nível (roxo) da nota técnica da SMS de POA
 #define PINO_RELE         18   // HIGH = relé ligado = nebulizador ligado
 // O LCD usa o I2C padrão do ESP32: SDA no GPIO 21 e SCL no GPIO 22
-#define LCD_ENDERECO_I2C  0x27
+#define LCD_ENDERECO_I2C  0x27   // LCD 1: medição
+#define LCD2_ENDERECO_I2C 0x26   // LCD 2: orientação (mesmo fio I2C, outro endereço)
 
 // --- Tempo ---
 const unsigned long INTERVALO_LEITURA_MS = 2000;  // o DHT22 só gera leitura nova a cada 2 s
@@ -76,11 +78,16 @@ const float FATOR_ABSORCAO_CORPO = 0.12f;     // fração que o corpo absorve, n
 const float LUX_MAX              = 120000.0f; // mais que o sol mais forte: corta aqui
 const float Q_PIOR_CASO          = 100.0f;    // = sol forte; usado se o LDR falhar
 
-// --- Níveis de risco (valores INICIAIS; no Passo 4 a nuvem pode mudar) ---
-// Categorias do índice de calor da NOAA (ver risco.h)
+// --- Níveis de risco (valores INICIAIS; a nuvem pode mudar com lim:) ---
+// As 5 faixas da Nota Técnica nº 01/26 da Secretaria Municipal de Saúde
+// de Porto Alegre (atualizada em 04/02/2026), ver risco.h:
+//   < 27 verde | 27-33 amarelo | 34-39 laranja | 40-51 vermelho | > 51 roxo
+// A nota usa faixas de números inteiros, então cada cor COMEÇA em
+// 27, 34, 40 e 52 (51,9 °C ainda é "51": vermelho).
 const float LIMITE_AMARELO_C  = 27.0f;
-const float LIMITE_LARANJA_C  = 32.0f;
-const float LIMITE_VERMELHO_C = 41.0f;
+const float LIMITE_LARANJA_C  = 34.0f;
+const float LIMITE_VERMELHO_C = 40.0f;
+const float LIMITE_ROXO_C     = 52.0f;
 const float HISTERESE_NIVEL_C = 0.5f;   // a cor só DESCE 0,5 °C abaixo do limite (a do DHT22 é ±0,5)
 // Abaixo disto, o LCD mostra FRIO em vez de VERDE. É SÓ um aviso de
 // texto: os níveis, os LEDs, o relé e o field6 continuam medindo o
@@ -90,6 +97,29 @@ const float LIMITE_FRIO_C     = 9.0f;
 const float LIMITE_MIN_C      = 15.0f;  // faixa aceita para a config remota
 const float LIMITE_MAX_C      = 60.0f;
 const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por segundo
+
+// --- Refúgios: para onde o LCD manda a pessoa com risco LARANJA ou VERMELHO ---
+// A estação é fixa, então a distância também: medida uma vez no
+// OpenStreetMap (15/11/2026), em linha reta, da E1 até a borda do local.
+// O LCD indica o MAIS PERTO que estiver ABERTO agora (ver refugio.h).
+// Um shopping só ganha da praça se estiver mais perto. Na E1, a
+// Praça XV fica colada no Largo (24 m), então ela ganha sempre; o
+// shopping fica na lista para valer a regra quando a praça mudar
+// (ex.: obra) e como modelo para as outras estações.
+// Horário do shopping: o mais curto entre o OSM (9h-21h) e o Jornal do
+// Comércio (03/07/2024: 9h-19h, de segunda a sábado). Fecha às 19h,
+// então vale até as 18h. Feriado a estação não sabe: limitação.
+#include "refugio.h"
+const Refugio REFUGIOS[] = {
+  // nome (até 10, sem acento)  distância (m)  abre  vale até  domingo
+  { "Praca XV",                  24,           -1,   0,        true  },   // Praça XV de Novembro: árvores, 24 h
+  { "Shop.Praia",                448,          9,    18,       false },   // Rua da Praia Shopping (R. dos Andradas, 1001)
+};
+const int NUM_REFUGIOS = sizeof(REFUGIOS) / sizeof(REFUGIOS[0]);
+
+// --- Relógio da internet (NTP): para saber se o shopping está aberto ---
+#define NTP_SERVIDOR       "pool.ntp.org"
+const long FUSO_HORARIO_S = -3L * 3600L;   // Brasília (UTC-3, sem horário de verão desde 2019)
 
 // --- Relé do nebulizador (liga a partir do LARANJA) ---
 // Tempos CURTOS para dar para ver no Wokwi e no vídeo. Numa estação
