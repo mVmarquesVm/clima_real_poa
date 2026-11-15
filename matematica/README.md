@@ -13,7 +13,7 @@ O jornal dá um número só: "máxima de 37 °C". Para quem vai passar a tarde n
 ## Os dados (reais, sem hipóteses)
 - **Estação automática A801 do INMET** (Porto Alegre, Jardim Botânico), hora a hora, em **04/02/2025**: o dia em que o InGá mediu 61 °C no piso do Parque Harmonia ([Sul21, 05/02/2025](https://sul21.com.br/noticias/geral/2025/02/piso-de-concreto-do-parque-harmonia-chega-a-61-oc-formando-ilha-de-calor-no-centro-de-porto-alegre/)).
 - A **sensação térmica ao sol** é a mesma fórmula da estação Forno Alegre (Temperatura Aparente de Steadman, com o sol medido pelo INMET). O código é o do [`python/`](../python/): `oficial.py` e `sensacao.py`.
-- **32 °C** é o limite em que o relé da estação liga o nebulizador (nível laranja).
+- **34 °C** é o limite em que o relé da estação liga o nebulizador (nível laranja). É onde começa o laranja nas 5 faixas da [Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre](https://prefeitura.poa.br/sites/default/files/usu_doc/hotsites/sms/vigilancia-em-saude/NT%201_26_Calor%20extremo.pdf) (27/34/40/52 °C), a mesma régua da estação e do Python. Até 15/11/2026, usávamos 32 °C (da NOAA), e a dose dava 116,4 °C·h.
 
 ## O modelo e as análises
 
@@ -21,7 +21,7 @@ O jornal dá um número só: "máxima de 37 °C". Para quem vai passar a tarde n
 |---|---|---|---|
 | **M1 Modelo** | Que curva descreve o dia? | Soma de 2 ondas de 24 h, ajustada por mínimos quadrados | Erro típico de **1,0 °C** (R² = 0,979) |
 | **M2 Derivada** | A que velocidade a sensação sobe? Quando para? | TA'(t), e TA'(t) = 0 no pico | Sobe até **3,2 °C/h** (às 09h55); para de subir às **14h07**, com **46,9 °C** |
-| **M3 Integral** | Quanto calor se acumula acima de 32 °C? | ∫ (TA − 32) dt, comparada com as somas de Riemann | **116,4 °C·h** em **13,7 h** (das 07h43 às 21h26) |
+| **M3 Integral** | Quanto calor se acumula acima de 34 °C? | ∫ (TA − 34) dt, comparada com as somas de Riemann | **91,0 °C·h** em **11,8 h** (das 08h30 às 20h20) |
 | **M4 Limite** | Até onde a noite esfria o ar? | Lei de Newton, lim T(t) com t → ∞ | **23,3 °C**: a diferença cai pela metade a cada **4,2 h** |
 
 ### M1 — O modelo
@@ -44,10 +44,10 @@ TA(t) = a + b1·sen(ωt) + c1·cos(ωt) + b2·sen(2ωt) + c2·cos(2ωt),   ω = 
 ![M2](graficos/2_derivada.png)
 
 ### M3 — A integral (a dose de calor)
-- **Analogia:** a conta de luz não cobra o pico de consumo, cobra os kWh somados no mês. Com o calor é igual: a **dose** é a área da curva acima de 32 °C, em **°C·h** (graus-hora).
-- **A área exata** sai pelo **Teorema Fundamental do Cálculo:** acha onde a curva cruza os 32 °C (por bisseção) e calcula F(fim) − F(início) com a primitiva do modelo. O resultado é **116,4 °C·h**. Em média, foram **8,5 °C acima do limite durante 13,7 horas**.
-- **A soma de Riemann** com os dados, de hora em hora, dá **117,9 °C·h**. É o que se calcula com uma planilha, somando uma hora de cada vez. As regras da esquerda, da direita e do trapézio dão o mesmo número aqui, porque a dose vale 0 nas duas pontas do dia.
-- **h → 0:** com retângulos cada vez mais finos sobre o modelo, a soma se aproxima da área exata. O erro é de 0,09 °C·h com h = 60 min e de cerca de 0,00001 °C·h com h = 36 s. Quando h cai pela metade, o erro cai de 4 a 6 vezes. Essa é a **definição da integral**: o limite da soma de Riemann.
+- **Analogia:** a conta de luz não cobra o pico de consumo, cobra os kWh somados no mês. Com o calor é igual: a **dose** é a área da curva acima de 34 °C, em **°C·h** (graus-hora).
+- **A área exata** sai pelo **Teorema Fundamental do Cálculo:** acha onde a curva cruza os 34 °C (por bisseção) e calcula F(fim) − F(início) com a primitiva do modelo. O resultado é **91,0 °C·h**. Em média, foram **7,7 °C acima do limite durante 11,8 horas**.
+- **A soma de Riemann** com os dados, de hora em hora, dá **91,9 °C·h** (13 horas medidas acima do limite). É o que se calcula com uma planilha, somando uma hora de cada vez. As regras da esquerda, da direita e do trapézio dão o mesmo número aqui, porque a dose vale 0 nas duas pontas do dia.
+- **h → 0:** com retângulos cada vez mais finos sobre o modelo, a soma se aproxima da área exata. O erro é de 0,17 °C·h com h = 60 min e de cerca de 0,00002 °C·h com h = 36 s. Quando h cai pela metade, o erro cai cerca de 4 vezes. Essa é a **definição da integral**: o limite da soma de Riemann.
 
 ![M3](graficos/3_integral.png)
 

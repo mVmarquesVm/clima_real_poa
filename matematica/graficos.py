@@ -113,7 +113,7 @@ def grafico_derivada(df, r, arquivo: Path) -> Path:
 
 
 def grafico_integral(df, r, arquivo: Path) -> Path:
-    """M3: à esquerda, a área acima de 32 °C e os retângulos de Riemann; à direita, o erro caindo com h."""
+    """M3: à esquerda, a área acima do limite (34 °C) e os retângulos de Riemann; à direita, o erro caindo com h."""
     dia = df[df["t"] < 24]
     coef = np.array(r["m1_modelo"]["coeficientes"])
     m3, limite = r["m3_integral"], r["limite_c"]
@@ -124,7 +124,7 @@ def grafico_integral(df, r, arquivo: Path) -> Path:
     _estilo(ax)
     _estilo(ax2)
 
-    # Retângulos de Riemann à esquerda (h = 1 h) sobre os DADOS: altura = quanto passou de 32 °C
+    # Retângulos de Riemann à esquerda (h = 1 h) sobre os DADOS: altura = quanto passou do limite
     for t0, ta in zip(dia["t"].iloc[:-1], dia["ta_sol"].iloc[:-1]):
         if ta > limite:
             ax.add_patch(plt.Rectangle((t0, limite), 1, ta - limite, facecolor="none", edgecolor=APAGADO, linewidth=0.9))
@@ -137,7 +137,7 @@ def grafico_integral(df, r, arquivo: Path) -> Path:
             color=TINTA_2, fontsize=8.5)
     _eixo_horas(ax, 0, 24)
     ax.set_ylabel("Sensação ao sol (°C)", color=TINTA_2)
-    ax.set_title("M3 · A integral: a dose de calor acima de 32 °C", loc="left", color=TINTA, fontsize=12, pad=12)
+    ax.set_title(f"M3 · A integral: a dose de calor acima de {limite:.0f} °C", loc="left", color=TINTA, fontsize=12, pad=12)
 
     conv = pd.DataFrame(m3["convergencia"])
     minutos = conv["h"] * 60

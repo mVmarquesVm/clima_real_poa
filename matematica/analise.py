@@ -10,7 +10,7 @@ Harmonia (Sul21, 05/02/2025): o mesmo dia contado no Python e no pitch.
 
     M1 Modelo    -> uma soma de 2 ondas de 24 h ajustada à sensação ao sol
     M2 Derivada  -> a taxa de aquecimento (°C/h) e a hora em que ela zera (o pico)
-    M3 Integral  -> a dose de calor acima de 32 °C, exata × somas de Riemann
+    M3 Integral  -> a dose de calor acima de 34 °C, exata × somas de Riemann
     M4 Limite    -> o resfriamento da noite (Newton) e a temperatura para onde ele tende
 
 Uso (de dentro da pasta matematica/, com o .venv do python/):
@@ -36,7 +36,7 @@ import graficos  # noqa: E402
 
 DIA = "2025-02-04"
 HARMONICOS = 2          # escolhido pela comparação de 1 a 4 ondas (ver M1)
-LIMITE = LIMITE_LARANJA  # 32 °C: onde o relé da estação liga o nebulizador
+LIMITE = LIMITE_LARANJA  # 34 °C: onde começa o laranja (SMS de POA) e o relé liga o nebulizador
 # A noite: das 20h (o sol já não chega a 4 W/m²) até as 6h do dia seguinte (antes de o sol nascer)
 INICIO_NOITE, FIM_NOITE = 20, 30
 PASSOS_RIEMANN = (23, 46, 92, 230, 2300)   # h = 1 h, 30 min, 15 min, 6 min, 36 s
