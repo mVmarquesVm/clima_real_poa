@@ -384,3 +384,32 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - A ideia da segunda tela.
+## Front-end 3 — Leitura ao vivo da estação E1 com o selo de risco (15/11/2026)
+
+**O que eu pedi**
+- Continuar o projeto, no próximo passo do plano do Front: a E1 ao vivo no app.
+
+**O que a IA gerou**
+- `src/lib/risco.js`: a mesma régua da estação (5 faixas da nota técnica da SMS: 27/34/40/52 °C), o aviso de frio abaixo de 9 °C e o field6 → nível (4 = roxo, 5 = sem dado; valor vazio ou estranho vira "sem dado").
+- `src/servicos/thingspeak.js`: lê o canal público 3578427 sem chave e pega a entrada mais recente com a sensação térmica (pula as entradas só de comando). Leitura com mais de 2 min não decide: vira "sem dado recente", como no Edge.
+- `src/ganchos/useEstacaoE1.js`: busca a cada 15 s (o limite do ThingSpeak grátis), cancela a busca anterior e mantém a última leitura boa se a rede falhar.
+- Componentes novos: `IconeRisco` (um formato por nível, para quem não distingue cores), `SeloRisco` (cor + ícone + texto, com o conselho do LCD de Orientação) e `EstacaoAoVivo` (selo, "atualizado há X s", TA, ar, umidade, vento, luz, nebulizador e a fonte). O leitor de tela só anuncia quando o nível muda (`aria-live="polite"`).
+- Token novo `--color-risco-roxo`. Texto escuro no amarelo e no laranja, para passar no contraste.
+- Um teste rápido da lógica achou um bug antes do commit: `Number(null)` dá 0, e um field6 vazio virava "verde". Corrigido: vazio = sem dado.
+- A conferência no navegador (por um subagente, com leituras falsas de laranja, roxo e frio) achou um risco: a região `aria-live` sumia quando não havia leitura, e alguns leitores de tela ignoram uma região recém-criada. Agora ela fica sempre na página.
+
+**O que eu mudei ou fiz sozinho**
+- As decisões deste passo são minhas, da sessão 7: ler o ThingSpeak direto, sem servidor, e mostrar a E1 ao vivo.
+
+## Edge — Dashboard do ThingSpeak na régua nova (15/11/2026)
+
+**O que eu pedi**
+- Autorizei a IA a atualizar o dashboard do canal pelo meu Chrome.
+
+**O que a IA gerou**
+- Medidor da TA (Public View): faixas de 27 a 34 (amarelo), 34 a 40 (laranja), 40 a 52 (vermelho) e uma faixa nova, roxa, de 52 a 65. O azul abaixo de 9 e o verde de 9 a 27 ficaram iguais.
+- Widget de risco: o título agora traz a legenda (0 verde, 1 amarelo, 2 laranja, 3 vermelho, 4 roxo, 5 sem dado).
+- Conferido depois de recarregar a página: os valores ficaram gravados. README do Edge ajustado.
+
+**O que eu mudei ou fiz sozinho**
+- Autorizei a mudança.

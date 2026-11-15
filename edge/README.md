@@ -164,7 +164,7 @@ Além dos 8 gráficos (um por campo, com o histórico), o painel tem 3 widgets q
 |---|---|---|
 | Medidor "Sensacao termica (TA)" | field5 | Ponteiro de −10 a 65 °C, com marcas de 15 em 15. A TA passa de 50 no calor extremo (43 °C, 55% e sol forte, sem vento, já dão 62 °C), e a folga até 65 é para o aquecimento global e a urbanização sem verde. Com frio e vento, ela fica negativa. Faixas: azul abaixo de 9 (frio, só aviso), verde de 9 a 27, amarelo de 27 a 34, laranja de 34 a 40, vermelho de 40 a 52 e roxo acima de 52, nas cores dos LEDs. Fora da escala, o ponteiro para no fim, mas o número embaixo mostra o valor real |
 | Lâmpada "Nebulizador (rele)" | field7 | Azul = relé ligado; apagada = desligado |
-| Número "Nivel de risco" | field6 | 0 verde, 1 amarelo, 2 laranja, 3 vermelho, 4 roxo, 5 sem dado |
+| Número "Nivel de risco (0 verde, 1 amarelo, …)" | field6 | 0 verde, 1 amarelo, 2 laranja, 3 vermelho, 4 roxo, 5 sem dado (a legenda está no próprio título do widget) |
 
 As faixas do medidor são fixas (são as padrão, 27/34/40/52). Se a nuvem mudar os limites com `lim:`, os LEDs e o LCD seguem os novos valores, mas o medidor continua com as faixas padrão.
 
