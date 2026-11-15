@@ -315,3 +315,27 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Decidi a ordem do Front: primeiro o básico (mapa, funções e botões), com estilo simples, e depois uma fase só para o design system.
 - Cobrei a regra dos subagentes no meio do passo; por isso a conferência no navegador foi feita por um subagente, que trouxe só o resumo.
+
+
+## Problema — Estruturação e verificação das fontes (14/11/2026)
+
+**O que eu pedi**
+- Perguntei se o projeto resolve um problema de fato ou um problema que só eu acho que existe ("inventar uma lâmpada branca quando já existe LED").
+- Pedi para estruturar bem o problema e questionei como um gari se beneficiaria, se ele está trabalhando atrás do caminhão.
+- Pesquisei como o calor afeta as pessoas, trouxe um rascunho em Markdown feito com outra IA e depois as fontes com os links.
+- Liberei a IA para pesquisar e pedi que investigasse os totens de medição da prefeitura.
+
+**O que a IA gerou**
+- Uma estruturação do problema (contexto, públicos, causas, o que já existe e a lacuna, proposta, limites), salva em `docs/problema.md`.
+- Uma revisão crítica do meu rascunho: aproveitou a "barreira da permanência", a "fadiga de alerta", a validação de refúgio e as pessoas em situação de rua; apontou que a Temperatura Aparente não serve como gatilho legal de pausa (o índice legal é o IBUTG, da NHO 06 e da NR-15).
+- Subagentes de pesquisa abriram cada fonte e trouxeram só o resumo. Resultado: o "3 °C a 12 °C entre bairros" e o "32 de 87 bebedouros" ficaram fora, por falta de fonte; Sarandi e Rubem Berta se confirmaram como os bairros mais quentes na superfície (estudo da UFRGS); a GZH mediu no Largo Glênio Peres (o local da E1) 34 °C no ar e até 54 °C nos ladrilhos.
+- Sobre os 16 pontos de medição da prefeitura (10 totens da Defesa Civil e 6 estações de qualidade do ar da Smamus): nenhum fica nos nossos locais de lazer e nenhum calcula a sensação térmica nem dá alerta de calor.
+
+**O que eu mudei ou fiz sozinho**
+- Questionei se o problema era real e se o trabalhador de rua se beneficiaria de fato.
+- Pesquisei as fontes e achei os links que a primeira verificação não tinha encontrado (UOL, GZH, Matinal, Band RS).
+- Em 15/11, decidi:
+  - **o público:** o cidadão é o principal, porque o app existe para ele, e a gestão pública usa os dados;
+  - **a proteção sem app:** a estação deve avisar o risco, mandar procurar sombra e se hidratar e indicar o refúgio mais perto, sem depender do app (ideia minha);
+  - **a frase do problema:** "Porto Alegre já mede o tempo em 16 pontos, mas nenhum diz quanto calor a pessoa sente na praça, nem avisa, nem refresca.";
+  - **a IA do rascunho:** foi o Gemini (registrado no `AI.md`).

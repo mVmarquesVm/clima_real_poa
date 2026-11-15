@@ -2,6 +2,7 @@
 
 ## Qual IA foi usada
 - **Claude (Anthropic)**, pelo Claude Code, no papel de par de programação e professor.
+- **Gemini (Google)**, só para o primeiro rascunho da pesquisa sobre o problema do calor. O rascunho foi revisado com o Claude, e cada número foi conferido na fonte original (ver `docs/problema.md`).
 
 ## Para quê
 - Explicar conceitos e fórmulas antes de implementar.
@@ -26,3 +27,4 @@
 | 13/11/2026 | Edge: dashboard no ThingSpeak e aviso de `FRIO` no LCD | 105 autotestes no PC e no ESP32; o `FRIO` foi conferido ao vivo no Wokwi (TA de 3,2 °C e de −3,9 °C) pela IA, pelo meu Chrome; o canal público abre sem login. A ideia de ampliar a escala do medidor (até 65 °C e abaixo de zero) foi minha |
 | 13/11/2026 | Python: dados do INMET, satélite (Landsat e Sentinel-2) e ranking | 8 testes (fórmula igual à do ESP32, conversões conferidas na mão, leitura do arquivo real do INMET); rodei o `ranking.py`; cada frase do README foi conferida contra os dados, e 2 frases erradas foram corrigidas. Recusei a 1ª versão, que usava hipóteses, e pedi dados reais |
 | 13/11/2026 | Matemática: modelo do dia, derivada, integral e limite (dados do INMET de 04/02/2025) | 9 testes com funções de resposta conhecida (derivadas contra a diferença finita, a primitiva contra Riemann com 100 mil retângulos, a raiz de 2, a área de meia onda = 96/π, Newton recuperando uma curva conhecida); os picos conferidos contra a tabela do INMET; os 4 gráficos revisados um a um. Li o relatório e conferi que os números batem com a saída do analise.py (dose de 116,4 °C·h, pico às 14h07). Conferi os limites dos dados: o INMET mede o ar de hora em hora, mas num gramado, longe das ilhas de calor, e o satélite mede só a superfície, por volta das 10h20. Nenhum dos dois mede a dose de calor no ar onde a pessoa fica. Mesmo no gramado, ela chegou a 116 °C·h acima de 32 °C em 04/02/2025. Este trabalho não avalia o efeito disso na saúde a longo prazo. |
+| 14/11/2026 | Estruturação do problema (`docs/problema.md`), a partir de um rascunho meu feito com o Gemini | Cada fonte foi aberta na versão original: os subagentes do Claude conferiram a maioria, e eu achei os links que eles não tinham encontrado (UOL, GZH, Matinal, Band RS); números sem fonte ficaram de fora (os 3 °C a 12 °C entre bairros e os 32 de 87 bebedouros); conferi a diferença entre o ar e a superfície e o que a lei diz de fato (o índice legal é o IBUTG, e o projeto de POA só foi aprovado na Câmara). Em 15/11, escolhi a frase do problema e o público |
