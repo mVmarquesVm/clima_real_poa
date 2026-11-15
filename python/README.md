@@ -64,7 +64,7 @@ A semana inclui o dia 04/02/2025, quando o InGá mediu **61 °C no piso de concr
 
 - A estação oficial **mediu no máximo 37,3 °C no ar**.
 - Com o sol que ela mesma mediu, a **sensação ao sol chegou a 47,0 °C** (04/02, às 15h).
-- Foram **80 horas** na semana com sensação ao sol de 32 °C ou mais (risco laranja ou vermelho).
+- Foram **71 horas** na semana com sensação ao sol de 34 °C ou mais (risco laranja ou acima), e **32 horas** com 40 °C ou mais (vermelho). Nenhuma hora chegou ao roxo (52 °C).
 
 ![O ar e a sensação ao sol na estação do INMET](graficos/inmet_semana.png)
 
@@ -100,7 +100,7 @@ Passagens do Landsat sem nuvens (menos de 2% na cena) nos verões de 2024/25 e 2
 - **INMET**, Banco de Dados Meteorológicos, dados históricos de 2025, estação automática A801 (Porto Alegre - Jardim Botânico): [portal.inmet.gov.br/dadoshistoricos](https://portal.inmet.gov.br/dadoshistoricos). O arquivo da estação está em `dados/inmet_A801_2025.csv`, sem mudanças.
 - **Landsat 8 e 9**, Coleção 2, Nível 2, temperatura da superfície (NASA/USGS), e **Sentinel-2** Nível 2A (ESA/Copernicus), via [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/).
 - **OpenStreetMap** (© colaboradores do OpenStreetMap, licença ODbL), pelo serviço Nominatim: as áreas dos 4 locais.
-- **Fórmula de Steadman** (Temperatura Aparente com vento e radiação, 1994), a mesma usada pelo serviço de meteorologia da Austrália. **Limites de risco** (27, 32 e 41 °C): categorias do índice de calor da NOAA.
+- **Fórmula de Steadman** (Temperatura Aparente com vento e radiação, 1994), a mesma usada pelo serviço de meteorologia da Austrália. **Limites de risco** (27, 34, 40 e 52 °C): as 5 faixas da [Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre](https://prefeitura.poa.br/sites/default/files/usu_doc/hotsites/sms/vigilancia-em-saude/NT%201_26_Calor%20extremo.pdf) (atualizada em 04/02/2026), uma adaptação das categorias do índice de calor da NOAA. A nota mede na sombra; aqui a sensação inclui o sol, então a régua fica mais rigorosa quando bate sol.
 - **Medição do Parque Harmonia:** InGá, divulgada pelo Sul21 em 05/02/2025 (temperatura de superfície, medição pontual de uma ONG).
 
 Nenhum dado pessoal é usado.

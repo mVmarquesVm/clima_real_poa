@@ -12,14 +12,18 @@ dados oficiais são medidos com a mesma régua, e a comparação é justa.
 
 import math
 
-# Limites de risco (°C de sensação), os mesmos do edge/config.h.
-# Categorias do índice de calor da NOAA (regressão das tabelas de Steadman).
+# Limites de risco (°C de sensação), os mesmos do edge/config.h: as 5 faixas
+# da Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre
+# (< 27 verde | 27-33 amarelo | 34-39 laranja | 40-51 vermelho | > 51 roxo),
+# uma adaptação das categorias do índice de calor da NOAA. As faixas são de
+# números inteiros, então cada cor COMEÇA em 27, 34, 40 e 52.
 LIMITE_AMARELO = 27.0
-LIMITE_LARANJA = 32.0
-LIMITE_VERMELHO = 41.0
+LIMITE_LARANJA = 34.0
+LIMITE_VERMELHO = 40.0
+LIMITE_ROXO = 52.0
 LIMITE_FRIO = 9.0  # abaixo disso, só um aviso de FRIO (escala UTCI)
 
-NIVEIS = ["VERDE", "AMARELO", "LARANJA", "VERMELHO"]
+NIVEIS = ["VERDE", "AMARELO", "LARANJA", "VERMELHO", "ROXO"]
 
 
 def pressao_vapor(t: float, ur: float) -> float:
@@ -58,10 +62,12 @@ def radiacao_de_global(w_m2: float) -> float:
 
 
 def nivel_de_risco(ta: float) -> int:
-    """0 VERDE, 1 AMARELO, 2 LARANJA, 3 VERMELHO (sem histerese).
+    """0 VERDE, 1 AMARELO, 2 LARANJA, 3 VERMELHO, 4 ROXO (sem histerese).
 
     É o mesmo número que a estação manda no field6 do ThingSpeak.
     """
+    if ta >= LIMITE_ROXO:
+        return 4
     if ta >= LIMITE_VERMELHO:
         return 3
     if ta >= LIMITE_LARANJA:

@@ -27,4 +27,6 @@ def test_sol_do_ldr():
 
 
 def test_niveis_de_risco():
-    assert [nivel_de_risco(t) for t in (26.9, 27.0, 32.0, 41.0, 58.0, -5.0)] == [0, 1, 2, 3, 3, 0]
+    # Faixas da nota técnica da SMS de POA: 33,9 ainda é amarelo, 51,9 ainda é vermelho
+    casos = (26.9, 27.0, 33.9, 34.0, 39.9, 40.0, 51.9, 52.0, 58.0, -5.0)
+    assert [nivel_de_risco(t) for t in casos] == [0, 1, 1, 2, 2, 3, 3, 4, 4, 0]

@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from sensacao import nivel_de_risco, radiacao_de_global, temperatura_aparente
+from sensacao import LIMITE_LARANJA, nivel_de_risco, radiacao_de_global, temperatura_aparente
 
 PASTA_DADOS = Path(__file__).parent / "dados"
 ARQUIVO_INMET = PASTA_DADOS / "inmet_A801_2025.csv"
@@ -96,7 +96,7 @@ def main() -> None:
     print(f"INMET A801, {len(df)} horas com medida, de {args.inicio} a {args.fim}")
     print(f"Maior temperatura do ar medida: {df['temp'].max():.1f} °C")
     print(f"Maior sensação ao sol (mesma régua da estação): {pico['ta_sol']:.1f} °C em {pico['hora']:%d/%m %Hh}")
-    print(f"Horas com sensação ao sol >= 32 °C: {(df['ta_sol'] >= 32).sum()}")
+    print(f"Horas com sensação ao sol >= {LIMITE_LARANJA:.0f} °C (laranja ou mais): {(df['ta_sol'] >= LIMITE_LARANJA).sum()}")
 
 
 if __name__ == "__main__":
