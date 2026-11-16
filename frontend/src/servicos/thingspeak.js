@@ -1,14 +1,7 @@
-// Leitura da estação E1 no ThingSpeak.
-// O canal 3578427 é PÚBLICO: a leitura não precisa de chave, então nada de
+// Leitura das estações no ThingSpeak (1 canal por estação).
+// Os canais são PÚBLICOS: a leitura não precisa de chave, então nada de
 // segredo vai parar no navegador. (A chave de escrita fica só no ESP32.)
-
-const CANAL = 3578427
-const URL_FEEDS = `https://api.thingspeak.com/channels/${CANAL}/feeds.json?results=10`
-
-// A estação publica a cada 20 s. Com mais de 2 min sem nada novo, a leitura
-// é "velha" e não decide o risco: a mesma regra do Edge ("leitura velha não
-// é usada para decidir").
-export const IDADE_MAXIMA_S = 120
+// Os números dos canais ficam em lib/estacoes.js.
 
 // O ThingSpeak manda tudo como texto ("30.0") ou null. Number(null) daria 0,
 // um número falso; por isso null e texto vazio viram NaN, que o app trata
@@ -35,9 +28,11 @@ export function ultimaLeitura(feeds) {
   }
 }
 
+// As últimas 10 entradas de um canal -> a leitura mais recente.
 // O "signal" deixa cancelar a requisição (ex.: o componente saiu da tela).
-export async function buscarE1(signal) {
-  const resposta = await fetch(URL_FEEDS, { signal })
+export async function buscarCanal(canal, signal) {
+  const url = `https://api.thingspeak.com/channels/${canal}/feeds.json?results=10`
+  const resposta = await fetch(url, { signal })
   if (!resposta.ok) throw new Error(`O ThingSpeak respondeu ${resposta.status}`)
   const corpo = await resposta.json()
   return ultimaLeitura(corpo.feeds ?? [])

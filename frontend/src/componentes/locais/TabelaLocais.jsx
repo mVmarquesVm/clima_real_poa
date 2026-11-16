@@ -40,7 +40,7 @@ export default function TabelaLocais({ locais, passagens }) {
               <tr key={local.id} className="border-t border-gray-200">
                 <td className="p-3">{s.posicao}º</td>
                 {/* O nome é o cabeçalho da linha: o leitor de tela anuncia
-                    "Parque Harmonia, Piso no verão, 41,5 °C". */}
+                    "Parque Harmonia, Piso no verão, 41,7 °C". */}
                 <th scope="row" className="p-3 font-semibold">{local.nome}</th>
                 <td className="p-3">{local.tipo}</td>
                 <td className="p-3 text-right">{numero(s.pisoMedioVerao)} °C</td>

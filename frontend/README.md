@@ -18,10 +18,12 @@ src/
 │   ├── estacao/   EstacaoAoVivo (a leitura da E1 ao vivo)
 │   ├── risco/     SeloRisco e IconeRisco (cor + ícone + texto)
 │   ├── locais/    TabelaLocais (o ranking do satélite)
-│   └── mapa/      Mapa (MapLibre + OpenFreeMap; carregado em separado, por ser pesado)
-├── ganchos/       hooks do React (useEstacaoE1: busca a cada 15 s)
+│   ├── mapa/      Mapa (MapLibre + OpenFreeMap; carregado em separado, por ser pesado),
+│   │              MarcadorEstacao (botão de cada estação) e PainelEstacao (detalhes)
+│   └── comum/     Dado (rótulo + valor) e BarraStatus (hora, dia/noite, estações ao vivo)
+├── ganchos/       hooks do React (useEstacoes: busca todas as estações a cada 15 s; useAgora: relógio)
 ├── servicos/      quem conversa com APIs externas (ThingSpeak)
-├── lib/           funções puras: régua de risco, formatação e geografia (GeoJSON)
+├── lib/           funções puras: régua de risco, leitura recente, estações, sol, formatação e geografia (GeoJSON)
 └── dados/         JSON gerado pelo python/processamento/exportar_front.py
 ```
 

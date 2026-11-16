@@ -1,21 +1,18 @@
-import useEstacaoE1, { useAgora } from '../../ganchos/useEstacaoE1'
 import { dataHora, numero, tempoDesde } from '../../lib/formato'
-import { NIVEIS, SEM_DADO, ehFrio, nivelDoCampo } from '../../lib/risco'
-import { IDADE_MAXIMA_S } from '../../servicos/thingspeak'
+import { situacao } from '../../lib/leitura'
+import { ehFrio } from '../../lib/risco'
 import { ehDia } from '../../lib/sol'
+import Dado from '../comum/Dado'
 import SeloRisco from '../risco/SeloRisco'
 
-// Cartão "agora no Largo": a última leitura da estação E1, que se atualiza
-// sozinha a cada 15 s. Quem decide o nível é a ESTAÇÃO (field6), e não o app:
-// assim o selo da tela é igual ao LED da praça.
-export default function EstacaoAoVivo() {
-  const { carregando, erro, leitura } = useEstacaoE1()
-  const agora = useAgora()
-
-  const idade = leitura ? (agora - leitura.criadoEm.getTime()) / 1000 : Infinity
-  const recente = idade <= IDADE_MAXIMA_S
-  // Leitura velha (ou nenhuma) não decide: vira "sem dado", como na estação.
-  const nivel = recente ? nivelDoCampo(leitura.risco) : NIVEIS[SEM_DADO]
+// Cartão "agora no Largo": a última leitura da estação E1.
+// Quem busca é o App (useEstacoes, a cada 15 s), uma vez só para a página
+// inteira: este cartão e o mapa usam a MESMA leitura.
+// Quem decide o nível é a ESTAÇÃO (field6), e não o app: assim o selo da tela
+// é igual ao LED da praça (a regra fica em lib/leitura.js).
+export default function EstacaoAoVivo({ estado, agora }) {
+  const { carregando, erro, leitura } = estado
+  const { idade, recente, nivel } = situacao(leitura, agora)
   // Dia ou noite AGORA, pela posição do sol: muda o conselho (sombra × lugar ventilado).
   const dia = ehDia(new Date(agora))
 
@@ -88,15 +85,6 @@ function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
         Saúde de Porto Alegre; a sensação térmica é a Temperatura Aparente de Steadman, com vento e
         sol. Dados: canal público 3578427 do ThingSpeak.
       </p>
-    </div>
-  )
-}
-
-function Dado({ rotulo, valor, destaque = false }) {
-  return (
-    <div>
-      <dt className="text-sm text-gray-700">{rotulo}</dt>
-      <dd className={destaque ? 'text-2xl font-bold' : 'text-lg font-semibold'}>{valor}</dd>
     </div>
   )
 }

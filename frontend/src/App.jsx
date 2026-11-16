@@ -1,7 +1,12 @@
 import { lazy, Suspense } from 'react'
+import BarraStatus from './componentes/comum/BarraStatus'
 import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
 import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
+import useAgora from './ganchos/useAgora'
+import useEstacoes from './ganchos/useEstacoes'
+import { ESTACOES, ESTACOES_AO_VIVO } from './lib/estacoes'
+import { situacao } from './lib/leitura'
 
 // O mapa (MapLibre) é a parte mais pesada do app, então ele é baixado em separado,
 // depois do resto: a leitura da E1 aparece primeiro, mesmo com internet lenta.
@@ -10,6 +15,12 @@ const Mapa = lazy(() => import('./componentes/mapa/Mapa'))
 // Esqueleto da página. Cada parte (mapa, lista, gráfico...) é um componente
 // próprio; aqui fica só a estrutura semântica e a ligação com os dados.
 export default function App() {
+  // Uma busca só para a página inteira (a cada 15 s): o cartão da E1, o mapa e
+  // a barra usam as MESMAS leituras, sem gastar o limite do ThingSpeak em dobro.
+  const estados = useEstacoes(ESTACOES_AO_VIVO)
+  const agora = useAgora()
+  const aoVivo = ESTACOES_AO_VIVO.filter((e) => situacao(estados[e.id].leitura, agora).recente)
+
   return (
     <>
       {/* "Pular para o conteúdo": quem navega pelo teclado não precisa passar pelo cabeçalho. */}
@@ -24,17 +35,23 @@ export default function App() {
         <h1 className="text-2xl font-bold">Forno Alegre</h1>
         <p className="text-sm">Medindo a ilha de calor do Centro de Porto Alegre</p>
       </header>
+      <BarraStatus agora={agora} total={ESTACOES.length} aoVivo={aoVivo.length} />
 
       <main id="conteudo" className="mx-auto max-w-6xl space-y-4 p-4">
         <section aria-labelledby="titulo-e1" className="space-y-2">
           <h2 id="titulo-e1" className="text-xl font-bold">Agora no Largo Glênio Peres</h2>
-          <EstacaoAoVivo />
+          <EstacaoAoVivo estado={estados.E1} agora={agora} />
         </section>
 
         <section aria-labelledby="titulo-locais" className="space-y-2">
           <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
           <Suspense fallback={<p role="status" className="h-80 rounded border border-gray-300 bg-white p-4 md:h-[28rem]">Carregando o mapa…</p>}>
-            <Mapa locais={dadosLocais.locais} idTabela="legenda-locais" />
+            <Mapa
+              locais={dadosLocais.locais}
+              estados={estados}
+              agora={agora}
+              idTabela="legenda-locais"
+            />
           </Suspense>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />
         </section>
