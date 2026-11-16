@@ -2,6 +2,7 @@ import useEstacaoE1, { useAgora } from '../../ganchos/useEstacaoE1'
 import { dataHora, numero, tempoDesde } from '../../lib/formato'
 import { NIVEIS, SEM_DADO, ehFrio, nivelDoCampo } from '../../lib/risco'
 import { IDADE_MAXIMA_S } from '../../servicos/thingspeak'
+import { ehDia } from '../../lib/sol'
 import SeloRisco from '../risco/SeloRisco'
 
 // Cartão "agora no Largo": a última leitura da estação E1, que se atualiza
@@ -15,6 +16,8 @@ export default function EstacaoAoVivo() {
   const recente = idade <= IDADE_MAXIMA_S
   // Leitura velha (ou nenhuma) não decide: vira "sem dado", como na estação.
   const nivel = recente ? nivelDoCampo(leitura.risco) : NIVEIS[SEM_DADO]
+  // Dia ou noite AGORA, pela posição do sol: muda o conselho (sombra × lugar ventilado).
+  const dia = ehDia(new Date(agora))
 
   return (
     <>
@@ -25,12 +28,12 @@ export default function EstacaoAoVivo() {
       <p aria-live="polite" className="sr-only">
         {!carregando && `Nível de risco agora no Largo Glênio Peres: ${nivel.nome}`}
       </p>
-      <Conteudo {...{ carregando, erro, leitura, idade, recente, nivel }} />
+      <Conteudo {...{ carregando, erro, leitura, idade, recente, nivel, dia }} />
     </>
   )
 }
 
-function Conteudo({ carregando, erro, leitura, idade, recente, nivel }) {
+function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
   if (!leitura) {
     return carregando ? (
       <p role="status" className="rounded border border-gray-300 bg-white p-4">
@@ -47,7 +50,7 @@ function Conteudo({ carregando, erro, leitura, idade, recente, nivel }) {
 
   return (
     <div className="space-y-3 rounded border border-gray-300 bg-white p-4">
-      <SeloRisco nivel={nivel} />
+      <SeloRisco nivel={nivel} dia={dia} />
 
       {recente && ehFrio(leitura.sensacao) && (
         <p className="font-semibold text-risco-frio">Frio: se agasalhe.</p>
