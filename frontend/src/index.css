@@ -12,12 +12,44 @@
   --color-risco-laranja: #e8590c;
   --color-risco-vermelho: #c92a2a;
   --color-risco-roxo: #6f42c1;
-  --color-risco-frio: #1c7ed6;
+  --color-risco-frio: #1971c2; /* era #1c7ed6, que dava só 4,2:1 sobre o branco; agora 5,0:1 */
   --color-risco-semdado: #6b7280;
 
   --color-marca: #c2410c;
-  --color-fundo: #fffaf5;
+
+  /* Cores de "papel" da interface: pelo PAPEL (fundo, cartão, texto...), e não
+     pelo nome da cor. Assim o tema escuro troca só estes valores, e nenhum
+     componente precisa saber qual tema está ligado. */
+  --color-fundo: #fffaf5; /* a página */
+  --color-superficie: #ffffff; /* cartões, tabela, painel */
+  --color-superficie-2: #f3f4f6; /* cabeçalho da tabela, botão com o mouse em cima */
   --color-texto: #1f2328;
+  --color-texto-suave: #374151; /* textos de apoio (fontes, "atualizado há") */
+  --color-borda: #d1d5db;
+  --color-borda-forte: #9ca3af; /* contorno dos botões */
+  --color-foco: #c2410c; /* o anel de foco do teclado */
+}
+
+/*
+  Tema escuro: ligado pelo atributo data-tema="escuro" no <html> (o botão do
+  cabeçalho, ou a preferência do sistema na 1ª visita: ver index.html).
+  Contraste medido pela fórmula da WCAG (o nível AA pede 4,5:1 para texto e
+  3:1 para o anel de foco):
+  - claro: texto 15,8:1 e texto suave 10,3:1 sobre a superfície; foco 5,0:1 sobre o fundo;
+  - escuro: texto 13,4:1 e texto suave 8,2:1 sobre a superfície; foco 8,0:1 sobre o fundo.
+*/
+[data-tema="escuro"] {
+  --color-fundo: #14161a;
+  --color-superficie: #1e2127;
+  --color-superficie-2: #2a2e35;
+  --color-texto: #e8eaed;
+  --color-texto-suave: #b4b9c2;
+  --color-borda: #3d434c;
+  --color-borda-forte: #6b727d;
+  --color-foco: #fb923c; /* o laranja da marca daria 3,5:1, no limite; este dá 8,0:1 */
+  --color-risco-frio: #74c0fc; /* o azul do claro daria menos de 4,5:1 no escuro; este dá 8,2:1 */
+  /* Barras de rolagem e campos do navegador também no escuro. */
+  color-scheme: dark;
 }
 
 html {

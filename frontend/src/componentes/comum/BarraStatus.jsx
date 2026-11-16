@@ -16,7 +16,7 @@ export default function BarraStatus({ agora, total, aoVivo }) {
   const dia = ehDia(data)
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-800">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-borda bg-superficie px-4 py-1.5 text-sm text-texto-suave">
       <span>
         Porto Alegre{' '}
         <time dateTime={data.toISOString()} className="font-mono tabular-nums">

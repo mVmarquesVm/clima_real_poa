@@ -22,12 +22,14 @@ export default function MarcadorEstacao({ ref, local, nivel, temCanal, aoVivo, a
       onClick={aoClicar}
       aria-expanded={aberto}
       aria-label={`${local.nome}, estação ${local.id}, ${estado}. Abrir detalhes`}
-      className="relative grid size-8 cursor-pointer place-items-center rounded-full focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-marca"
+      className="pointer-events-auto relative grid size-8 cursor-pointer place-items-center rounded-full focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-foco"
     >
       {aoVivo && (
         <span
           aria-hidden="true"
-          className={`absolute inset-0 animate-ping rounded-full opacity-60 ${nivel.classe}`}
+          // pointer-events-none: o anel cresce para FORA do botão na animação e
+          // "roubava" o toque da estação vizinha (o Calçadão, a 245 m do Largo).
+          className={`pointer-events-none absolute inset-0 animate-ping rounded-full opacity-60 ${nivel.classe}`}
         />
       )}
       <span

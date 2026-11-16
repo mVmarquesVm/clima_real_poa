@@ -41,6 +41,16 @@ function corDoToken(nome) {
   return getComputedStyle(document.documentElement).getPropertyValue(`--color-${nome}`).trim()
 }
 
+// A estação ao vivo fica POR CIMA das outras quando os marcadores se encostam
+// (no celular, o Largo e o Calçadão quase se tocam). O z-index vai no div que
+// o MapLibre posiciona, pelo próprio Marker.
+function empilhar(marcadores, pontos) {
+  for (const { properties } of pontos.features) {
+    const div = marcadores[properties.id]?.getElement()
+    if (div) div.style.zIndex = properties.selo === 'AO VIVO' ? '2' : '1'
+  }
+}
+
 function movimentoReduzido() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -48,12 +58,12 @@ function movimentoReduzido() {
 // Coloca no mapa as 3 fontes de dados e as camadas que as desenham.
 // Roda no 1º carregamento E depois de cada troca de tema, porque o setStyle
 // apaga tudo o que não faz parte do estilo base.
-function montarCamadas(mapa, dados, escuro) {
+// As letras usam os tokens do tema (texto sobre um halo da cor do fundo): no
+// escuro, os tokens já trocaram de valor quando o estilo novo termina de carregar.
+function montarCamadas(mapa, dados) {
   if (mapa.getSource('locais')) return // já montadas neste estilo
-  const texto = corDoToken('texto')
-  const branco = corDoToken('white')
-  const corDaLetra = escuro ? branco : texto
-  const halo = escuro ? texto : branco
+  const corDaLetra = corDoToken('texto')
+  const halo = corDoToken('fundo')
 
   mapa.addSource('locais', { type: 'geojson', data: dados.areas })
   mapa.addSource('cobertura', { type: 'geojson', data: dados.cobertura })
@@ -110,15 +120,16 @@ function montarCamadas(mapa, dados, escuro) {
 // enxerga; por isso:
 // - cada estação é também um BOTÃO (MarcadorEstacao), que abre o painel;
 // - a descrição do canvas manda para a tabela, que tem os mesmos dados em texto.
-export default function Mapa({ locais, estados, agora, idTabela }) {
+// "escuro" vem do tema da página (useTema, no App): o mapa acompanha o resto.
+export default function Mapa({ locais, estados, agora, idTabela, escuro = false }) {
   const caixa = useRef(null)
   const mapaRef = useRef(null)
   const dadosRef = useRef(null)
-  const escuroRef = useRef(false)
+  const escuroRef = useRef(escuro)
   const estiloAplicado = useRef(null)
   const botoes = useRef({})
+  const marcadoresRef = useRef({}) // id -> Marker do MapLibre
   const [aberto, setAberto] = useState(null)
-  const [escuro, setEscuro] = useState(false)
 
   // Um <div> por estação, criado uma vez só: o MapLibre posiciona o div no mapa,
   // e o React desenha o botão dentro dele (createPortal, lá embaixo).
@@ -129,6 +140,10 @@ export default function Mapa({ locais, estados, agora, idTabela }) {
       locais.map((local) => {
         const div = document.createElement('div')
         div.setAttribute('role', 'none')
+        // O div é quadrado e o botão é redondo: os cantos do div de uma estação
+        // podiam cobrir o centro da vizinha (o Largo e o Calçadão ficam a 245 m)
+        // e "roubar" o toque. Assim só o botão recebe o clique.
+        div.style.pointerEvents = 'none'
         return [local.id, div]
       }),
     ),
@@ -165,6 +180,7 @@ export default function Mapa({ locais, estados, agora, idTabela }) {
     )
     const dados = locaisParaGeoJSON(locais, estado)
     dadosRef.current = dados
+    empilhar(marcadoresRef.current, dados.pontos)
     // Com o estilo trocando, as fontes ainda não existem; o montarCamadas
     // vai usar os dados novos do dadosRef quando o estilo terminar.
     const mapa = mapaRef.current
@@ -205,23 +221,29 @@ export default function Mapa({ locais, estados, agora, idTabela }) {
 
     // "style.load" acontece no 1º estilo e em cada setStyle (troca de tema).
     mapa.on('style.load', () => {
-      if (dadosRef.current) montarCamadas(mapa, dadosRef.current, escuroRef.current)
+      if (dadosRef.current) montarCamadas(mapa, dadosRef.current)
     })
 
     // Os marcadores entram no mapa na ordem E1, E2, E3, E4: é a ordem do Tab.
     // (O locais.json vem na ordem do ranking do satélite, e o Tab ficaria E3, E1...)
     const emOrdem = [...locais].sort((a, b) => a.id.localeCompare(b.id))
-    const marcadores = emOrdem.map((local) =>
-      new Marker({ element: caixasDosMarcadores[local.id] })
-        .setLngLat([local.lon, local.lat])
-        .addTo(mapa),
+    const marcadores = Object.fromEntries(
+      emOrdem.map((local) => [
+        local.id,
+        new Marker({ element: caixasDosMarcadores[local.id] })
+          .setLngLat([local.lon, local.lat])
+          .addTo(mapa),
+      ]),
     )
+    marcadoresRef.current = marcadores
+    if (dadosRef.current) empilhar(marcadores, dadosRef.current.pontos)
 
     // Ao sair da página (ou no duplo efeito do StrictMode), libera o mapa.
     return () => {
-      marcadores.forEach((m) => m.remove())
+      Object.values(marcadores).forEach((m) => m.remove())
       mapa.remove()
       mapaRef.current = null
+      marcadoresRef.current = {}
     }
   }, [locais, idTabela, caixasDosMarcadores])
 
@@ -267,21 +289,10 @@ export default function Mapa({ locais, estados, agora, idTabela }) {
 
   return (
     <figure className="space-y-2">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          aria-pressed={escuro}
-          onClick={() => setEscuro((e) => !e)}
-          className="rounded border border-gray-400 bg-white px-3 py-1 text-sm font-semibold hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca aria-pressed:bg-texto aria-pressed:text-white"
-        >
-          <span aria-hidden="true">☾</span> Mapa escuro
-        </button>
-      </div>
-
       <div className="relative">
         <div
           ref={caixa}
-          className="h-80 w-full overflow-hidden rounded border border-gray-300 bg-white md:h-[28rem] [&_canvas:focus-visible]:outline-2 [&_canvas:focus-visible]:outline-offset-[-2px] [&_canvas:focus-visible]:outline-marca"
+          className="h-80 w-full overflow-hidden rounded border border-borda bg-superficie md:h-[28rem] [&_canvas:focus-visible]:outline-2 [&_canvas:focus-visible]:outline-offset-[-2px] [&_canvas:focus-visible]:outline-foco"
         />
         {localAberto && (
           // No celular, o painel fica embaixo do mapa (o mapa é pequeno);
@@ -316,7 +327,7 @@ export default function Mapa({ locais, estados, agora, idTabela }) {
         )
       })}
 
-      <figcaption className="text-sm text-gray-700">
+      <figcaption className="text-sm text-texto-suave">
         As 4 estações no Centro de Porto Alegre. A área colorida é a parte que cada estação
         representa, na cor do risco agora (cinza = sem dado). O contorno tracejado é o local
         inteiro, pelo OpenStreetMap. Só a E1, no Largo Glênio Peres, publica ao vivo (um ESP32

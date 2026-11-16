@@ -41,26 +41,26 @@ export default function PainelEstacao({ local, estado, agora, aoFechar }) {
       role="dialog"
       aria-labelledby={idTitulo}
       onKeyDown={teclas}
-      className="space-y-3 rounded border border-gray-300 bg-white p-4 shadow-lg"
+      className="space-y-3 rounded border border-borda bg-superficie p-4 shadow-lg"
     >
       <div className="flex items-start justify-between gap-2">
         <h3
           id={idTitulo}
           ref={titulo}
           tabIndex={-1}
-          className="text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+          className="text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
         >
           {local.nome}
         </h3>
         <button
           type="button"
           onClick={aoFechar}
-          className="shrink-0 rounded border border-gray-400 px-2 py-1 text-sm font-semibold hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
+          className="shrink-0 rounded border border-borda-forte px-2 py-1 text-sm font-semibold hover:bg-superficie-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
         >
           Fechar <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <p className="text-sm text-gray-700">
+      <p className="text-sm text-texto-suave">
         Estação {local.id} · {local.tipo}
       </p>
 
@@ -76,7 +76,7 @@ export default function PainelEstacao({ local, estado, agora, aoFechar }) {
       <div className="space-y-1">
         <h4 className="font-semibold">Área que a estação representa</h4>
         <p className="text-sm">{REGRAS[cobertura.regra] ?? cobertura.regra}</p>
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-texto-suave">
           Nessa área:{' '}
           <span className="font-mono tabular-nums">{numero(cobertura.construido * 100, 0)}%</span>{' '}
           construído,{' '}
@@ -92,7 +92,7 @@ export default function PainelEstacao({ local, estado, agora, aoFechar }) {
           <Dado rotulo="Piso médio" valor={`${numero(satelite.pisoMedioVerao)} °C`} />
           <Dado rotulo="Ranking do piso" valor={`${satelite.posicao}º de 4`} />
         </dl>
-        <p className="text-xs text-gray-700">
+        <p className="text-xs text-texto-suave">
           O Landsat mede a superfície, por volta das 10h20, em {satelite.passagens} passagens. É o
           piso do problema, e não a sensação de quem está ali.
         </p>
@@ -115,7 +115,7 @@ function AoVivo({ estado, agora }) {
   return (
     <div className="space-y-2">
       <SeloRisco nivel={nivel} dia={ehDia(new Date(agora))} />
-      <p className="text-sm text-gray-700">
+      <p className="text-sm text-texto-suave">
         {recente ? (
           <>Atualizado {tempoDesde(idade)}.</>
         ) : (
@@ -124,7 +124,7 @@ function AoVivo({ estado, agora }) {
           </>
         )}
       </p>
-      <dl className={`grid grid-cols-2 gap-3 ${recente ? '' : 'text-gray-600'}`}>
+      <dl className={`grid grid-cols-2 gap-3 ${recente ? '' : 'text-texto-suave'}`}>
         <Dado rotulo="Sensação térmica" valor={`${numero(leitura.sensacao)} °C`} destaque />
         <Dado rotulo="Temperatura do ar" valor={`${numero(leitura.temperatura)} °C`} />
         <Dado rotulo="Umidade" valor={`${numero(leitura.umidade, 0)}%`} />

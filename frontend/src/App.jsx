@@ -1,10 +1,12 @@
 import { lazy, Suspense } from 'react'
 import BarraStatus from './componentes/comum/BarraStatus'
+import BotaoTema from './componentes/comum/BotaoTema'
 import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
 import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
 import useAgora from './ganchos/useAgora'
 import useEstacoes from './ganchos/useEstacoes'
+import useTema from './ganchos/useTema'
 import { ESTACOES, ESTACOES_AO_VIVO } from './lib/estacoes'
 import { situacao } from './lib/leitura'
 
@@ -20,20 +22,24 @@ export default function App() {
   const estados = useEstacoes(ESTACOES_AO_VIVO)
   const agora = useAgora()
   const aoVivo = ESTACOES_AO_VIVO.filter((e) => situacao(estados[e.id].leitura, agora).recente)
+  const { escuro, alternar } = useTema()
 
   return (
     <>
       {/* "Pular para o conteúdo": quem navega pelo teclado não precisa passar pelo cabeçalho. */}
       <a
         href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:shadow"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded focus:bg-superficie focus:px-4 focus:py-2 focus:shadow"
       >
         Pular para o conteúdo
       </a>
 
-      <header className="bg-marca px-4 py-4 text-white">
-        <h1 className="text-2xl font-bold">Forno Alegre</h1>
-        <p className="text-sm">Medindo a ilha de calor do Centro de Porto Alegre</p>
+      <header className="flex flex-wrap items-center justify-between gap-3 bg-marca px-4 py-4 text-white">
+        <div>
+          <h1 className="text-2xl font-bold">Forno Alegre</h1>
+          <p className="text-sm">Medindo a ilha de calor do Centro de Porto Alegre</p>
+        </div>
+        <BotaoTema escuro={escuro} aoAlternar={alternar} />
       </header>
       <BarraStatus agora={agora} total={ESTACOES.length} aoVivo={aoVivo.length} />
 
@@ -45,12 +51,13 @@ export default function App() {
 
         <section aria-labelledby="titulo-locais" className="space-y-2">
           <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
-          <Suspense fallback={<p role="status" className="h-80 rounded border border-gray-300 bg-white p-4 md:h-[28rem]">Carregando o mapa…</p>}>
+          <Suspense fallback={<p role="status" className="h-80 rounded border border-borda bg-superficie p-4 md:h-[28rem]">Carregando o mapa…</p>}>
             <Mapa
               locais={dadosLocais.locais}
               estados={estados}
               agora={agora}
               idTabela="legenda-locais"
+              escuro={escuro}
             />
           </Suspense>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />

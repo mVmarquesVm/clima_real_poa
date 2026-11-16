@@ -6,7 +6,7 @@
 export default function Dado({ rotulo, valor, destaque = false }) {
   return (
     <div>
-      <dt className="text-sm text-gray-700">{rotulo}</dt>
+      <dt className="text-sm text-texto-suave">{rotulo}</dt>
       <dd
         className={`font-mono tabular-nums ${destaque ? 'text-2xl font-bold' : 'text-lg font-semibold'}`}
       >

@@ -33,11 +33,11 @@ export default function EstacaoAoVivo({ estado, agora }) {
 function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
   if (!leitura) {
     return carregando ? (
-      <p role="status" className="rounded border border-gray-300 bg-white p-4">
+      <p role="status" className="rounded border border-borda bg-superficie p-4">
         Buscando a leitura da estação…
       </p>
     ) : (
-      <p role="alert" className="rounded border border-risco-vermelho bg-white p-4">
+      <p role="alert" className="rounded border border-risco-vermelho bg-superficie p-4">
         {erro
           ? `Não deu para ler a estação agora (${erro}). Tentando de novo em 15 s.`
           : 'A estação ainda não publicou nenhuma leitura.'}
@@ -46,14 +46,14 @@ function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
   }
 
   return (
-    <div className="space-y-3 rounded border border-gray-300 bg-white p-4">
+    <div className="space-y-3 rounded border border-borda bg-superficie p-4">
       <SeloRisco nivel={nivel} dia={dia} />
 
       {recente && ehFrio(leitura.sensacao) && (
         <p className="font-semibold text-risco-frio">Frio: se agasalhe.</p>
       )}
 
-      <p className="text-sm text-gray-700">
+      <p className="text-sm text-texto-suave">
         {recente ? (
           <>Atualizado {tempoDesde(idade)}.</>
         ) : (
@@ -66,7 +66,7 @@ function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
       </p>
 
       <dl
-        className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${recente ? '' : 'text-gray-600'}`}
+        className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${recente ? '' : 'text-texto-suave'}`}
       >
         <Dado rotulo="Sensação térmica" valor={`${numero(leitura.sensacao)} °C`} destaque />
         <Dado rotulo="Temperatura do ar" valor={`${numero(leitura.temperatura)} °C`} />
@@ -79,7 +79,7 @@ function Conteudo({ carregando, erro, leitura, idade, recente, nivel, dia }) {
         <Dado rotulo="Nebulizador" valor={leitura.releLigado ? 'Ligado' : 'Desligado'} />
       </dl>
 
-      <p className="text-xs text-gray-700">
+      <p className="text-xs text-texto-suave">
         A estação E1 é um ESP32 que roda num simulador (Wokwi). Quando a simulação está desligada,
         aparece “sem dado recente”. Régua de risco: Nota Técnica nº 01/26 da Secretaria Municipal de
         Saúde de Porto Alegre; a sensação térmica é a Temperatura Aparente de Steadman, com vento e
