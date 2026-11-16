@@ -413,3 +413,19 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Autorizei a mudança.
+
+## Organização das pastas: Python, Matemática e Front-end (15/11/2026)
+
+**O que eu pedi**
+- "Vamos estruturar o código em pastas, ele não está muito estruturado."
+
+**O que a IA gerou**
+- Uma proposta, com o que fica e o que muda, antes de mover qualquer arquivo. A raiz fica como está (o PDF exige os arquivos lá). O `edge/` também: o Wokwi não tem pastas, e o `edge/` é um espelho 1:1 do projeto de lá.
+- **Python:** `fontes/` (`oficial.py`, `locais.py`, `satelite.py`), `processamento/` (`sensacao.py`, `ranking.py`, `exportar_front.py`) e `testes/`. As duas primeiras viraram pacotes (`__init__.py`), e os imports passaram a ter o nome da pasta (ex.: `from processamento.sensacao import ...`). Os scripts rodam com `python -m processamento.ranking`. Um `pytest.ini` faz o `python -m pytest` achar os testes. O nome `processamento` (e não `analise`) evita confusão com o `matematica/analise.py`, que importa esse código.
+- **Matemática:** `testes/` e `relatorio/` (o PDF), com um `pytest.ini` igual e o import do Python ajustado.
+- **Front-end:** componentes agrupados por assunto em `componentes/estacao/`, `componentes/risco/` e `componentes/locais/`.
+- Os arquivos foram movidos com `git mv`, para o histórico seguir cada arquivo. READMEs do Python, da Matemática e do Front-end atualizados.
+- Conferido: 8/8 testes do Python, 9/9 da Matemática, e o `npm run build` e o `npm run lint` do Front passaram. O ranking, o `locais.json`, os gráficos e o `resultados.json` gerados de novo saíram **idênticos** (o Git não viu diferença).
+
+**O que eu mudei ou fiz sozinho**
+- Pedi a reorganização e aprovei a proposta.
