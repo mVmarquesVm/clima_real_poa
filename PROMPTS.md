@@ -429,3 +429,46 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Pedi a reorganização e aprovei a proposta.
+
+## Front-end — Mapa dos locais com MapLibre (15/11/2026)
+
+**O que eu pedi**
+- "Acho que já dá para nós começarmos a integrar os gráficos e mapas."
+
+**O que a IA gerou**
+- `src/lib/geo.js`: transforma o `locais.json` em GeoJSON (as áreas do OpenStreetMap e o ponto de cada local) e calcula o retângulo que enquadra os 4 locais.
+- `src/componentes/mapa/Mapa.jsx`: mapa do MapLibre com o estilo gratuito do OpenFreeMap, em camadas: as áreas (preenchimento e contorno), os pontos (a E1, única com equipamento, é maior) e os nomes. As cores vêm dos tokens do `index.css`.
+- Acessibilidade: o canvas tem `role="img"` e uma descrição que remete à tabela (`aria-describedby`); os botões e as dicas estão em português; dá para mover e aproximar pelo teclado, com contorno de foco visível; o `cooperativeGestures` evita que o mapa prenda a rolagem da página no celular.
+- Desempenho: o mapa é carregado em separado (`React.lazy` + `Suspense`, com "Carregando o mapa…"), porque o MapLibre pesa uns 290 kB comprimido; a leitura da E1 aparece antes.
+- A conferência no navegador (por um subagente) achou um erro grave: o mapa ficava em branco, porque o Vite muda o MapLibre de lugar e o "worker" dele não era achado. Corrigido com `setWorkerUrl` e o import `?url`, que valem no dev e no build. Ela também achou o rótulo do Largo cobrindo o Calçadão (a 245 m) e os créditos cobrindo o Marinha no celular: agora os rótulos escolhem uma posição livre, e o enquadramento tem mais folga. Na 2ª conferência, os 4 pontos e os 4 nomes apareceram no PC e no celular, sem erros.
+
+**O que eu mudei ou fiz sozinho**
+- Decidi começar pelos mapas e gráficos antes dos estados de carregando e erro. As decisões do mapa (MapLibre + OpenFreeMap, sem chave, E1 ao vivo + os 4 locais) são minhas, da sessão 7.
+
+## Front-end e Edge — Conselho de dia e de noite (16/11/2026)
+
+**O que eu pedi**
+- Percebi que, à noite e sem dado, o app manda a pessoa ir para a sombra, o que não faz sentido. Escolhi corrigir no app e na estação.
+
+**O que a IA gerou**
+- `frontend/src/lib/sol.js` e `edge/sol.h`: a mesma conta da altura do sol no céu ("Approximate Solar Coordinates", do Observatório Naval dos EUA). Acima do horizonte (−0,833°, por causa da refração) é dia. Conferida com o Open-Meteo: em 16/11/2026, a conta dá o nascer às 05:21 e o pôr às 19:00, e o Open-Meteo dá 05:20 e 18:59; também bateu em 04/02/2025, 21/06 e 21/12.
+- Conselhos da noite onde o texto falava de sol ou sombra: amarelo → "lugar ventilado"; vermelho → "lugar fresco" (no LCD, `LUGAR FRESCO + AGUA`); sem dado → "À noite não há sol; se estiver abafado, beba água" (no LCD, `Abafado? Beba agua`). No app, `conselhoDe(nivel, dia)` em `lib/risco.js`, e o `SeloRisco` recebe `dia`.
+- Na estação, o período vem do relógio (NTP) + a conta do sol; sem relógio, do LDR (abaixo de 50 lux = noite); sem os dois, dia (o lado seguro). O relógio vence o LDR, porque um poste acenderia o LDR à noite.
+- 11 autotestes novos no Edge (137/137 no PC; firmware em 76% da flash). README do Edge atualizado (tabela com a coluna "À noite").
+
+**O que eu mudei ou fiz sozinho**
+- Achei o problema e escolhi a solução (app e Edge, pelo sol).
+
+## Python — A área que cada estação representa (16/11/2026)
+
+**O que eu pedi**
+- Percebi que o Parque Harmonia e o Marinha do Brasil são grandes demais para um aparelho só medir. Propus: onde é só concreto, o calor se mantém, então a estação vale para a área inteira (mas isso precisa de uma conta da área coberta de concreto); onde é misto (concreto e árvore), o calor muda, e a estação vale para um raio de uns 50 m.
+
+**O que a IA gerou**
+- Pesquisa (por um subagente): a fonte do raio (Guia de Instrumentos da OMM, WMO-No. 8, 2008, seção 11.1.1.4: um sensor a ~1,5 m "enxerga" algumas dezenas de metros), a cobertura do solo (ESA WorldCover 2021, no Planetary Computer, sem chave) e o ponto de cada estação (o piso do Harmonia, numa área de paving_stones do OSM; o Marinha, sob as árvores).
+- `fontes/cobertura.py`: mede a fração construída de cada local e aplica a minha regra, com o limite de 80% (Largo 91% → local inteiro; calçadão 51%, Harmonia 15% e Marinha 14% → raio de 50 m). Salva `dados/cobertura_solo.csv` e `dados/estacoes.geojson`.
+- `fontes/satelite.py` passou a medir essas áreas (com a opção `--refazer`), e o ranking foi refeito: a ordem continua (Harmonia 41,7 °C, Largo 39,5, Marinha 35,9, calçadão 35,6), mas o Marinha sob as árvores caiu 1,8 °C e ficou empatado com o calçadão. O Harmonia passou o Largo nas 6 de 6 passagens.
+- 2 testes novos da regra (10/10), README do Python com a tabela da cobertura e as limitações (resolução térmica de 100 m e solo de 2021), `docs/problema.md` e o JSON do Front (`locais.json`, agora com o ponto e a área de cada estação).
+
+**O que eu mudei ou fiz sozinho**
+- A ideia e a regra (área inteira para o concreto homogêneo, raio de 50 m para o misto) são minhas.
