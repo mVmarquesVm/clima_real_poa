@@ -17,7 +17,7 @@ nuvens na cena. Os resultados ficam salvos em dados/ (roda sem internet
 depois).
 
 Uso:
-    python satelite.py
+    python -m fontes.satelite
 """
 
 from pathlib import Path
@@ -25,9 +25,9 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from locais import carregar_locais
+from fontes.locais import carregar_locais
 
-PASTA_DADOS = Path(__file__).parent / "dados"
+PASTA_DADOS = Path(__file__).resolve().parents[1] / "dados"   # python/dados
 ARQUIVO_SUPERFICIE = PASTA_DADOS / "satelite_superficie.csv"
 ARQUIVO_NDVI = PASTA_DADOS / "satelite_ndvi.csv"
 

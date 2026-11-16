@@ -14,8 +14,8 @@ Para cada hora, calculamos com a MESMA fórmula da estação Forno Alegre:
     ta_sombra -> sensação sem o sol;   ta_sol -> sensação com o sol medido.
 
 Uso:
-    python oficial.py                                   # semana padrão (fev/2025)
-    python oficial.py --inicio 2025-01-20 --fim 2025-01-26
+    python -m fontes.oficial                            # semana padrão (fev/2025)
+    python -m fontes.oficial --inicio 2025-01-20 --fim 2025-01-26
 """
 
 import argparse
@@ -23,9 +23,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from sensacao import LIMITE_LARANJA, nivel_de_risco, radiacao_de_global, temperatura_aparente
+from processamento.sensacao import LIMITE_LARANJA, nivel_de_risco, radiacao_de_global, temperatura_aparente
 
-PASTA_DADOS = Path(__file__).parent / "dados"
+PASTA_DADOS = Path(__file__).resolve().parents[1] / "dados"   # python/dados
 ARQUIVO_INMET = PASTA_DADOS / "inmet_A801_2025.csv"
 
 # Semana de calor de fevereiro de 2025: inclui o dia 04/02, quando o

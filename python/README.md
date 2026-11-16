@@ -29,14 +29,32 @@ Landsat + Sentinel-2 ──────► satelite.py ─► superfície e NDVI
                               ranking.py ──► dados/ranking.csv + graficos/*.png
 ```
 
+```
+python/
+├── fontes/          buscam e leem os dados de cada fonte
+│   ├── oficial.py
+│   ├── locais.py
+│   └── satelite.py
+├── processamento/   calculam e geram as saídas
+│   ├── sensacao.py
+│   ├── ranking.py
+│   └── exportar_front.py
+├── testes/          conferem as contas
+├── dados/           os dados já medidos (CSV e GeoJSON)
+└── graficos/        os PNGs gerados
+```
+
 | Arquivo | O que faz |
 |---|---|
-| `sensacao.py` | A Temperatura Aparente de Steadman e os níveis de risco. É **a mesma conta do ESP32** (`edge/sensacao.h`), conferida pelos mesmos casos de teste |
-| `oficial.py` | Lê o arquivo oficial do INMET (UTC → horário de Brasília, kJ/m² → W/m²) e calcula a sensação na sombra e ao sol |
-| `locais.py` | Busca no OpenStreetMap a área de cada local: o polígono do largo e dos parques, e um círculo de 60 m em volta do calçadão |
-| `satelite.py` | Acha as passagens de verão sem nuvens e pede ao Microsoft Planetary Computer a média, o mínimo e o máximo dos pixels dentro de cada área |
-| `ranking.py` | Junta tudo, ordena os locais e gera os gráficos |
-| `test_sensacao.py` e `test_dados.py` | 8 testes: a fórmula igual à do ESP32 e cada conversão conferida na mão |
+| `processamento/sensacao.py` | A Temperatura Aparente de Steadman e os níveis de risco. É **a mesma conta do ESP32** (`edge/sensacao.h`), conferida pelos mesmos casos de teste |
+| `fontes/oficial.py` | Lê o arquivo oficial do INMET (UTC → horário de Brasília, kJ/m² → W/m²) e calcula a sensação na sombra e ao sol |
+| `fontes/locais.py` | Busca no OpenStreetMap a área de cada local: o polígono do largo e dos parques, e um círculo de 60 m em volta do calçadão |
+| `fontes/satelite.py` | Acha as passagens de verão sem nuvens e pede ao Microsoft Planetary Computer a média, o mínimo e o máximo dos pixels dentro de cada área |
+| `processamento/ranking.py` | Junta tudo, ordena os locais e gera os gráficos |
+| `processamento/exportar_front.py` | Copia o ranking do satélite para o Front-end (`frontend/src/dados/locais.json`) |
+| `testes/test_sensacao.py` e `testes/test_dados.py` | 8 testes: a fórmula igual à do ESP32 e cada conversão conferida na mão |
+
+As pastas `fontes/` e `processamento/` são **pacotes** do Python (têm um `__init__.py`). Por isso os scripts rodam com `python -m pasta.arquivo`, sempre de dentro de `python/`.
 
 ## Quickstart (do zero, no Windows)
 Precisa do Python 3.11 ou mais novo (testado no 3.14). No terminal, dentro da pasta `python/`:
@@ -45,19 +63,20 @@ Precisa do Python 3.11 ou mais novo (testado no 3.14). No terminal, dentro da pa
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python ranking.py
+python -m processamento.ranking
 ```
 
 Pronto: o ranking aparece no terminal, e os gráficos ficam em `graficos/`. Todos os dados medidos já estão em `dados/`, então **não precisa de internet nem de chave de API**.
 
 Outras opções:
 ```powershell
-python -m pytest                                        # roda os 8 testes
-python oficial.py --inicio 2025-01-20 --fim 2025-01-26  # outra semana do INMET (dentro de 2025)
-python satelite.py                                       # mostra as medidas de cada passagem
+python -m pytest                                                # roda os 8 testes
+python -m fontes.oficial --inicio 2025-01-20 --fim 2025-01-26   # outra semana do INMET (dentro de 2025)
+python -m fontes.satelite                                       # mostra as medidas de cada passagem
+python -m processamento.exportar_front                          # atualiza o JSON do Front-end
 ```
 
-Para medir tudo de novo a partir das fontes, apague `dados/locais.geojson`, `dados/satelite_superficie.csv` e `dados/satelite_ndvi.csv` e rode `python ranking.py` (precisa de internet).
+Para medir tudo de novo a partir das fontes, apague `dados/locais.geojson`, `dados/satelite_superficie.csv` e `dados/satelite_ndvi.csv` e rode `python -m processamento.ranking` (precisa de internet).
 
 ## Resultado 1 — O ar × a sensação (INMET, semana de 03 a 09/02/2025)
 A semana inclui o dia 04/02/2025, quando o InGá mediu **61 °C no piso de concreto** do Parque Harmonia e cerca de **31 °C no gramado à sombra** ([Sul21, 05/02/2025](https://sul21.com.br/noticias/geral/2025/02/piso-de-concreto-do-parque-harmonia-chega-a-61-oc-formando-ilha-de-calor-no-centro-de-porto-alegre/)).

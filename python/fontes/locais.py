@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-PASTA_DADOS = Path(__file__).parent / "dados"
+PASTA_DADOS = Path(__file__).resolve().parents[1] / "dados"   # python/dados
 ARQUIVO = PASTA_DADOS / "locais.geojson"
 RAIO_PONTO_M = 60
 

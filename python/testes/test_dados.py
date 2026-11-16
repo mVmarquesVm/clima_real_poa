@@ -2,16 +2,16 @@
 
 Uma conversão errada (de UTC, de kJ, da banda do satélite) estraga tudo
 sem dar erro nenhum: os números só saem errados. Por isso cada uma tem
-um caso conferido na mão. Rodar: python -m pytest
+um caso conferido na mão. Rodar (de dentro de python/): python -m pytest
 """
 
 import math
 
 from pytest import approx
 
-from locais import circulo
-from oficial import kj_hora_para_w, ler_inmet
-from satelite import landsat_celsius
+from fontes.locais import circulo
+from fontes.oficial import kj_hora_para_w, ler_inmet
+from fontes.satelite import landsat_celsius
 
 
 def test_kj_por_hora_para_watts():

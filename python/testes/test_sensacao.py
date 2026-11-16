@@ -1,12 +1,12 @@
 """Os mesmos casos do autoteste do ESP32 (edge/autoteste.h).
 
 Se o Python e o C++ derem números diferentes, a comparação entre a
-estação real e as simuladas deixa de valer. Rodar: python -m pytest
+estação real e as simuladas deixa de valer. Rodar (de dentro de python/): python -m pytest
 """
 
 from pytest import approx
 
-from sensacao import nivel_de_risco, radiacao_de_lux, temperatura_aparente
+from processamento.sensacao import nivel_de_risco, radiacao_de_lux, temperatura_aparente
 
 
 def test_mesmos_valores_do_esp32():

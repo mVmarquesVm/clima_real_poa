@@ -18,7 +18,7 @@ O ranking ordena pela superfície média do verão: é o calor que o piso
 devolve para quem está em cima dele.
 
 Uso:
-    python ranking.py
+    python -m processamento.ranking
 """
 
 import argparse
@@ -30,12 +30,12 @@ matplotlib.use("Agg")  # gera arquivos PNG, sem abrir janela
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from locais import LOCAIS  # noqa: E402
-from oficial import FIM_PADRAO, INICIO_PADRAO, PASTA_DADOS, carregar_oficial, ler_inmet  # noqa: E402
-from satelite import carregar_satelite  # noqa: E402
-from sensacao import LIMITE_LARANJA, LIMITE_VERMELHO  # noqa: E402
+from fontes.locais import LOCAIS  # noqa: E402
+from fontes.oficial import FIM_PADRAO, INICIO_PADRAO, PASTA_DADOS, carregar_oficial, ler_inmet  # noqa: E402
+from fontes.satelite import carregar_satelite  # noqa: E402
+from processamento.sensacao import LIMITE_LARANJA, LIMITE_VERMELHO  # noqa: E402
 
-PASTA_GRAFICOS = Path(__file__).parent / "graficos"
+PASTA_GRAFICOS = Path(__file__).resolve().parents[1] / "graficos"   # python/graficos
 
 # Paleta validada para daltonismo (ordem fixa; a cor segue a série)
 AZUL, LARANJA = "#2a78d6", "#eb6834"

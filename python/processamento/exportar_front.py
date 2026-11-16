@@ -6,16 +6,16 @@ Este script junta, num arquivo só:
     - dados/ranking.csv     -> o ranking pela temperatura da SUPERFÍCIE (satélite)
     - dados/satelite_superficie.csv -> as datas das passagens usadas
 
-Rode depois do ranking.py, sempre que o ranking mudar:
-    python exportar_front.py
+Rode depois do processamento.ranking, sempre que o ranking mudar:
+    python -m processamento.exportar_front
 """
 
 import csv
 import json
 from pathlib import Path
 
-PASTA_DADOS = Path(__file__).parent / "dados"
-SAIDA = Path(__file__).parent.parent / "frontend" / "src" / "dados" / "locais.json"
+PASTA_DADOS = Path(__file__).resolve().parents[1] / "dados"   # python/dados
+SAIDA = Path(__file__).resolve().parents[2] / "frontend" / "src" / "dados" / "locais.json"
 
 
 def ler_csv(nome: str) -> list[dict]:
