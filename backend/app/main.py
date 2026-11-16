@@ -34,6 +34,12 @@ app = FastAPI(
     version=VERSAO,
 )
 
+# Erros em português (422, 404, 405 e 500). Vem ANTES do CORS de propósito:
+# o último middleware adicionado fica por fora, como a casca de uma cebola.
+# Com o CORS por fora, até a resposta de um erro 500 leva o cabeçalho do CORS,
+# e o app consegue ler a mensagem em vez de ver um "erro de CORS".
+registrar_erros(app)
+
 # CORS: o navegador só deixa o app (porta 5173) ler as respostas da API
 # (porta 8000) se a API disser que confia nesse endereço.
 app.add_middleware(
@@ -43,7 +49,6 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-registrar_erros(app)  # 422 e 500 com mensagens em português
 app.include_router(locais.rotas)
 app.include_router(hidratacao.rotas)
 

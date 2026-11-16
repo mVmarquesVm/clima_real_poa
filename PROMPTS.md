@@ -568,3 +568,25 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Testei o CRUD dos locais pelo `/docs` (o 422 com um nome de 2 letras e o 201 com um nome válido).
+
+## Web — Caça a erros na API e correções (16/11/2026)
+
+**O que eu pedi**
+- Testar as portas e as rotas para tentar achar um erro, por um subagente se fosse maçante.
+
+**O que a IA gerou**
+- Um subagente subiu a API numa porta própria (8021), com um banco temporário, e mandou cerca de 180 requisições para tentar quebrá-la. Ele achou 5 problemas:
+  1. um id gigante derrubava a rota com um 500 em texto e sem CORS;
+  2. os 404 e 405 do FastAPI vinham em inglês;
+  3. o JSON quebrado mostrava o campo "13";
+  4. um nome feito de caracteres invisíveis passava;
+  5. o Pydantic convertia `"yes"` em verdadeiro e `true` em 1.0 na latitude.
+- As correções:
+  - `IdDoBanco` (`rotas/__init__.py`), com ids de 1 a 2^63 − 1;
+  - o `erros.py` reescrito, com um formato único (`detail` + `erros`, sempre), os 404/405 em português, o campo "corpo" no JSON quebrado e uma rede de segurança para erros inesperados como middleware, para o 500 sair com CORS;
+  - o modo `strict` e a regra do nome visível no `modelos.py`;
+  - a ordem do CORS no `main.py`.
+- `testes/test_robustez.py`: um teste para cada achado, que falhava antes da correção. São 80 testes no total.
+
+**O que eu mudei ou fiz sozinho**
+- A ideia de testar a API tentando quebrá-la foi minha.

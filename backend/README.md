@@ -58,6 +58,9 @@ backend/
 ## Validação e erros
 
 Tudo o que chega passa pelos modelos do Pydantic (`app/modelos.py`) antes de tocar no banco. Se algo estiver errado, nada é gravado.
+- **Tipos exatos (modo `strict`):** verdadeiro/falso tem de ser `true`/`false`, e número tem de ser número. `"yes"`, `1` ou `"-30.03"` (texto) dão 422, em vez de serem convertidos sem ninguém saber.
+- **Nomes:** pelo menos 3 letras ou números **visíveis** (espaços de largura zero não contam); caracteres de controle, como o byte nulo, são recusados no nome e na observação.
+- **Ids:** inteiros de 1 até 2^63 − 1 (o maior inteiro do SQLite); fora disso, 422.
 - **Locais:** nome com 3 a 80 caracteres (os espaços das pontas são tirados); tipo e atividades só da lista; pelo menos 1 atividade (as repetidas são juntadas); lat e lon dentro de Porto Alegre (lat de −30,27 a −29,93; lon de −51,31 a −51,01); observação com até 200 caracteres (vazia = nenhuma).
 - **Pontos de hidratação:** as mesmas regras de nome e de lat/lon; tipo só da lista; horários no formato `HH:MM` (de 00:00 a 23:59); os dois horários juntos ou nenhum (nenhum = aberto 24 h); o de fechar depois do de abrir (um horário que vira a noite não é aceito); `ativo` é verdadeiro se não vier.
 
@@ -75,9 +78,14 @@ Todo erro vem no mesmo formato, em português (`app/erros.py`):
 
 | Código | Quando |
 |---|---|
-| 422 | Campo faltando ou inválido, ou JSON quebrado (a lista `erros` diz qual campo e por quê) |
-| 404 | O id não existe (ex.: `Local 9999 não encontrado. Ele pode ter sido apagado.`) |
-| 500 | Falha no banco: a pessoa vê uma frase simples, e o detalhe técnico fica só no log do servidor |
+| 422 | Campo faltando ou inválido, id fora da faixa ou JSON quebrado (a lista `erros` diz qual campo e por quê) |
+| 404 | O id não existe (ex.: `Local 9999 não encontrado. Ele pode ter sido apagado.`) ou a rota não existe |
+| 405 | A rota não aceita o método (ex.: `PATCH`); o cabeçalho `Allow` diz quais valem |
+| 500 | Falha no banco ou erro inesperado: a pessoa vê uma frase simples, e o detalhe técnico fica só no log do servidor |
+
+Fora do 422, a lista `erros` vem vazia, mas sempre existe. Toda resposta de erro, até a do 500, leva o cabeçalho do CORS: assim, o app consegue ler a mensagem, em vez de ver um "erro de CORS".
+
+**Caça a erros (16/11):** um subagente tentou quebrar a API com cerca de 180 requisições (CORS, ids estranhos, corpos malformados, SQL no texto, tipos errados, métodos errados). Ele achou 5 problemas, todos corrigidos e cobertos pelo `testes/test_robustez.py`. O pior era um id gigante, que derrubava a rota com um 500 sem CORS.
 
 ## Banco de dados
 

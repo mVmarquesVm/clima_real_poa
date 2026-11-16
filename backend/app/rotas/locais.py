@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.banco import obter_conexao
 from app.modelos import Local, LocalEntrada
+from app.rotas import IdDoBanco
 
 rotas = APIRouter(prefix="/locais", tags=["locais"])
 
@@ -55,7 +56,7 @@ def listar(conexao: sqlite3.Connection = Depends(obter_conexao)):
 
 
 @rotas.get("/{id_local}", response_model=Local)
-def mostrar(id_local: int, conexao: sqlite3.Connection = Depends(obter_conexao)):
+def mostrar(id_local: IdDoBanco, conexao: sqlite3.Connection = Depends(obter_conexao)):
     linha = conexao.execute("SELECT * FROM locais WHERE id = ?", (id_local,)).fetchone()
     if linha is None:
         raise nao_encontrado(id_local)
@@ -75,7 +76,7 @@ def criar(local: LocalEntrada, conexao: sqlite3.Connection = Depends(obter_conex
 
 @rotas.put("/{id_local}", response_model=Local)
 def substituir(
-    id_local: int, local: LocalEntrada, conexao: sqlite3.Connection = Depends(obter_conexao)
+    id_local: IdDoBanco, local: LocalEntrada, conexao: sqlite3.Connection = Depends(obter_conexao)
 ):
     with conexao:
         cursor = conexao.execute(
@@ -91,7 +92,7 @@ def substituir(
 
 
 @rotas.delete("/{id_local}", status_code=status.HTTP_204_NO_CONTENT)
-def apagar(id_local: int, conexao: sqlite3.Connection = Depends(obter_conexao)):
+def apagar(id_local: IdDoBanco, conexao: sqlite3.Connection = Depends(obter_conexao)):
     with conexao:
         cursor = conexao.execute("DELETE FROM locais WHERE id = ?", (id_local,))
     if cursor.rowcount == 0:

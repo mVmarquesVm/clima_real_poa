@@ -8,6 +8,7 @@ Python puro com anotações: `nome: str` vira uma regra ("nome tem que ser texto
 e o Field(...) acrescenta os limites (tamanho, mínimo e máximo).
 """
 
+import unicodedata
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
@@ -27,14 +28,41 @@ Atividade = Literal[ATIVIDADES]
 # formulário e o banco guardam assim; e "09:00" < "18:00" vale como texto também.
 HORARIO = r"^([01]\d|2[0-3]):[0-5]\d$"
 
+# Regras de todos os modelos:
+# - str_strip_whitespace: tira os espaços das pontas ("  Praça  " vira "Praça");
+# - strict: cada campo tem de vir no tipo certo. Sem isso, o Pydantic "dá um
+#   jeito": "true" e "yes" viram verdadeiro, "-30.03" (texto) vira número e
+#   true vira 1.0 na latitude. O front manda os tipos certos; quem não manda
+#   recebe um 422 claro, em vez de um dado convertido sem ninguém saber.
+REGRAS = ConfigDict(str_strip_whitespace=True, strict=True)
+
+NOME_MINIMO = 3
+
+
+def sem_controle(texto: str) -> str:
+    """Recusa caracteres de controle (ex.: o byte nulo \\x00), que não aparecem na tela."""
+    if any(unicodedata.category(c) == "Cc" for c in texto):
+        raise ValueError("Tem caracteres invisíveis de controle, que não são permitidos.")
+    return texto
+
+
+def nome_visivel(nome: str) -> str:
+    """Conta só o que aparece na tela: 3 espaços de largura zero não são um nome."""
+    sem_controle(nome)
+    visiveis = sum(
+        1 for c in nome if not c.isspace() and unicodedata.category(c) not in ("Cf", "Cc")
+    )
+    if visiveis < NOME_MINIMO:
+        raise ValueError(f"Use pelo menos {NOME_MINIMO} letras ou números visíveis.")
+    return nome
+
 
 class LocalEntrada(BaseModel):
     """O que o cliente manda para criar (POST) ou substituir (PUT) um local."""
 
-    # Tira os espaços do começo e do fim de todo texto: "  Praça  " vira "Praça".
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = REGRAS
 
-    nome: str = Field(min_length=3, max_length=80, examples=["Praça da Matriz"])
+    nome: str = Field(min_length=NOME_MINIMO, max_length=80, examples=["Praça da Matriz"])
     tipo: TipoDeLocal
     lat: float = Field(ge=LAT_MIN, le=LAT_MAX, examples=[-30.0331])
     lon: float = Field(ge=LON_MIN, le=LON_MAX, examples=[-51.2300])
@@ -42,6 +70,11 @@ class LocalEntrada(BaseModel):
     tem_bebedouro: bool
     atividades: list[Atividade] = Field(min_length=1, examples=[["caminhada", "crianca"]])
     observacao: str | None = Field(default=None, max_length=200)
+
+    @field_validator("nome")
+    @classmethod
+    def checar_nome(cls, nome: str) -> str:
+        return nome_visivel(nome)
 
     @field_validator("atividades")
     @classmethod
@@ -53,7 +86,7 @@ class LocalEntrada(BaseModel):
     @classmethod
     def vazia_vira_nada(cls, observacao: str | None) -> str | None:
         """Um campo de texto apagado no formulário chega como "": guardamos None."""
-        return observacao or None
+        return sem_controle(observacao) if observacao else None
 
 
 class Local(LocalEntrada):
@@ -65,9 +98,9 @@ class Local(LocalEntrada):
 class HidratacaoEntrada(BaseModel):
     """O que o cliente manda para criar (POST) ou substituir (PUT) um ponto de hidratação."""
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = REGRAS
 
-    nome: str = Field(min_length=3, max_length=80, examples=["Bebedouro do Chafariz"])
+    nome: str = Field(min_length=NOME_MINIMO, max_length=80, examples=["Bebedouro do Chafariz"])
     tipo: TipoDeHidratacao
     lat: float = Field(ge=LAT_MIN, le=LAT_MAX, examples=[-30.0331])
     lon: float = Field(ge=LON_MIN, le=LON_MAX, examples=[-51.2300])
@@ -77,6 +110,11 @@ class HidratacaoEntrada(BaseModel):
     fecha: str | None = Field(default=None, pattern=HORARIO, validate_default=True, examples=["18:00"])
     abre_domingo: bool
     ativo: bool = True
+
+    @field_validator("nome")
+    @classmethod
+    def checar_nome(cls, nome: str) -> str:
+        return nome_visivel(nome)
 
     @field_validator("abre", "fecha", mode="before")
     @classmethod

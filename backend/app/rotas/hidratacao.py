@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.banco import obter_conexao
 from app.modelos import Hidratacao, HidratacaoEntrada
+from app.rotas import IdDoBanco
 
 rotas = APIRouter(prefix="/hidratacao", tags=["hidratação"])
 
@@ -55,7 +56,7 @@ def listar(so_ativos: bool = False, conexao: sqlite3.Connection = Depends(obter_
 
 
 @rotas.get("/{id_ponto}", response_model=Hidratacao)
-def mostrar(id_ponto: int, conexao: sqlite3.Connection = Depends(obter_conexao)):
+def mostrar(id_ponto: IdDoBanco, conexao: sqlite3.Connection = Depends(obter_conexao)):
     linha = conexao.execute("SELECT * FROM hidratacao WHERE id = ?", (id_ponto,)).fetchone()
     if linha is None:
         raise nao_encontrado(id_ponto)
@@ -74,7 +75,7 @@ def criar(ponto: HidratacaoEntrada, conexao: sqlite3.Connection = Depends(obter_
 
 @rotas.put("/{id_ponto}", response_model=Hidratacao)
 def substituir(
-    id_ponto: int, ponto: HidratacaoEntrada, conexao: sqlite3.Connection = Depends(obter_conexao)
+    id_ponto: IdDoBanco, ponto: HidratacaoEntrada, conexao: sqlite3.Connection = Depends(obter_conexao)
 ):
     with conexao:
         cursor = conexao.execute(
@@ -90,7 +91,7 @@ def substituir(
 
 
 @rotas.delete("/{id_ponto}", status_code=status.HTTP_204_NO_CONTENT)
-def apagar(id_ponto: int, conexao: sqlite3.Connection = Depends(obter_conexao)):
+def apagar(id_ponto: IdDoBanco, conexao: sqlite3.Connection = Depends(obter_conexao)):
     with conexao:
         cursor = conexao.execute("DELETE FROM hidratacao WHERE id = ?", (id_ponto,))
     if cursor.rowcount == 0:
