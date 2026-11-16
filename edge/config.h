@@ -121,6 +121,14 @@ const int NUM_REFUGIOS = sizeof(REFUGIOS) / sizeof(REFUGIOS[0]);
 #define NTP_SERVIDOR       "pool.ntp.org"
 const long FUSO_HORARIO_S = -3L * 3600L;   // Brasília (UTC-3, sem horário de verão desde 2019)
 
+// --- Dia ou noite (sol.h): muda o conselho do LCD 2 ("sombra" só de dia) ---
+// Onde a estação está, para a conta da posição do sol (centro do Largo, OSM).
+const double LAT_ESTACAO = -30.028067;
+const double LON_ESTACAO = -51.227613;
+// Sem relógio, a estação usa o LDR: abaixo disto é noite. Um poste perto dá
+// ~10-20 lux; um dia nublado passa de 1.000 lux.
+const float LUX_NOITE = 50.0f;
+
 // --- Relé do nebulizador (liga a partir do LARANJA) ---
 // Tempos CURTOS para dar para ver no Wokwi e no vídeo. Numa estação
 // de verdade: confirmar 2 min, calma 5 min, descanso 5 min, máximo 30 min.

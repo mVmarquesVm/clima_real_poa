@@ -18,6 +18,7 @@
 #include "risco.h"
 #include "rele.h"
 #include "display.h"
+#include "sol.h"
 #include "rede.h"
 #include "nuvem.h"
 #include <string.h>
@@ -323,6 +324,33 @@ inline bool rodarAutoteste() {
   montarTelaOrientacao(ruim, tela);
   verificar(p, strstr(tela[0], "Sem leitura") && strstr(tela[1], "Na duvida") && !strstr(tela[1], "Va:"),
             "LCD 2: SEM DADO nunca manda ao refúgio (não sabe se há risco), mas aconselha a sombra");
+
+  // --- Dia ou noite (sol.h): à noite, nada de "sombra" ---
+  // Horários conferidos com o Open-Meteo (nascer 05:20 e pôr 18:59 em 16/11/2026).
+  // 1794841200 = 16/11/2026 15:00 UTC (12:00 em Brasília).
+  const double MEIO_DIA = 1794841200.0, HORA = 3600.0;
+  verificar(p, elevacaoDoSol(MEIO_DIA + 30 * 60, -30.03, -51.23) > 70,  "sol: em 16/11 às 12h30 o sol está alto (> 70°) em POA");
+  verificar(p, elevacaoDoSol(MEIO_DIA - 9 * HORA, -30.03, -51.23) < -20, "sol: às 3h da madrugada o sol está bem abaixo do horizonte");
+  bool nasceu = elevacaoDoSol(MEIO_DIA - 6 * HORA - 36 * 60, -30.03, -51.23) > SOL_HORIZONTE_GRAUS;   // 05:24
+  bool antes  = elevacaoDoSol(MEIO_DIA - 6 * HORA - 44 * 60, -30.03, -51.23) > SOL_HORIZONTE_GRAUS;   // 05:16
+  verificar(p, nasceu && !antes, "sol: em 16/11 nasce entre 05:16 e 05:24 (Open-Meteo: 05:20)");
+  bool deDia  = elevacaoDoSol(MEIO_DIA + 6 * HORA + 56 * 60, -30.03, -51.23) > SOL_HORIZONTE_GRAUS;   // 18:56
+  bool poente = elevacaoDoSol(MEIO_DIA + 7 * HORA + 4 * 60, -30.03, -51.23) > SOL_HORIZONTE_GRAUS;    // 19:04
+  verificar(p, deDia && !poente, "sol: em 16/11 se põe entre 18:56 e 19:04 (Open-Meteo: 18:59)");
+  verificar(p, periodoDoDia(false, 0, -30, -51, true, 10, 50) == PERIODO_NOITE,  "período: sem relógio, pouca luz no LDR = noite");
+  verificar(p, periodoDoDia(false, 0, -30, -51, true, 5000, 50) == PERIODO_DIA,  "período: sem relógio, luz forte no LDR = dia");
+  verificar(p, periodoDoDia(false, 0, -30, -51, false, 0, 50) == PERIODO_DIA,    "período: sem relógio e sem LDR = dia (lado seguro)");
+  verificar(p, periodoDoDia(true, MEIO_DIA - 9 * HORA, -30, -51, true, 90000, 50) == PERIODO_NOITE,
+            "período: o relógio vence o LDR (luz forte às 3h é um poste, não o sol)");
+  ruim.noite = true;  montarTelaOrientacao(ruim, tela);
+  verificar(p, strstr(tela[0], "Sem leitura") && !strstr(tela[1], "sombra") && strstr(tela[1], "agua"),
+            "LCD 2: SEM DADO à noite não fala de sombra; fala de água");
+  dt.noite = true;  dt.ta = 30;  dt.nivel = RISCO_AMARELO;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[1], "Lugar ventilado") && !strstr(tela[1], "sombra"), "LCD 2: AMARELO à noite = lugar ventilado");
+  dt.nivel = RISCO_VERMELHO;  dt.ta = 41;  dt.refugio = nullptr;  montarTelaOrientacao(dt, tela);
+  verificar(p, strstr(tela[0], "LUGAR FRESCO") && !strstr(tela[0], "SOL") && strstr(tela[1], "lugar fresco"),
+            "LCD 2: VERMELHO à noite = lugar fresco, sem falar de sol");
+  dt.noite = false;
 
   // --- Rede: espera crescente (backoff) ---
   Backoff b;

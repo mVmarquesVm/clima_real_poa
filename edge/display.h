@@ -51,6 +51,7 @@ struct DadosTela {
   bool          mqttOk    = false;
   int           hora      = -1;        // -1 = a estação ainda não sabe a hora (sem NTP)
   int           minuto    = -1;
+  bool          noite     = false;     // pelo sol (sol.h): à noite, nada de "sombra"
   const Refugio* refugio  = nullptr;   // o refúgio mais perto e aberto, ou nullptr se não há
 };
 
@@ -108,10 +109,12 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
 // Os conselhos seguem a nota técnica da SMS de POA (hidratação e
 // pausas na sombra no amarelo; evitar o sol do laranja para cima;
 // suspender as atividades no roxo), em até 20 letras.
+// À noite (d.noite), o que fala de SOL ou SOMBRA troca por "lugar fresco"
+// ou "ventilado", como no app (conselhoNoite em frontend/src/lib/risco.js).
 inline const char* conselhoDoNivel(const DadosTela& d) {
   switch (d.nivel) {
     case RISCO_ROXO:     return "SUSPENDA ATIVIDADES";
-    case RISCO_VERMELHO: return "SAIA DO SOL + AGUA";
+    case RISCO_VERMELHO: return d.noite ? "LUGAR FRESCO + AGUA" : "SAIA DO SOL + AGUA";
     case RISCO_LARANJA:  return "Beba agua e descanse";
     case RISCO_AMARELO:  return "Calor: beba agua";
     case RISCO_VERDE:    return (!isnan(d.ta) && d.ta < LIMITE_FRIO_C) ? "Frio: se agasalhe" : "Sem risco de calor";
@@ -132,11 +135,12 @@ inline void montarTelaOrientacao(const DadosTela& d, char linhas[LCD_LINHAS][LCD
     textoDistancia(dist, sizeof(dist), d.refugio->distanciaM);
     snprintf(tmp, sizeof(tmp), "Va: %.10s %s", d.refugio->nome, dist);
   } else if (deveOrientar(d)) {
-    snprintf(tmp, sizeof(tmp), "Procure uma sombra");   // nenhum refúgio aberto agora
+    // nenhum refúgio aberto agora
+    snprintf(tmp, sizeof(tmp), d.noite ? "Procure lugar fresco" : "Procure uma sombra");
   } else if (d.nivel == RISCO_AMARELO) {
-    snprintf(tmp, sizeof(tmp), "Pausas na sombra");
+    snprintf(tmp, sizeof(tmp), d.noite ? "Lugar ventilado" : "Pausas na sombra");
   } else if (d.nivel == RISCO_SEM_DADO) {
-    snprintf(tmp, sizeof(tmp), "Na duvida: sombra");
+    snprintf(tmp, sizeof(tmp), d.noite ? "Abafado? Beba agua" : "Na duvida: sombra");
   } else {
     tmp[0] = '\0';
   }

@@ -27,6 +27,7 @@
 #include "risco.h"
 #include "rele.h"
 #include "display.h"
+#include "sol.h"
 #include "rede.h"
 #include "nuvem.h"
 #include "autoteste.h"
@@ -459,6 +460,10 @@ void atualizarDisplay(unsigned long agora) {
   d.hora       = hora;
   d.minuto     = minuto;
   d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia);
+  // Dia ou noite: relógio (NTP) + posição do sol; sem relógio, o LDR.
+  // hora >= 0 quer dizer que o NTP já sincronizou (ver relogioLocal).
+  d.noite      = periodoDoDia(hora >= 0, (double)time(nullptr), LAT_ESTACAO, LON_ESTACAO,
+                              luzOk, luxAtual, LUX_NOITE) == PERIODO_NOITE;
   d.ta         = sensacaoC;
   d.nivel      = nivelAtual;
   d.temp       = tempC;

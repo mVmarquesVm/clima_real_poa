@@ -13,7 +13,7 @@
 - **Watchdog do programa:** se o `loop()` travar por mais de 8 s, o ESP32 reinicia sozinho e, no boot, mostra o motivo.
 - **Defesa da leitura** em 3 barreiras: faixa física do sensor, filtro de salto e contador de falhas seguidas.
 - **Vigia do sensor:** detecta sensor em falha, instável ou travado, tenta consertá-lo em escada e **avisa**.
-- **Autoteste no boot:** 126 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do display, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
+- **Autoteste no boot:** 137 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do display, do dia e da noite, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
 - **LEDs de risco** (verde, amarelo, laranja, vermelho e roxo), nas 5 faixas da nota técnica da Secretaria Municipal de Saúde de Porto Alegre, com limites configuráveis e histerese.
 - **Relé do nebulizador**, decidido no próprio ESP32: liga só com risco alto **seguido**, desliga com folga (histerese), respeita tempo mínimo desligado e máximo ligado, e **desliga na hora** se o dado não for confiável.
 - **2 LCDs 20x4 (I2C):** o LCD 1 (medição) mostra a sensação, o nível de risco, as leituras (ou o problema), o sol e o status do relé; o LCD 2 (orientação) mostra o conselho do nível, o refúgio mais perto que esteja aberto, a hora e o status WiFi/MQTT, sem depender de app.
@@ -105,16 +105,23 @@ Hora 15:42               <- relógio da internet (NTP)
 E1 WiFi:OK  MQTT:OK      <- estação e conexão
 ```
 
-| Nível | Linha 1 (conselho) | Linha 2 |
-|---|---|---|
-| Verde | `Sem risco de calor` (abaixo de 9 °C: `Frio: se agasalhe`) | vazia |
-| Amarelo | `Calor: beba agua` | `Pausas na sombra` |
-| Laranja | `Beba agua e descanse` | `Va: <refúgio> <distância>` |
-| Vermelho | `SAIA DO SOL + AGUA` | `Va: <refúgio> <distância>` |
-| Roxo | `SUSPENDA ATIVIDADES` | `Va: <refúgio> <distância>` |
-| Sem dado | `Sem leitura agora` | `Na duvida: sombra` (nunca manda ao refúgio: não sabe se há risco) |
+| Nível | Linha 1 (conselho) | Linha 2 | À noite |
+|---|---|---|---|
+| Verde | `Sem risco de calor` (abaixo de 9 °C: `Frio: se agasalhe`) | vazia | igual |
+| Amarelo | `Calor: beba agua` | `Pausas na sombra` | linha 2: `Lugar ventilado` |
+| Laranja | `Beba agua e descanse` | `Va: <refúgio> <distância>` | igual |
+| Vermelho | `SAIA DO SOL + AGUA` | `Va: <refúgio> <distância>` | linha 1: `LUGAR FRESCO + AGUA` |
+| Roxo | `SUSPENDA ATIVIDADES` | `Va: <refúgio> <distância>` | igual |
+| Sem dado | `Sem leitura agora` | `Na duvida: sombra` (nunca manda ao refúgio: não sabe se há risco) | linha 2: `Abafado? Beba agua` |
 
 Os conselhos seguem a nota técnica da SMS de POA: hidratação e pausas na sombra no amarelo; evitar o sol do laranja para cima; suspender as atividades no roxo. A linha 4 mostra o ID da estação e o status do WiFi e do MQTT (`OK` ou `--`).
+
+**Dia ou noite (`sol.h`):** à noite, "procure uma sombra" não faz sentido, então o que fala de sol ou de sombra troca por "lugar fresco" ou "ventilado" (coluna "À noite"). Para saber o período, a estação usa, nesta ordem:
+1. o relógio da internet (NTP) e a **posição do sol no céu**, pela conta aproximada do Observatório Naval dos EUA (USNO). Em 16/11/2026, ela dá o nascer às 05:21 e o pôr às 19:00, e o Open-Meteo dá 05:20 e 18:59;
+2. sem relógio, a luz do LDR: abaixo de 50 lux (`LUX_NOITE`) é noite;
+3. sem os dois, **dia**. É o lado seguro: o conselho do dia à noite é só inútil, mas o da noite de dia poderia deixar alguém no sol.
+
+O relógio vence o LDR porque um poste perto da estação acenderia o LDR à noite. O app usa a mesma conta (`frontend/src/lib/sol.js`).
 
 ### Orientação sem app (refúgio mais perto)
 
@@ -244,6 +251,7 @@ Depois de 10 min funcionando bem, o contador de reinícios volta a zero.
 | `rele.h` | A máquina de estados do relé (confirmação, histerese, descanso, fail-safe) |
 | `display.h` | O texto das 4 linhas de cada LCD (medição e orientação) |
 | `refugio.h` | Escolhe o refúgio mais perto que está aberto agora |
+| `sol.h` | Dia ou noite, pela posição do sol (ou pelo LDR, sem relógio) |
 | `rede.h` | A espera crescente (backoff) das reconexões |
 | `nuvem.h` | Monta a mensagem para o ThingSpeak e valida os comandos do field8 |
 | `secrets.example.h` | Modelo do `secrets.h` (o `secrets.h` de verdade fica fora do Git) |
@@ -278,7 +286,7 @@ O LDR fica num pino do **ADC1** de propósito: o ADC2 do ESP32 para de funcionar
 ## Como rodar no Wokwi
 1. Em [wokwi.com](https://wokwi.com), crie um projeto novo de **ESP32 (Arduino)**.
 2. Substitua o `sketch.ino`, o `diagram.json` e o `libraries.txt` pelos desta pasta.
-3. Crie os arquivos `config.h`, `sensacao.h`, `conversao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `rede.h`, `nuvem.h` e `autoteste.h` (botão de novo arquivo) e cole o conteúdo de cada um. Crie também o `secrets.h` a partir do `secrets.example.h`, com os valores do seu canal (ver "Como criar o canal e a credencial no ThingSpeak").
+3. Crie os arquivos `config.h`, `sensacao.h`, `conversao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h`, `nuvem.h` e `autoteste.h` (botão de novo arquivo) e cole o conteúdo de cada um. Crie também o `secrets.h` a partir do `secrets.example.h`, com os valores do seu canal (ver "Como criar o canal e a credencial no ThingSpeak").
 4. Crie os arquivos `anemometro.chip.json` e `anemometro.chip.c` e cole o conteúdo de cada um. O nome tem que ser exatamente esse: o `diagram.json` procura o chip pelo nome (`chip-anemometro`).
 5. Clique em ▶ e veja o **Serial Monitor**.
 
@@ -295,12 +303,12 @@ O LDR fica num pino do **ADC1** de propósito: o ADC2 do ESP32 para de funcionar
 Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 reinícios, a estação para de reiniciar e pede técnico.
 
 ## O que conferir
-- O autoteste mostra **"126 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
+- O autoteste mostra **"137 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
 - Em poucos segundos, o Serial mostra `OK: WiFi conectado` e `OK: MQTT conectado ao ThingSpeak`, e a linha 4 do LCD 2 fica `E1 WiFi:OK  MQTT:OK`; a linha 3 passa a mostrar a hora (`Hora 15:42`). A cada 20 s aparece `MQTT: publicado -> field1=...`, e o gráfico do canal no ThingSpeak ganha um ponto.
 - A cada 2 s aparece uma linha como `[E1] T=30.0 C  UR=50%  Vento=0.0 m/s  Luz=50000 lux (Q=50 W/m2)  Sensacao=36.6 C | risco=LARANJA rele=OFF(confirmando) | sensor=OK`. O vento começa em 0 (ver o aviso abaixo).
 - Com 36,6 °C de sensação, o LED **laranja** acende e, 10 s depois, o relé liga (o LED azul acende e o LCD mostra `Rele:LIGADO`).
 - Com o risco em LARANJA, o LCD 2 mostra `Beba agua e descanse` e `Va: Praca XV 24m`, e o LCD 1 continua com as leituras. Suba a temperatura até o VERMELHO (TA ≥ 40 °C): o conselho vira `SAIA DO SOL + AGUA`. Com 40 °C e 60% no DHT22 e o LDR no máximo, a TA passa de 52 °C: o LED **roxo** acende e o conselho vira `SUSPENDA ATIVIDADES`.
-- Com 30 °C e 50% no DHT22 e o LDR no escuro (sem sol), a TA fica em ~33,1 °C: **amarelo**, e o LCD 2 mostra `Calor: beba agua` e `Pausas na sombra`, sem mandar ao refúgio. É o "dia comum" de Porto Alegre.
+- Com 30 °C e 50% no DHT22 e o LDR no escuro (sem sol), a TA fica em ~33,1 °C: **amarelo**, e o LCD 2 mostra `Calor: beba agua` e `Pausas na sombra`, sem mandar ao refúgio. É o "dia comum" de Porto Alegre. Se você testar à noite, a linha 2 mostra `Lugar ventilado`: a estação usa a hora de verdade (NTP).
 - Baixe a temperatura do DHT22 até a sensação ficar abaixo de 30 °C: o LCD mostra `DESL` só 20 s depois, e o relé não religa antes de 30 s de descanso.
 - Digite `f`: o amarelo pisca, o LCD mostra `!SENSOR EM FALHA` e o relé desliga **na hora**.
 - Clique no anemômetro e mexa no slider do vento: o `Vento=` acompanha, e a sensação cai. Com 7 m/s, ela vai para ~30 °C e o risco desce para AMARELO, mas o relé continua ligado (`esfriando`) até a TA ficar abaixo de 30 °C por 20 s: é a histerese.
@@ -312,7 +320,7 @@ Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 rein
 
 ## Testar no PC (sem abrir o Wokwi)
 A pasta `teste_pc/` confere o código no próprio computador, em 3 etapas:
-1. **g++** compila e **roda** os 126 autotestes. As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
+1. **g++** compila e **roda** os 137 autotestes. As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
 2. **gcc** roda o **chip do anemômetro** com um Wokwi falso (`teste_pc/wokwi-api.h`) e confere se ele fecha a chave o número certo de vezes em 10 s (por exemplo, 30 vezes com 2 m/s).
 3. **arduino-cli** compila o **firmware inteiro** para o ESP32 (sem o `secrets.h`, ele usa o `secrets.example.h`). Ele acha erros de compilação antes do Wokwi, mas não roda nada: sem a placa, o comportamento só aparece no Wokwi.
 
