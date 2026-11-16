@@ -1,0 +1,8 @@
+# API do Forno Alegre (FastAPI + Uvicorn + SQLite)
+# O SQLite vem com o Python (módulo sqlite3): não precisa instalar.
+fastapi==0.163.1
+uvicorn==0.54.0
+
+# Só para os testes
+pytest==9.2.0
+httpx==0.28.1

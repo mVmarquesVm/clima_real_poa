@@ -517,3 +517,15 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - A ideia de vários aparelhos por local com um canal só é minha. Escolhi documentar agora (opção A) e deixar a simulação para depois.
+
+## Web — Estrutura da API em FastAPI (16/11/2026)
+
+**O que eu pedi**
+- Começar o Web com um CRUD num back-end próprio em FastAPI (decisão de 16/11) e aprovei o plano: os campos dos locais de lazer e dos pontos de hidratação, o `sqlite3` do próprio Python (sem SQLAlchemy) e a instalação de 4 pacotes numa `venv` só do back-end.
+
+**O que a IA gerou**
+- `backend/.venv` com `fastapi`, `uvicorn`, `pytest` e `httpx` (versões fixadas no `requirements.txt`).
+- `app/main.py` (a API, o CORS liberado só para o Vite e a rota `GET /saude`), `app/config.py` (os endereços do CORS, trocáveis pela variável `FORNO_ORIGENS`), 3 testes em `testes/test_saude.py` (a API responde, o Vite é liberado e outro site é bloqueado) e o README com o Quickstart.
+
+**O que eu mudei ou fiz sozinho**
+- Aprovei os campos e a instalação.
