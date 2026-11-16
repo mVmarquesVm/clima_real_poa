@@ -472,3 +472,21 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - A ideia e a regra (área inteira para o concreto homogêneo, raio de 50 m para o misto) são minhas.
+
+## Front-end — Mapa ao vivo com painel de detalhes (16/11/2026)
+
+**O que eu pedi**
+- Mapa ao vivo inspirado no painel Osiris (osirisai.live), com as 6 ideias que aprovei: anel que pulsa só na estação ao vivo (com o texto "AO VIVO"), a área de cobertura na cor do risco, o clique/Enter na estação abrindo um painel, uma barra de status, números com algarismos de mesma largura e um botão de mapa claro/escuro. Sem a faixa que rola sem parar, sem cinza-escuro sobre preto e sem a marca deles.
+
+**O que a IA gerou**
+- `ganchos/useEstacoes.js` + `lib/estacoes.js` + `lib/leitura.js`: o App busca todas as estações com canal numa rodada só, a cada 15 s (`Promise.allSettled`: se uma falhar, as outras seguem). O cartão da E1, o mapa e a barra usam a mesma leitura (antes, a E1 seria buscada 2 vezes). `situacao()` decide "recente" (até 2 min) e o nível, como no Edge.
+- `componentes/mapa/MarcadorEstacao.jsx`: cada estação é um `<button>` de verdade dentro de um marcador do MapLibre (com `createPortal`), na ordem E1 → E4 no Tab, com cor + ícone + texto no `aria-label`. O div do marcador leva `role="none"`, porque o MapLibre o marcaria como imagem e esconderia o botão do leitor de tela.
+- `componentes/mapa/PainelEstacao.jsx`: um diálogo não modal com o selo, os valores, "atualizado há", a área que a estação representa (a minha regra da cobertura, com os % do WorldCover) e o piso pelo satélite. O foco vai para o título; Esc ou "Fechar" fecham e devolvem o foco ao marcador.
+- `Mapa.jsx` refeito: a fonte `cobertura` pintada pela cor do nível (cinza = sem dado), o local inteiro só com contorno tracejado, o rótulo "AO VIVO"/"SEM DADO RECENTE", `flyTo` (0 ms com "menos movimento") e o tema escuro (`setStyle` + as camadas de novo no `style.load`). As cores só mudam quando o nível muda, e não a cada segundo.
+- `componentes/comum/Dado.jsx` (saiu de dentro do `EstacaoAoVivo`, com `font-mono tabular-nums`), `componentes/comum/BarraStatus.jsx` (hora de POA, dia/noite, "4 estações · N ao vivo"; o relógio fica fora do `aria-live`) e `ganchos/useAgora.js`.
+- Conferência no navegador por um subagente, com leituras falsas: laranja, roxo, leitura velha (10 min), teclado (Tab, Enter, Esc), tema escuro, 375 px e movimento reduzido. Os 8 testes passaram, e ela achou 3 detalhes, corrigidos: no celular, a folga do painel do PC continuava gravada no mapa; a ordem do Tab seguia o ranking; e os % arredondados somavam 101%.
+
+- Limpeza: o `ganchos/useEstacaoE1.js` e o `buscarE1` ficaram sem uso (o `useEstacoes` faz o trabalho dos dois) e foram apagados com o meu ok. O README do Front ganhou a estrutura nova de `src/`.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi as 6 ideias e o que não usar.
