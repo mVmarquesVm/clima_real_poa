@@ -1,9 +1,9 @@
 """Matemática do Forno Alegre: o calor de 04/02/2025 visto pelo Cálculo.
 
 Dados REAIS: estação automática A801 do INMET (Porto Alegre), hora a
-hora, em hora local, lidos pelo python/oficial.py. A sensação térmica é
+hora, em hora local, lidos pelo python/fontes/oficial.py. A sensação térmica é
 a MESMA fórmula da estação Forno Alegre (Temperatura Aparente de
-Steadman, com o sol medido), do python/sensacao.py.
+Steadman, com o sol medido), do python/processamento/sensacao.py.
 
 Por que 04/02/2025? É o dia em que o InGá mediu 61 °C no piso do Parque
 Harmonia (Sul21, 05/02/2025): o mesmo dia contado no Python e no pitch.
@@ -28,8 +28,8 @@ import pandas as pd
 PASTA = Path(__file__).resolve().parent
 sys.path.insert(0, str(PASTA.parent / "python"))   # reaproveita o código do Python
 
-from oficial import carregar_oficial  # noqa: E402
-from sensacao import LIMITE_LARANJA  # noqa: E402
+from fontes.oficial import carregar_oficial  # noqa: E402
+from processamento.sensacao import LIMITE_LARANJA  # noqa: E402
 
 import calculo as c  # noqa: E402
 import graficos  # noqa: E402

@@ -1,6 +1,6 @@
 """Testes do calculo.py com funções cuja resposta a gente sabe de cabeça.
 
-Rodar:  python -m pytest test_calculo.py
+Rodar (de dentro de matematica/):  python -m pytest
 """
 
 import math

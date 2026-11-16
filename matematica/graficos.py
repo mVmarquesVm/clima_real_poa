@@ -1,6 +1,6 @@
 """Os 4 gráficos da Matemática (PNG, para o relatório em PDF).
 
-Mesma paleta e mesmo estilo do python/ranking.py: azul = temperatura do
+Mesma paleta e mesmo estilo do python/processamento/ranking.py: azul = temperatura do
 AR, laranja = SENSAÇÃO ao sol. A cor segue a grandeza em todos os gráficos.
 """
 

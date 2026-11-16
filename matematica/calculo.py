@@ -2,7 +2,7 @@
 
 Nada aqui sabe de INMET ou de pandas: são funções puras de matemática,
 testadas com funções cuja resposta a gente sabe de cabeça
-(test_calculo.py). Quem usa os dados reais é o analise.py.
+(testes/test_calculo.py). Quem usa os dados reais é o analise.py.
 
     t  -> tempo em HORAS (0 = meia-noite do dia analisado)
     y  -> temperatura em °C

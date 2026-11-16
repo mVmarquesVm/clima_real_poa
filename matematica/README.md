@@ -12,7 +12,7 @@ O jornal dá um número só: "máxima de 37 °C". Para quem vai passar a tarde n
 
 ## Os dados (reais, sem hipóteses)
 - **Estação automática A801 do INMET** (Porto Alegre, Jardim Botânico), hora a hora, em **04/02/2025**: o dia em que o InGá mediu 61 °C no piso do Parque Harmonia ([Sul21, 05/02/2025](https://sul21.com.br/noticias/geral/2025/02/piso-de-concreto-do-parque-harmonia-chega-a-61-oc-formando-ilha-de-calor-no-centro-de-porto-alegre/)).
-- A **sensação térmica ao sol** é a mesma fórmula da estação Forno Alegre (Temperatura Aparente de Steadman, com o sol medido pelo INMET). O código é o do [`python/`](../python/): `oficial.py` e `sensacao.py`.
+- A **sensação térmica ao sol** é a mesma fórmula da estação Forno Alegre (Temperatura Aparente de Steadman, com o sol medido pelo INMET). O código é o do [`python/`](../python/): `fontes/oficial.py` e `processamento/sensacao.py`.
 - **34 °C** é o limite em que o relé da estação liga o nebulizador (nível laranja). É onde começa o laranja nas 5 faixas da [Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre](https://prefeitura.poa.br/sites/default/files/usu_doc/hotsites/sms/vigilancia-em-saude/NT%201_26_Calor%20extremo.pdf) (27/34/40/52 °C), a mesma régua da estação e do Python. Até 15/11/2026, usávamos 32 °C (da NOAA), e a dose dava 116,4 °C·h.
 
 ## O modelo e as análises
@@ -73,18 +73,27 @@ Usa o mesmo ambiente do [`python/`](../python/README.md) (ver o Quickstart de l�
 ```powershell
 cd matematica
 ..\python\.venv\Scripts\python.exe analise.py              # resumo no terminal, resultados.json e os 4 gráficos
-..\python\.venv\Scripts\python.exe -m pytest test_calculo.py   # 9 testes do Cálculo
+..\python\.venv\Scripts\python.exe -m pytest                  # 9 testes do Cálculo (em testes/)
 ```
 
 ## Arquivos
+```
+matematica/
+├── calculo.py · analise.py · graficos.py   o código
+├── testes/                                 os testes do Cálculo
+├── graficos/                               os 4 PNGs
+├── relatorio/                              o PDF entregue no Teams
+└── resultados.json                         todos os números
+```
+
 | Arquivo | O que faz |
 |---|---|
 | `calculo.py` | Matemática pura com NumPy: ajuste, derivadas, primitiva, bisseção, Riemann e a lei de Newton |
-| `analise.py` | Lê o INMET (pelo `python/oficial.py`), roda M1–M4, imprime o resumo e grava o `resultados.json` |
+| `analise.py` | Lê o INMET (pelo `python/fontes/oficial.py`), roda M1–M4, imprime o resumo e grava o `resultados.json` |
 | `graficos.py` | Os 4 gráficos em `graficos/` (mesma paleta, segura para daltonismo, do Python) |
-| `test_calculo.py` | 9 testes com funções de resposta conhecida (ex.: ∫ de meia onda = 96/π) |
+| `testes/test_calculo.py` | 9 testes com funções de resposta conhecida (ex.: ∫ de meia onda = 96/π) |
 | `resultados.json` | Todos os números, para o relatório |
-| `relatorio_matematica.pdf` | O relatório técnico entregue no Teams |
+| `relatorio/relatorio_matematica.pdf` | O relatório técnico entregue no Teams |
 
 ## Relatório técnico (PDF)
-[`relatorio_matematica.pdf`](relatorio_matematica.pdf) (10 páginas): problema, dados, modelo, derivada, integral, limite, interpretação, limitações, conclusão e referências, com os 4 gráficos. Ele foi escrito num documento editável do Claude e exportado em PDF. Se o texto mudar, exporte de novo.
+[`relatorio/relatorio_matematica.pdf`](relatorio/relatorio_matematica.pdf) (10 páginas): problema, dados, modelo, derivada, integral, limite, interpretação, limitações, conclusão e referências, com os 4 gráficos. Ele foi escrito num documento editável do Claude e exportado em PDF. Se o texto mudar, exporte de novo.
