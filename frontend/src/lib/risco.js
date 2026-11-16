@@ -2,6 +2,8 @@
 // Fonte: Nota Técnica nº 01/26 da SMS de Porto Alegre (atualizada em 04/02/2026):
 //   < 27 verde · 27–33 amarelo · 34–39 laranja · 40–51 vermelho · > 51 roxo.
 // A nota só dá as cores; os conselhos são os mesmos do LCD de Orientação da estação.
+// Os conselhos que falam de SOL ou SOMBRA têm uma versão para a noite
+// (conselhoNoite), porque "fique na sombra" às 23h não faz sentido.
 
 export const LIMITES = { amarelo: 27, laranja: 34, vermelho: 40, roxo: 52 }
 
@@ -14,14 +16,19 @@ export const LIMITE_FRIO = 9
 // laranja é para passar no contraste mínimo de 4,5:1 (WCAG AA).
 export const NIVEIS = [
   { id: 'verde', nome: 'Verde', conselho: 'Sem risco de calor', classe: 'bg-risco-verde text-white' },
-  { id: 'amarelo', nome: 'Amarelo', conselho: 'Calor: beba água e faça pausas na sombra', classe: 'bg-risco-amarelo text-black' },
+  { id: 'amarelo', nome: 'Amarelo', conselho: 'Calor: beba água e faça pausas na sombra', conselhoNoite: 'Calor: beba água e procure um lugar ventilado', classe: 'bg-risco-amarelo text-black' },
   { id: 'laranja', nome: 'Laranja', conselho: 'Beba água e descanse', classe: 'bg-risco-laranja text-black' },
-  { id: 'vermelho', nome: 'Vermelho', conselho: 'Saia do sol e beba água', classe: 'bg-risco-vermelho text-white' },
+  { id: 'vermelho', nome: 'Vermelho', conselho: 'Saia do sol e beba água', conselhoNoite: 'Procure um lugar fresco e beba água', classe: 'bg-risco-vermelho text-white' },
   { id: 'roxo', nome: 'Roxo', conselho: 'Suspenda as atividades ao ar livre', classe: 'bg-risco-roxo text-white' },
-  { id: 'semdado', nome: 'Sem dado', conselho: 'Sem leitura agora. Na dúvida, fique na sombra', classe: 'bg-risco-semdado text-white' },
+  { id: 'semdado', nome: 'Sem dado', conselho: 'Sem leitura agora. Na dúvida, fique na sombra', conselhoNoite: 'Sem leitura agora. À noite não há sol; se estiver abafado, beba água', classe: 'bg-risco-semdado text-white' },
 ]
 
 export const SEM_DADO = 5
+
+// O conselho certo para a hora: de noite, usa a versão da noite (se o nível tiver).
+export function conselhoDe(nivel, dia) {
+  return !dia && nivel.conselhoNoite ? nivel.conselhoNoite : nivel.conselho
+}
 
 // Número do field6 -> nível. Qualquer coisa fora de 0..5 vira "sem dado":
 // na dúvida, o app não inventa um nível.
