@@ -490,3 +490,30 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Escolhi as 6 ideias e o que não usar.
+
+## Front-end — Tema escuro na página inteira (16/11/2026)
+
+**O que eu pedi**
+- Notei que o botão escurecia só o mapa e pedi o tema escuro na página inteira.
+
+**O que a IA gerou**
+- Tokens de cor pelo papel (`fundo`, `superficie`, `superficie-2`, `texto`, `texto-suave`, `borda`, `borda-forte`, `foco`) no `@theme` do `index.css`, com outros valores em `[data-tema="escuro"]`. Todas as cores fixas dos componentes (`bg-white`, `text-gray-700`...) viraram esses tokens, e nenhum componente precisa saber qual tema está ligado.
+- `ganchos/useTema.js` e `componentes/comum/BotaoTema.jsx` (no cabeçalho). Primeiro o botão tinha o texto fixo "Tema escuro" + `aria-pressed`. Eu achei confuso continuar escrito "Tema escuro" com a página já escura, então agora o texto diz o que o clique faz ("Tema escuro" ou "Tema claro"), sem `aria-pressed`. Um script no `index.html` aplica o tema antes de a página aparecer: a escolha salva ou, na 1ª visita, o tema do sistema. O mapa troca o estilo base junto com a página, e os rótulos usam os tokens `texto` e `fundo`.
+- O contraste foi medido pela fórmula da WCAG. A medida achou um erro antigo: o azul do "Frio: se agasalhe" dava 4,2:1 sobre o branco (o mínimo é 4,5:1) e foi trocado por um que dá 5,0:1. No escuro, o anel de foco e o azul do frio ganharam versões mais claras (8,0:1 e 8,2:1).
+- Conferência no navegador por um subagente: a página inteira escura (nenhuma caixa clara sobrando), o tema lembrado depois de recarregar, a 1ª visita seguindo o sistema, o anel de foco visível, o painel escuro e o celular. Ela achou um problema no celular: o Largo e o Calçadão quase se encostam, e o toque numa estação abria a outra. O motivo eram os cantos do quadrado do marcador e o anel que pulsa, que cresce para fora do botão. Agora só o botão redondo recebe o toque, e a estação ao vivo fica por cima.
+
+**O que eu mudei ou fiz sozinho**
+- Percebi que o tema escuro valia só para o mapa e pedi a página inteira.
+
+## Edge e Experiência — Vários aparelhos no mesmo parque (16/11/2026)
+
+**O que eu pedi**
+- Perguntei se dava para colocar mais aparelhos no mesmo parque, para cobrir uma área maior, com todos mandando os dados por um aparelho só, para não passar de 4 canais e continuar no plano grátis do ThingSpeak.
+
+**O que a IA gerou**
+- A explicação da arquitetura de nós sensores + estação principal (gateway), com o rádio ESP-NOW ou LoRa, e 3 caminhos: documentar agora, simular vários DHT22 num ESP32 só ou ligar vários Wokwi por um broker público. A IA recomendou documentar, por causa do prazo.
+- Uma seção nova no `edge/README.md` ("Próximo passo: vários aparelhos no mesmo parque"), com o desenho, a regra do pior ponto (a maior TA vai no field5/field6, e o detalhe de cada nó no `status`), a defesa da leitura por nó, a segurança do rádio e o motivo de não estar no Wokwi (as simulações não conversam entre si).
+- `docs/requisitos_rascunho.md`, o começo do relatório de Total Experience, com os RNF de cobertura e de escala, as RN de como juntar os nós, o épico no backlog e as notas de hardware real.
+
+**O que eu mudei ou fiz sozinho**
+- A ideia de vários aparelhos por local com um canal só é minha. Escolhi documentar agora (opção A) e deixar a simulação para depois.

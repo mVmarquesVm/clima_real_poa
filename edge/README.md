@@ -332,7 +332,34 @@ Precisa do g++ (WinLibs) e do arduino-cli com o núcleo `esp32:esp32` e as bibli
 
 > **Não cole a pasta `teste_pc/` no Wokwi.** O `Arduino.h` e o `wokwi-api.h` falsos só servem no PC.
 
+## Próximo passo: vários aparelhos no mesmo parque (proposta, não simulada)
+**O problema:** uma estação representa só a área em volta dela. No local misto (piso, árvore e grama), isso é um raio de cerca de 50 m (Guia de Instrumentos da OMM, WMO-No. 8, seção 11.1.1.4: "algumas dezenas de metros"). Num parque grande, como o Harmonia ou o Marinha do Brasil, um aparelho só cobre um pedaço.
+
+**A ideia: nós sensores + 1 gateway por local.** É como uma casa com um termômetro em cada cômodo: todos avisam a mesma pessoa, e só ela liga para o médico.
+
+```
+  nó 1 (piso)      nó 2 (gramado)      nó 3 (entrada)
+  DHT22 + LDR      DHT22 + LDR         DHT22 + LDR
+       \               |                  /
+        \   rádio (ESP-NOW ou LoRa)      /
+         v             v                v
+        ESTAÇÃO PRINCIPAL (gateway): vento, LEDs, relé, 2 LCDs
+                       |  MQTT (o mesmo de hoje)
+                       v
+        ThingSpeak: 1 canal por local, 1 mensagem a cada 20 s
+```
+
+- **Os nós** são ESP32 pequenos, com bateria, só com o DHT22 e o LDR. Eles mandam a leitura por rádio para a estação principal: **ESP-NOW** (o rádio do próprio ESP32, sem roteador, para dezenas a poucas centenas de metros) ou **LoRa** (para distâncias maiores, com um módulo a mais). O vento continua só na principal, para os nós ficarem baratos. Isso é uma simplificação: árvores e prédios mudam o vento de um ponto para outro, e um local muito irregular pediria um segundo anemômetro.
+- **Continua no plano grátis:** só a principal fala com a nuvem, no mesmo canal e no mesmo ritmo. Com mais nós, o número de mensagens não muda: continuam **4 canais**, um por local.
+- **O que vai no canal: o PIOR ponto.** Os 8 campos já estão ocupados, então a principal publica no field5 e no field6 a **maior TA** entre os nós válidos. É a mesma regra do "pior caso" que a estação já usa com o vento e a luz: na dúvida, protege. O detalhe de cada nó vai no `status` (um texto curto, por exemplo `n1:41.2 n2:35.0 n3:FALHA`), que o app pode ler para pintar o mapa por ponto.
+- **Defesa da leitura em cada nó:** as mesmas barreiras de hoje (NaN, faixa do sensor, filtro de salto). Leitura com mais de 2 min não entra na conta. Nó em falha aparece como `FALHA` no status e sai da cobertura. Se todos falharem, o local fica "sem dado", como hoje.
+- **Segurança do rádio:** o ESP-NOW tem criptografia, e só os nós cadastrados na principal são aceitos. Assim, ninguém finge ser um nó para apagar um alerta.
+- **No mapa:** a área coberta passa a ser a soma dos círculos de 50 m dos nós que estão funcionando.
+
+**Por que não está no Wokwi:** cada simulação do Wokwi roda isolada, e dois projetos não conversam por ESP-NOW. Simular os nós exigiria um broker MQTT público entre vários projetos abertos ao mesmo tempo, o que ficou fora do prazo. Por isso, esta parte é uma **proposta de arquitetura**: ela também está no backlog do relatório de Total Experience (`docs/requisitos_rascunho.md`).
+
 ## Limitações conhecidas
+- **Uma estação por local:** cada estação representa só a área em volta dela (ver a proposta de vários nós por local, logo acima).
 - **Luz → radiação:** é uma aproximação (ver "Aproximação: do LDR (lux) para a radiação no corpo").
 - **Anemômetro parado ou com fio partido:** os dois dão zero pulsos, e a estação não consegue diferenciar um do outro. Nesse caso, ela trata como "sem vento", que é o pior caso para a sensação.
 - **ADC do ESP32 real:** no Wokwi o ADC é linear de 0 a 3,3 V. No ESP32 de verdade, ele perde precisão perto dos extremos e precisaria de calibração.
