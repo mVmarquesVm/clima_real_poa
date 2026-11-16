@@ -1,10 +1,11 @@
 """Os 4 locais das estações e a área que o satélite mede em cada um.
 
 As geometrias vêm do OpenStreetMap (OSM), pelo serviço Nominatim:
-    - parque (área no OSM): o satélite mede o parque INTEIRO;
-    - largo e calçadão (ponto ou linha no OSM): um círculo de 60 m
-      em volta do ponto, que é mais ou menos o que a pessoa enxerga
-      ao redor (e alguns pixels do satélite, para não depender de 1 só).
+    - largo e parques (área no OSM): o polígono do local inteiro;
+    - calçadão (linha no OSM): um círculo de 60 m em volta do ponto.
+
+Esta é a área do LOCAL. A área que a ESTAÇÃO representa (o local inteiro
+ou um raio de 50 m, pela cobertura do solo) sai do fontes/cobertura.py.
 
 Na primeira vez, busca no OSM e salva em dados/locais.geojson. Depois,
 lê o arquivo (funciona sem internet e dá sempre o mesmo resultado).

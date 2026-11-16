@@ -10,22 +10,26 @@
 
 Os dois vêm do Microsoft Planetary Computer, de graça e sem chave. O
 próprio serviço calcula a média, o mínimo e o máximo dentro da área de
-cada local (dados/locais.geojson), então não precisamos baixar imagens.
+cada local, então não precisamos baixar imagens. A área medida é a que a
+ESTAÇÃO representa (dados/estacoes.geojson, ver fontes/cobertura.py): o
+local inteiro se ele é quase todo construído, ou um raio de 50 m se é misto.
 
 Usamos só as passagens de VERÃO (21/12 a 20/03) com menos de 10% de
 nuvens na cena. Os resultados ficam salvos em dados/ (roda sem internet
 depois).
 
 Uso:
-    python -m fontes.satelite
+    python -m fontes.satelite              # usa os CSVs salvos
+    python -m fontes.satelite --refazer    # mede tudo de novo (precisa de internet)
 """
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
 import requests
 
-from fontes.locais import carregar_locais
+from fontes.cobertura import carregar_estacoes
 
 PASTA_DADOS = Path(__file__).resolve().parents[1] / "dados"   # python/dados
 ARQUIVO_SUPERFICIE = PASTA_DADOS / "satelite_superficie.csv"
@@ -74,7 +78,7 @@ def estatisticas(colecao: str, item: str, geometria: dict, **parametros) -> dict
 
 
 def medir_superficie() -> pd.DataFrame:
-    locais = carregar_locais()
+    locais = carregar_estacoes()
     linhas = []
     for periodo in VEROES:
         for cena in buscar_cenas("landsat-c2-l2", periodo, MAX_NUVENS):
@@ -102,25 +106,27 @@ def medir_ndvi() -> pd.DataFrame:
     desconto = 2000 if cena["properties"].get("s2:processing_baseline", "00") >= "04.00" else 0
     expressao = f"(B08-B04)/(B08+B04-{desconto})"
     linhas = []
-    for local in carregar_locais():
+    for local in carregar_estacoes():
         e = estatisticas("sentinel-2-l2a", cena["id"], local["geometry"], expression=expressao, asset_as_band="true")
         linhas.append({"cena": cena["id"], "data": cena["properties"]["datetime"][:10],
                        "estacao": local["properties"]["id"], "ndvi_medio": e["mean"]})
     return pd.DataFrame(linhas).round(3)
 
 
-def carregar_satelite() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Usa os CSVs salvos; se não existirem, mede tudo e salva."""
+def carregar_satelite(refazer: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Usa os CSVs salvos; se não existirem (ou com refazer=True), mede tudo e salva."""
     PASTA_DADOS.mkdir(exist_ok=True)
-    if not ARQUIVO_SUPERFICIE.exists():
+    if refazer or not ARQUIVO_SUPERFICIE.exists():
         medir_superficie().to_csv(ARQUIVO_SUPERFICIE, index=False)
-    if not ARQUIVO_NDVI.exists():
+    if refazer or not ARQUIVO_NDVI.exists():
         medir_ndvi().to_csv(ARQUIVO_NDVI, index=False)
     return pd.read_csv(ARQUIVO_SUPERFICIE), pd.read_csv(ARQUIVO_NDVI)
 
 
 def main() -> None:
-    sup, ndvi = carregar_satelite()
+    leitor = argparse.ArgumentParser(description="Superfície e NDVI de cada estação, pelo satélite.")
+    leitor.add_argument("--refazer", action="store_true", help="mede tudo de novo (precisa de internet)")
+    sup, ndvi = carregar_satelite(leitor.parse_args().refazer)
     print(f"Landsat: {sup['cena'].nunique()} passagens de verão sem nuvens")
     print(sup.pivot(index="data", columns="estacao", values="sup_media").round(1).to_string())
     print(f"\nNDVI (Sentinel-2, {ndvi['data'].iloc[0]}):")

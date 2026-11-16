@@ -1,0 +1,9 @@
+estacao,medida,regra,arvore,arbusto,grama,plantacao,construido,solo_exposto,agua,banhado,pixels
+E1,local,local inteiro,0.0,0.0,0.0,0.0,0.911,0.089,0.0,0.0,79
+E1,cobertura,local inteiro,0.0,0.0,0.0,0.0,0.911,0.089,0.0,0.0,79
+E2,local,raio de 50 m,0.489,0.0,0.0,0.0,0.511,0.0,0.0,0.0,180
+E2,cobertura,raio de 50 m,0.508,0.0,0.0,0.0,0.492,0.0,0.0,0.0,128
+E3,local,raio de 50 m,0.313,0.0,0.52,0.0,0.15,0.0,0.0,0.017,2367
+E3,cobertura,raio de 50 m,0.148,0.0,0.227,0.0,0.625,0.0,0.0,0.0,128
+E4,local,raio de 50 m,0.423,0.0,0.316,0.037,0.141,0.046,0.025,0.012,9523
+E4,cobertura,raio de 50 m,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,128

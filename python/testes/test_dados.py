@@ -9,6 +9,7 @@ import math
 
 from pytest import approx
 
+from fontes.cobertura import RAIO_COBERTURA_M, area_da_estacao
 from fontes.locais import circulo
 from fontes.oficial import kj_hora_para_w, ler_inmet
 from fontes.satelite import landsat_celsius
@@ -29,6 +30,21 @@ def test_circulo_fecha_e_tem_o_raio_certo():
     lon, lat = anel[0]                                  # 1º ponto: 60 m a leste do centro
     metros = (lon + 51.23) * 111_320 * math.cos(math.radians(-30.03))
     assert metros == approx(60, abs=0.5)
+
+
+def test_regra_da_cobertura_homogeneo_vale_o_local_inteiro():
+    largo = {"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 0]]]},
+             "properties": {"id": "E1"}}
+    geometria, regra = area_da_estacao(largo, 0.91)      # 91% construído (WorldCover, 2021)
+    assert regra == "local inteiro" and geometria is largo["geometry"]
+
+
+def test_regra_da_cobertura_misto_vale_um_raio_em_volta_da_estacao():
+    harmonia = {"geometry": {"type": "Polygon", "coordinates": []}, "properties": {"id": "E3"}}
+    geometria, regra = area_da_estacao(harmonia, 0.15)   # 15% construído: concreto + grama + árvore
+    lon, lat = geometria["coordinates"][0][0]            # 1º ponto: a leste do ponto da estação
+    metros = (lon + 51.237354) * 111_320 * math.cos(math.radians(-30.040690))
+    assert regra == f"raio de {RAIO_COBERTURA_M} m" and metros == approx(RAIO_COBERTURA_M, abs=0.5)
 
 
 def test_inmet_le_o_arquivo_real_e_converte_o_horario():

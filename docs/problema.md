@@ -19,7 +19,7 @@ Porto Alegre tem verões cada vez mais quentes. No Centro Histórico e na Praia 
 | Parque Harmonia, 10/02/2025, ~10h30 | gramado: 33 °C ao sol e 26 °C na sombra; asfalto fresado 54 °C | ar + superfície | GZH, 10/02/2025 |
 | Diferença entre bairros de POA | até **20 °C** (Sarandi e Rubem Berta com 47,3 °C × Morro São Pedro com 27,8 °C; Rodoviária 45,4 °C × Parque Farroupilha 35,2 °C) | superfície (Landsat 8, média de 10 verões) | Matinal, 18/12/2023 (estudo da Arquitetura/UFRGS de Carolina Cristófoli Falcão) |
 | INMET A801, 04/02/2025 | ar 37,3 °C; sensação ao sol 47,0 °C; dose de **91,0 °C·h** acima de 34 °C (onde começa o laranja da nota técnica da SMS de POA) | ar (estação oficial, num gramado) | `python/` e `matematica/` deste repositório |
-| Nossos 4 locais, satélite, 6 passagens de verão | piso médio de 41,5 °C (Harmonia) a 35,7 °C (calçadão); o piso fica de 8 a 14 °C acima do ar oficial | superfície | `python/` (Landsat 8/9 e Sentinel-2) |
+| Nossos 4 locais, satélite, 6 passagens de verão | piso médio de 41,7 °C (Harmonia) a 35,6 °C (calçadão), medido na área que cada estação representa; o piso fica de 8 a 14 °C acima do ar oficial | superfície | `python/` (Landsat 8/9 e Sentinel-2) |
 | Bebedouros públicos | **menos da metade funciona** | levantamento jornalístico | Band RS, 06/02/2026 |
 | Pessoas em situação de rua | a prefeitura distribuiu água a mais de 5 mil pessoas na força-tarefa do calor | — | Band RS, 06/02/2026 |
 
