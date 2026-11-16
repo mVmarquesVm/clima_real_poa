@@ -10,9 +10,9 @@ e o Field(...) acrescenta os limites (tamanho, mínimo e máximo).
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
-from app.banco import ATIVIDADES, TIPOS_DE_LOCAL
+from app.banco import ATIVIDADES, TIPOS_DE_HIDRATACAO, TIPOS_DE_LOCAL
 
 # Caixa que contém o município de Porto Alegre (com uma pequena folga).
 # Um ponto fora dela é erro de digitação: troca de lat/lon, sinal esquecido...
@@ -20,7 +20,12 @@ LAT_MIN, LAT_MAX = -30.27, -29.93
 LON_MIN, LON_MAX = -51.31, -51.01
 
 TipoDeLocal = Literal[TIPOS_DE_LOCAL]
+TipoDeHidratacao = Literal[TIPOS_DE_HIDRATACAO]
 Atividade = Literal[ATIVIDADES]
+
+# "HH:MM" de 00:00 a 23:59. É texto, e não um horário do Python, porque o
+# formulário e o banco guardam assim; e "09:00" < "18:00" vale como texto também.
+HORARIO = r"^([01]\d|2[0-3]):[0-5]\d$"
 
 
 class LocalEntrada(BaseModel):
@@ -52,6 +57,54 @@ class LocalEntrada(BaseModel):
 
 
 class Local(LocalEntrada):
+    """O que a API devolve: os mesmos campos, mais o id criado pelo banco."""
+
+    id: int
+
+
+class HidratacaoEntrada(BaseModel):
+    """O que o cliente manda para criar (POST) ou substituir (PUT) um ponto de hidratação."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nome: str = Field(min_length=3, max_length=80, examples=["Bebedouro do Chafariz"])
+    tipo: TipoDeHidratacao
+    lat: float = Field(ge=LAT_MIN, le=LAT_MAX, examples=[-30.0331])
+    lon: float = Field(ge=LON_MIN, le=LON_MAX, examples=[-51.2300])
+    # Os dois vazios = aberto 24 h. O validate_default faz a regra de "fecha"
+    # rodar mesmo quando ele não vem, para pegar "abre sem fecha".
+    abre: str | None = Field(default=None, pattern=HORARIO, examples=["09:00"])
+    fecha: str | None = Field(default=None, pattern=HORARIO, validate_default=True, examples=["18:00"])
+    abre_domingo: bool
+    ativo: bool = True
+
+    @field_validator("abre", "fecha", mode="before")
+    @classmethod
+    def horario_vazio_vira_nada(cls, horario):
+        """O campo de horário apagado no formulário chega como "": vira None (24 h)."""
+        if isinstance(horario, str) and not horario.strip():
+            return None
+        return horario
+
+    @field_validator("fecha")
+    @classmethod
+    def horarios_combinam(cls, fecha: str | None, info: ValidationInfo) -> str | None:
+        """Os dois horários juntos (ou nenhum), e o de fechar depois do de abrir.
+
+        Os campos são validados na ordem em que aparecem: quando chega a vez de
+        "fecha", o "abre" já está em info.data (se ele próprio era válido).
+        """
+        if "abre" not in info.data:  # o "abre" já deu erro: não repete a bronca
+            return fecha
+        abre = info.data["abre"]
+        if (abre is None) != (fecha is None):
+            raise ValueError("Preencha os dois horários, ou deixe os dois vazios (aberto 24 h).")
+        if abre is not None and fecha <= abre:
+            raise ValueError("O horário de fechar tem de ser depois do de abrir.")
+        return fecha
+
+
+class Hidratacao(HidratacaoEntrada):
     """O que a API devolve: os mesmos campos, mais o id criado pelo banco."""
 
     id: int

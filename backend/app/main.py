@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.banco import preparar_banco
 from app.config import ORIGENS_PERMITIDAS, VERSAO
 from app.erros import registrar_erros
-from app.rotas import locais
+from app.rotas import hidratacao, locais
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.add_middleware(
 
 registrar_erros(app)  # 422 e 500 com mensagens em português
 app.include_router(locais.rotas)
+app.include_router(hidratacao.rotas)
 
 
 @app.get("/saude", tags=["sistema"])

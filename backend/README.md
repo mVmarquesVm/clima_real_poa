@@ -32,7 +32,8 @@ backend/
 │   ├── erros.py     ← respostas de erro em português (422 e 500)
 │   ├── config.py    ← configurações (endereços liberados no CORS)
 │   └── rotas/
-│       └── locais.py ← CRUD dos locais de lazer
+│       ├── locais.py     ← CRUD dos locais de lazer
+│       └── hidratacao.py ← CRUD dos pontos de hidratação
 ├── testes/          ← testes (cada um usa um banco temporário)
 ├── pytest.ini
 └── requirements.txt
@@ -48,11 +49,17 @@ backend/
 | POST | `/locais` | Cria um local (201; 422 se algum campo estiver errado) |
 | PUT | `/locais/{id}` | Substitui todos os campos de um local (200; 404; 422) |
 | DELETE | `/locais/{id}` | Apaga um local (204; 404) |
+| GET | `/hidratacao` | Lista os pontos de hidratação, por nome; `?so_ativos=true` deixa só os ativos (200) |
+| GET | `/hidratacao/{id}` | Mostra um ponto (200; 404) |
+| POST | `/hidratacao` | Cria um ponto (201; 422) |
+| PUT | `/hidratacao/{id}` | Substitui todos os campos de um ponto (200; 404; 422) |
+| DELETE | `/hidratacao/{id}` | Apaga um ponto (204; 404) |
 
 ## Validação e erros
 
 Tudo o que chega passa pelos modelos do Pydantic (`app/modelos.py`) antes de tocar no banco. Se algo estiver errado, nada é gravado.
 - **Locais:** nome com 3 a 80 caracteres (os espaços das pontas são tirados); tipo e atividades só da lista; pelo menos 1 atividade (as repetidas são juntadas); lat e lon dentro de Porto Alegre (lat de −30,27 a −29,93; lon de −51,31 a −51,01); observação com até 200 caracteres (vazia = nenhuma).
+- **Pontos de hidratação:** as mesmas regras de nome e de lat/lon; tipo só da lista; horários no formato `HH:MM` (de 00:00 a 23:59); os dois horários juntos ou nenhum (nenhum = aberto 24 h); o de fechar depois do de abrir (um horário que vira a noite não é aceito); `ativo` é verdadeiro se não vier.
 
 Todo erro vem no mesmo formato, em português (`app/erros.py`):
 

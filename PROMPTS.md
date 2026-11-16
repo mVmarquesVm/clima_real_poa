@@ -555,3 +555,16 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - A ideia da rota a pé até o ponto de hidratação é minha.
+
+## Web — CRUD dos pontos de hidratação (16/11/2026)
+
+**O que eu pedi**
+- Seguir para a hidratação, depois de testar o CRUD dos locais no `/docs` e de commitar.
+
+**O que a IA gerou**
+- `HidratacaoEntrada` e `Hidratacao` no `app/modelos.py`. Os horários vêm em `HH:MM` (de 00:00 a 23:59), e o horário vazio vira "aberto 24 h". As regras: os dois horários juntos ou nenhum, e o de fechar depois do de abrir. O `info.data` dá à regra de `fecha` o valor de `abre`, e um erro no `abre` não repete a bronca no `fecha`. O `ativo` é verdadeiro se não vier. O `erros.py` ganhou a tradução do formato de horário.
+- `app/rotas/hidratacao.py`, no mesmo molde dos locais, com o filtro `?so_ativos=true` para a recomendação não mandar ninguém a um bebedouro desativado.
+- `testes/test_hidratacao.py`: 16 testes (36 no total).
+
+**O que eu mudei ou fiz sozinho**
+- Testei o CRUD dos locais pelo `/docs` (o 422 com um nome de 2 letras e o 201 com um nome válido).

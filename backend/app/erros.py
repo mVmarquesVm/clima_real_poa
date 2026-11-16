@@ -44,6 +44,7 @@ def traduzir(erro: dict) -> str:
         "string_too_short": f"Use pelo menos {ctx.get('min_length')} caracteres.",
         "string_too_long": f"Use no máximo {ctx.get('max_length')} caracteres.",
         "string_type": "Use um texto.",
+        "string_pattern_mismatch": "Use o formato HH:MM, de 00:00 a 23:59 (ex.: 09:00).",
         "too_short": f"Escolha pelo menos {ctx.get('min_length')}.",
         "list_type": "Use uma lista.",
         "literal_error": "Valor inválido. Use um destes: "
