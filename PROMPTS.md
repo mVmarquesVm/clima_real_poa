@@ -529,3 +529,15 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Aprovei os campos e a instalação.
+
+## Web — Banco SQLite e dados iniciais (16/11/2026)
+
+**O que eu pedi**
+- Seguir para o banco, depois do commit da estrutura.
+
+**O que a IA gerou**
+- `app/banco.py`: as tabelas `locais` e `hidratacao` (com `CHECK` nos tipos e nos sim/não), as atividades guardadas como lista em JSON e os dados iniciais. São os 4 locais das estações, a Praça XV e o Rua da Praia Shopping, com as coordenadas do OSM achadas por um subagente. Ele também conferiu que os 24 m e os 448 m do `config.h` são medidos até a borda de cada lugar. Os dados iniciais só entram com a tabela vazia.
+- `main.py` prepara o banco quando a API sobe (`lifespan`). O `conftest.py` faz cada teste usar um banco temporário, e o `test_banco.py` tem 5 testes.
+
+**O que eu mudei ou fiz sozinho**
+- Commitei a estrutura antes deste passo.

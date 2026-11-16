@@ -26,9 +26,10 @@ python -m venv .venv
 ```
 backend/
 ├── app/
-│   ├── main.py      ← cria a API, liga o CORS e registra as rotas
+│   ├── main.py      ← cria a API, liga o CORS, prepara o banco e registra as rotas
+│   ├── banco.py     ← tabelas do SQLite e dados iniciais
 │   └── config.py    ← configurações (endereços liberados no CORS)
-├── testes/          ← testes com o TestClient do FastAPI
+├── testes/          ← testes (cada um usa um banco temporário)
 ├── pytest.ini
 └── requirements.txt
 ```
@@ -38,6 +39,22 @@ backend/
 | Método | Rota | O que faz |
 |---|---|---|
 | GET | `/saude` | Diz se a API está no ar (`{"status": "ok"}`) |
+
+## Banco de dados
+
+O banco fica no arquivo `backend/forno_alegre.db` (fora do Git). Ele é criado com os dados iniciais na primeira vez que a API sobe. Para recomeçar do zero, pare a API e apague esse arquivo.
+
+| Tabela | Campos |
+|---|---|
+| `locais` | nome, tipo (`praca`, `parque`, `calcadao`), lat, lon, tem_sombra, tem_bebedouro, atividades (`crianca`, `caminhada`, `corrida`, `pedal`, `piquenique`), observação |
+| `hidratacao` | nome, tipo (`bebedouro`, `fonte`, `comercio`), lat, lon, abre e fecha (`HH:MM`; vazios = 24 h), abre_domingo, ativo |
+
+**Dados iniciais:**
+- os 4 locais das estações (os pontos de `python/fontes/cobertura.py`);
+- a Praça XV de Novembro (OSM, way 287533461);
+- o Rua da Praia Shopping (entrada principal no OSM, node 3454105361; seg–sáb, das 9h às 18h, igual ao refúgio do Edge).
+
+Sombra, bebedouro e atividades são uma **estimativa nossa**, editável pelo cadastro. Nenhum bebedouro público está mapeado no OSM a menos de 1 km da E1, e é por isso que o cadastro de hidratação existe.
 
 ## CORS
 

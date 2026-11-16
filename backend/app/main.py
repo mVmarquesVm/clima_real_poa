@@ -6,12 +6,24 @@ Rodar (de dentro de backend/):
 Documentação automática: http://127.0.0.1:8000/docs
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.banco import preparar_banco
 from app.config import ORIGENS_PERMITIDAS, VERSAO
 
+
+@asynccontextmanager
+async def ciclo_de_vida(app: FastAPI):
+    """Roda uma vez quando a API sobe: garante as tabelas e os dados iniciais."""
+    preparar_banco()
+    yield
+
+
 app = FastAPI(
+    lifespan=ciclo_de_vida,
     title="API do Forno Alegre",
     description=(
         "Cadastro de locais de lazer e de pontos de hidratação "
