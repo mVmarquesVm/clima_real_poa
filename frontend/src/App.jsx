@@ -1,6 +1,11 @@
+import { lazy, Suspense } from 'react'
 import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
 import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
+
+// O mapa (MapLibre) é a parte mais pesada do app, então ele é baixado em separado,
+// depois do resto: a leitura da E1 aparece primeiro, mesmo com internet lenta.
+const Mapa = lazy(() => import('./componentes/mapa/Mapa'))
 
 // Esqueleto da página. Cada parte (mapa, lista, gráfico...) é um componente
 // próprio; aqui fica só a estrutura semântica e a ligação com os dados.
@@ -28,6 +33,9 @@ export default function App() {
 
         <section aria-labelledby="titulo-locais" className="space-y-2">
           <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
+          <Suspense fallback={<p role="status" className="h-80 rounded border border-gray-300 bg-white p-4 md:h-[28rem]">Carregando o mapa…</p>}>
+            <Mapa locais={dadosLocais.locais} idTabela="legenda-locais" />
+          </Suspense>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />
         </section>
       </main>

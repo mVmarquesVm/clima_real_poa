@@ -17,10 +17,11 @@ src/
 ├── componentes/   as peças da tela, agrupadas por assunto
 │   ├── estacao/   EstacaoAoVivo (a leitura da E1 ao vivo)
 │   ├── risco/     SeloRisco e IconeRisco (cor + ícone + texto)
-│   └── locais/    TabelaLocais (o ranking do satélite)
+│   ├── locais/    TabelaLocais (o ranking do satélite)
+│   └── mapa/      Mapa (MapLibre + OpenFreeMap; carregado em separado, por ser pesado)
 ├── ganchos/       hooks do React (useEstacaoE1: busca a cada 15 s)
 ├── servicos/      quem conversa com APIs externas (ThingSpeak)
-├── lib/           funções puras: régua de risco e formatação
+├── lib/           funções puras: régua de risco, formatação e geografia (GeoJSON)
 └── dados/         JSON gerado pelo python/processamento/exportar_front.py
 ```
 
