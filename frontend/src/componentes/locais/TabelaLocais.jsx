@@ -1,4 +1,4 @@
-import { data, descreverVerde, numero } from '../lib/formato'
+import { data, descreverVerde, numero } from '../../lib/formato'
 
 // Tabela dos locais monitorados, pelo ranking do satélite.
 // É a versão ACESSÍVEL do mapa: o mapa é um desenho (canvas) que o leitor de

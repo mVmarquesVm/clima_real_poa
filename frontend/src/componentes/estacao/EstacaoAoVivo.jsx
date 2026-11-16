@@ -1,8 +1,8 @@
-import useEstacaoE1, { useAgora } from '../ganchos/useEstacaoE1'
-import { dataHora, numero, tempoDesde } from '../lib/formato'
-import { NIVEIS, SEM_DADO, ehFrio, nivelDoCampo } from '../lib/risco'
-import { IDADE_MAXIMA_S } from '../servicos/thingspeak'
-import SeloRisco from './SeloRisco'
+import useEstacaoE1, { useAgora } from '../../ganchos/useEstacaoE1'
+import { dataHora, numero, tempoDesde } from '../../lib/formato'
+import { NIVEIS, SEM_DADO, ehFrio, nivelDoCampo } from '../../lib/risco'
+import { IDADE_MAXIMA_S } from '../../servicos/thingspeak'
+import SeloRisco from '../risco/SeloRisco'
 
 // Cartão "agora no Largo": a última leitura da estação E1, que se atualiza
 // sozinha a cada 15 s. Quem decide o nível é a ESTAÇÃO (field6), e não o app:

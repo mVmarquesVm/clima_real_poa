@@ -11,5 +11,18 @@
 - Recomendação de local e horário por atividade.
 - Acessibilidade: lista dos locais ao lado do mapa, risco em ícone + texto, contraste e teclado.
 
+## Estrutura de `src/`
+```
+src/
+├── componentes/   as peças da tela, agrupadas por assunto
+│   ├── estacao/   EstacaoAoVivo (a leitura da E1 ao vivo)
+│   ├── risco/     SeloRisco e IconeRisco (cor + ícone + texto)
+│   └── locais/    TabelaLocais (o ranking do satélite)
+├── ganchos/       hooks do React (useEstacaoE1: busca a cada 15 s)
+├── servicos/      quem conversa com APIs externas (ThingSpeak)
+├── lib/           funções puras: régua de risco e formatação
+└── dados/         JSON gerado pelo python/processamento/exportar_front.py
+```
+
 ## A preencher
 - Como rodar, componentes e telas.

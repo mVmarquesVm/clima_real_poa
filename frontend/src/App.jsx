@@ -1,5 +1,5 @@
-import EstacaoAoVivo from './componentes/EstacaoAoVivo'
-import TabelaLocais from './componentes/TabelaLocais'
+import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
+import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
 
 // Esqueleto da página. Cada parte (mapa, lista, gráfico...) é um componente
