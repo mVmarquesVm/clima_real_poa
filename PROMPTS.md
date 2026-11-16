@@ -541,3 +541,17 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Commitei a estrutura antes deste passo.
+
+## Web — CRUD dos locais de lazer, com validação e erros em português (16/11/2026)
+
+**O que eu pedi**
+- Seguir para o CRUD depois do commit do banco. Antes, perguntei se a API de rota a pé que eu sugeri podia fazer as vezes do CRUD. A IA explicou que não: a API de rota só lê, sem criar, editar nem apagar. Mas ela soma como consumo de API externa. Decidi que a rota a pé até o ponto de hidratação entra na fase da recomendação.
+
+**O que a IA gerou**
+- `app/modelos.py`: os modelos do Pydantic, com nome de 3 a 80 caracteres sem os espaços das pontas, tipo e atividades só da lista, pelo menos 1 atividade (as repetidas são juntadas), lat/lon dentro da caixa de Porto Alegre e observação vazia virando nenhuma.
+- `app/erros.py`: os erros 422 traduzidos para português, campo por campo (inclusive "Fora de Porto Alegre" para lat/lon trocadas), e o 500 com uma frase simples, deixando o detalhe técnico só no log. Todo erro sai no mesmo formato (`detail` + `erros`).
+- `app/rotas/locais.py`: o `GET` da lista e de um local, o `POST` (201), o `PUT` (200) e o `DELETE` (204), com 404 em português para id que não existe. Os valores vão no SQL pelos `?`, e cada gravação fica num `with conexao` (confirma no fim ou desfaz se der erro). O `banco.py` ganhou a `obter_conexao`, que abre o banco por requisição e sempre fecha.
+- `testes/test_locais.py`: 12 testes (o caminho feliz completo, a limpeza dos dados, o 404 nos 3 métodos, os campos obrigatórios, lat/lon trocadas, as mensagens de cada erro, a posição da atividade errada, o JSON quebrado e o `PUT` inválido sem mudar nada).
+
+**O que eu mudei ou fiz sozinho**
+- A ideia da rota a pé até o ponto de hidratação é minha.

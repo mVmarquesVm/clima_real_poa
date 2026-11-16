@@ -85,6 +85,19 @@ def conectar() -> sqlite3.Connection:
     return conexao
 
 
+def obter_conexao():
+    """Dependência do FastAPI: abre o banco para uma requisição e fecha no fim.
+
+    O `yield` entrega a conexão para a rota; o que vem depois do yield roda
+    quando a resposta já saiu, mesmo que a rota tenha dado erro.
+    """
+    conexao = conectar()
+    try:
+        yield conexao
+    finally:
+        conexao.close()
+
+
 def preparar_banco() -> None:
     """Cria as tabelas, se faltarem, e põe os dados iniciais, se estiverem vazias."""
     with conectar() as conexao:

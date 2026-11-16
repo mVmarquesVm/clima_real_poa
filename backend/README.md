@@ -27,8 +27,12 @@ python -m venv .venv
 backend/
 ├── app/
 │   ├── main.py      ← cria a API, liga o CORS, prepara o banco e registra as rotas
-│   ├── banco.py     ← tabelas do SQLite e dados iniciais
-│   └── config.py    ← configurações (endereços liberados no CORS)
+│   ├── banco.py     ← tabelas do SQLite, dados iniciais e a conexão de cada requisição
+│   ├── modelos.py   ← validação dos dados (Pydantic)
+│   ├── erros.py     ← respostas de erro em português (422 e 500)
+│   ├── config.py    ← configurações (endereços liberados no CORS)
+│   └── rotas/
+│       └── locais.py ← CRUD dos locais de lazer
 ├── testes/          ← testes (cada um usa um banco temporário)
 ├── pytest.ini
 └── requirements.txt
@@ -39,6 +43,34 @@ backend/
 | Método | Rota | O que faz |
 |---|---|---|
 | GET | `/saude` | Diz se a API está no ar (`{"status": "ok"}`) |
+| GET | `/locais` | Lista os locais de lazer, por nome (200) |
+| GET | `/locais/{id}` | Mostra um local (200; 404 se não existe) |
+| POST | `/locais` | Cria um local (201; 422 se algum campo estiver errado) |
+| PUT | `/locais/{id}` | Substitui todos os campos de um local (200; 404; 422) |
+| DELETE | `/locais/{id}` | Apaga um local (204; 404) |
+
+## Validação e erros
+
+Tudo o que chega passa pelos modelos do Pydantic (`app/modelos.py`) antes de tocar no banco. Se algo estiver errado, nada é gravado.
+- **Locais:** nome com 3 a 80 caracteres (os espaços das pontas são tirados); tipo e atividades só da lista; pelo menos 1 atividade (as repetidas são juntadas); lat e lon dentro de Porto Alegre (lat de −30,27 a −29,93; lon de −51,31 a −51,01); observação com até 200 caracteres (vazia = nenhuma).
+
+Todo erro vem no mesmo formato, em português (`app/erros.py`):
+
+```json
+{
+  "detail": "Há campos com problema. Confira e tente de novo.",
+  "erros": [
+    {"campo": "nome", "mensagem": "Use pelo menos 3 caracteres."},
+    {"campo": "lat", "mensagem": "Fora de Porto Alegre: a latitude vai de -30.27 a -29.93."}
+  ]
+}
+```
+
+| Código | Quando |
+|---|---|
+| 422 | Campo faltando ou inválido, ou JSON quebrado (a lista `erros` diz qual campo e por quê) |
+| 404 | O id não existe (ex.: `Local 9999 não encontrado. Ele pode ter sido apagado.`) |
+| 500 | Falha no banco: a pessoa vê uma frase simples, e o detalhe técnico fica só no log do servidor |
 
 ## Banco de dados
 
