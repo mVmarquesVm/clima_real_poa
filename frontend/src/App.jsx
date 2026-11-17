@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import BarraStatus from './componentes/comum/BarraStatus'
 import BotaoTema from './componentes/comum/BotaoTema'
 import SecaoCadastro from './componentes/cadastro/SecaoCadastro'
 import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
+import SecaoRecomendacao from './componentes/recomendacao/SecaoRecomendacao'
 import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
 import useAgora from './ganchos/useAgora'
@@ -24,6 +25,9 @@ export default function App() {
   const agora = useAgora()
   const aoVivo = ESTACOES_AO_VIVO.filter((e) => situacao(estados[e.id].leitura, agora).recente)
   const { escuro, alternar } = useTema()
+  // A rota a pé até a água (da recomendação) é desenhada no mapa: as duas
+  // seções conversam por aqui, pelo App, que é o "pai" das duas.
+  const [rota, setRota] = useState(null)
 
   return (
     <>
@@ -50,8 +54,10 @@ export default function App() {
           <EstacaoAoVivo estado={estados.E1} agora={agora} />
         </section>
 
+        <SecaoRecomendacao agora={agora} escuro={escuro} aoMostrarRota={setRota} />
+
         <section aria-labelledby="titulo-locais" className="space-y-2">
-          <h2 id="titulo-locais" className="text-xl font-bold">Locais monitorados</h2>
+          <h2 id="titulo-locais" tabIndex={-1} className="text-xl font-bold">Locais monitorados</h2>
           <Suspense fallback={<p role="status" className="h-80 rounded border border-borda bg-superficie p-4 md:h-[28rem]">Carregando o mapa…</p>}>
             <Mapa
               locais={dadosLocais.locais}
@@ -59,6 +65,7 @@ export default function App() {
               agora={agora}
               idTabela="legenda-locais"
               escuro={escuro}
+              rota={rota}
             />
           </Suspense>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />

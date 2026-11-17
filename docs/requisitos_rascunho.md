@@ -45,7 +45,31 @@
 - **RN-CAD-4:** um ponto desativado continua no cadastro, mas a recomendação não o usa.
 - **RN-CAD-5:** os dados iniciais (sombra, bebedouro, atividades) são estimativa nossa, e a observação de cada um diz isso.
 
+## Recomendação "Onde e quando ir" (Front: `frontend/src/componentes/recomendacao/` e `previsao/`)
+
+### RF — O que a recomendação faz
+- **RF-REC-1:** a pessoa escolhe a atividade (levar criança, caminhada, corrida, pedal, piquenique).
+- **RF-REC-2:** mostrar a sensação térmica prevista hora a hora (hoje e amanhã), ao sol e na sombra, num gráfico e numa tabela, com as faixas de risco e o limite da atividade.
+- **RF-REC-3:** dizer se AGORA é uma boa hora e listar as janelas boas de hoje e de amanhã (das 6h às 22h); sem nenhuma, dizer a hora menos quente.
+- **RF-REC-4:** recomendar o local do cadastro que serve para a atividade e listar até 3 outras opções.
+- **RF-REC-5:** "Perto de mim": usar a localização do navegador (só no clique) para ordenar pela distância.
+- **RF-REC-6:** indicar o ponto de hidratação ativo e aberto mais perto do local, na hora da visita, e traçar a rota a pé até ele no mapa.
+
+### RNF — Como a recomendação deve ser
+- **RNF-REC-1 (mesma régua):** a previsão usa a MESMA fórmula da estação e do Python (`lib/sensacao.js`), conferida com o Python em 3 casos (os mesmos números até a 4ª casa).
+- **RNF-REC-2 (acessibilidade):** o gráfico tem `role="img"` com um resumo em frase e uma tabela com todos os números; o nível vai em ícone + texto; as atividades são botões de rádio de verdade (setas do teclado); os resultados da localização e da rota são anunciados numa região `role="status"`.
+- **RNF-REC-3 (privacidade):** a localização só é pedida no clique, fica só na página e não vai para a nossa API; a rota avisa antes que a origem e o destino vão para a FOSSGIS.
+- **RNF-REC-4 (degradação):** sem previsão, a seção mostra o erro com "Tentar de novo"; sem a API, o "Onde ir" mostra o erro e o "Quando ir" continua funcionando; sem o serviço de rotas, a linha reta e um link para o OpenStreetMap.
+- **RNF-REC-5 (peso):** o ECharts entra só com os módulos usados e é baixado só quando a previsão chega.
+
+### RN — Regras da recomendação (sem IA)
+- **RN-REC-1:** limite de sensação por atividade: levar criança e corrida < 27 °C (só verde); caminhada, pedal e piquenique < 34 °C (até o amarelo). Base: a régua da SMS e as categorias da NOAA, que já no 1º nível citam o esforço físico.
+- **RN-REC-2:** decide a TA AO SOL (o pior caso); a da sombra aparece só para comparar.
+- **RN-REC-3:** a previsão é igual para os locais do Centro (modelo em grade), então a ordem dos locais é: com sombra → mais perto → com bebedouro → nome.
+- **RN-REC-4:** um ponto de hidratação só conta se estiver ativo e aberto na hora da visita (horário, e domingo só se `abre_domingo`).
+
 ## Backlog: épicos
+- **Épico — Recomendação "onde e quando ir" (Front):** RF-REC-1 a 6. *Feito em 17/11.* **Futuro:** usar a leitura ao vivo de cada estação quando os 4 canais existirem; recomendar em linguagem natural com IA.
 - **Épico — Cadastro (Web):** CRUD de locais e de pontos de hidratação, com estados, validação e acessibilidade (RF-CAD-1 a 6). *Feito em 16–17/11.* **Futuro:** login para quem edita (hoje qualquer pessoa com o app pode editar), escolher o ponto clicando no mapa e um histórico de mudanças.
 - **Épico — Cobertura de parques grandes (futuro):** nós sensores com bateria + estação principal (gateway); o pior ponto no field5/field6 e o detalhe por nó no `status`; o mapa pinta um círculo de 50 m por nó funcionando. Detalhes no [README do Edge](../edge/README.md), na seção "Próximo passo: vários aparelhos no mesmo parque".
 

@@ -672,3 +672,23 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Escolhi a ordem dos 6 passos e pedi para fazê-los em sequência.
+
+## Front — Recomendação "Onde e quando ir" (17/11/2026)
+
+**O que eu pedi**
+- Continuar pela prioridade 1: a recomendação do Front (previsão, melhor horário, local mais seguro e mais perto, ponto de hidratação e rota a pé).
+- Para os limites de cada atividade, mandei a print de uma tabela com faixas de sensação térmica e efeitos no organismo. Escolhi que o melhor horário usa a sensação **ao sol** (o pior caso).
+
+**O que a IA gerou**
+- **Conferência da minha tabela:** um subagente abriu a página da NOAA/NWS (weather.gov/ama/heatindex). As faixas batem com as categorias do índice de calor (Caution, Extreme Caution, Danger, Extreme Danger), e o "esforço físico" aparece como agravante desde o 1º nível. Mas "bebês e idosos perdem líquidos rapidamente" e "evitar das 10h às 16h" **não estão** na NOAA, então esses textos não foram usados.
+- **Limites (`lib/recomendacao.js`):** levar criança e corrida < 27 °C (só no verde); caminhada, pedal e piquenique < 34 °C (até o amarelo). Cada um com o motivo em uma frase na tela.
+- `lib/sensacao.js`: a fórmula de Steadman em JavaScript, igual à do Python (conferida em 3 casos: os mesmos números até a 4ª casa).
+- `servicos/openmeteo.js`: a previsão de hoje e amanhã (temperatura, umidade, vento em m/s e radiação) → a sensação ao sol (Q = 0,12 × W/m²) e na sombra, hora a hora.
+- **Quando ir:** `previsao/SeletorAtividade` (botões de rádio com cara de pílula), `previsao/MelhorHorario` ("Agora dá"/"Agora não", as janelas boas de hoje e de amanhã das 6h às 22h, ou a hora menos quente), `previsao/GraficoPrevisao` (ECharts só com os módulos usados, carregado depois; linhas ao sol e na sombra, faixas de risco com o nome, a noite sombreada, o limite tracejado; `role="img"` com um resumo em frase) e `previsao/TabelaPrevisao` (os mesmos números numa tabela).
+- **Onde ir:** `ganchos/useLocalizacao` + `recomendacao/BotaoPertoDeMim` (a localização só no clique, e só na página), a distância de Haversine em `lib/geo.js`, o ranking dos locais do cadastro (com sombra → mais perto → com bebedouro → nome), o ponto de hidratação ativo e **aberto na hora da visita** mais perto do local, e o `recomendacao/CartaoRecomendacao`.
+- **Rota a pé:** `servicos/rota.js` (OSRM da FOSSGIS, só no clique em "Como chegar", com o aviso de que os pontos vão para a FOSSGIS); sem o serviço, a linha reta tracejada e o link do OpenStreetMap. A rota é desenhada no mapa (o App passa a rota da recomendação para o `Mapa`).
+- `lib/cores.js` (o `corDoToken`, que saiu de dentro do `Mapa`) e os RF/RNF/RN da recomendação no `docs/requisitos_rascunho.md`.
+- **Testes:** em Node, a fórmula contra o Python, a previsão real, as janelas, a distância, o "aberto" (dia de semana, 18h, 8h59, domingo, 24 h, inativo), o ranking e a rota real (Largo → shopping: 480 m, 6 min). No navegador (subagente, API e front em portas próprias), 13 itens: achou um erro que deixava a página em branco (o relógio do App é um número, e a seção esperava uma data) e 7 pontos menores (a posição velha continuava depois de um erro de localização, rótulos do gráfico sobrepostos, "o destino vão", a lista "Outras opções" cortada, a água a 2,7 km sem aviso, "hoje/amanhã" faltando no gráfico, "Agora dá" às 3h). Todos corrigidos. Um reteste (7 itens) passou e achou mais 3 detalhes, também corrigidos: no celular, a curva ainda cruzava os nomes das faixas (agora eles ficam fora da área das linhas); a legenda do ECharts tinha um traço por cima do texto (virou uma legenda em HTML); e a água só era conferida na hora em que a janela começava (agora conta se o ponto abre em algum momento da janela: o shopping que abre às 9h vale para a janela das 6h às 10h). O gráfico a 375 px foi conferido de novo no navegador.
+
+**O que eu mudei ou fiz sozinho**
+- Mandei a tabela que serviu de base para os limites e escolhi usar a sensação ao sol.

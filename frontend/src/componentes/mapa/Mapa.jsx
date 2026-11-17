@@ -4,6 +4,7 @@ import { Map as MapaMapLibre, Marker, NavigationControl, setWorkerUrl } from 'ma
 import 'maplibre-gl/dist/maplibre-gl.css'
 // O "?url" pede ao Vite só o ENDEREÇO do arquivo (ele copia o arquivo para o build).
 import urlDoWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
+import { corDoToken } from '../../lib/cores'
 import { limitesDosLocais, locaisParaGeoJSON } from '../../lib/geo'
 import { situacao } from '../../lib/leitura'
 import { NIVEIS, SEM_DADO } from '../../lib/risco'
@@ -35,12 +36,6 @@ const TEXTOS = {
   'CooperativeGesturesHandler.MobileHelpText': 'Use dois dedos para mover o mapa',
 }
 
-// O MapLibre desenha num <canvas> e não lê as classes do Tailwind, então
-// pegamos a cor do token (index.css) na hora de desenhar.
-function corDoToken(nome) {
-  return getComputedStyle(document.documentElement).getPropertyValue(`--color-${nome}`).trim()
-}
-
 // A estação ao vivo fica POR CIMA das outras quando os marcadores se encostam
 // (no celular, o Largo e o Calçadão quase se tocam). O z-index vai no div que
 // o MapLibre posiciona, pelo próprio Marker.
@@ -60,10 +55,11 @@ function movimentoReduzido() {
 // apaga tudo o que não faz parte do estilo base.
 // As letras usam os tokens do tema (texto sobre um halo da cor do fundo): no
 // escuro, os tokens já trocaram de valor quando o estilo novo termina de carregar.
-function montarCamadas(mapa, dados) {
+function montarCamadas(mapa, dados, rota) {
   if (mapa.getSource('locais')) return // já montadas neste estilo
   const corDaLetra = corDoToken('texto')
   const halo = corDoToken('fundo')
+  const corDaRota = corDoToken('foco')
 
   mapa.addSource('locais', { type: 'geojson', data: dados.areas })
   mapa.addSource('cobertura', { type: 'geojson', data: dados.cobertura })
@@ -114,6 +110,76 @@ function montarCamadas(mapa, dados) {
     },
     paint: { 'text-color': corDaLetra, 'text-halo-color': halo, 'text-halo-width': 2 },
   })
+
+  // A rota a pé até a água (vazia até a pessoa pedir "Como chegar").
+  // Linha cheia = pelas ruas; tracejada = só a linha reta (plano B).
+  const { linha, pontas } = rotaParaGeoJSON(rota)
+  mapa.addSource('rota', { type: 'geojson', data: linha })
+  mapa.addSource('rota-pontas', { type: 'geojson', data: pontas })
+  mapa.addLayer({
+    id: 'rota-borda',
+    type: 'line',
+    source: 'rota',
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': halo, 'line-width': 8 },
+  })
+  // Duas camadas (e não uma com "case"): o tracejado por expressão não funciona
+  // em todas as versões do MapLibre; o filtro escolhe qual desenha.
+  mapa.addLayer({
+    id: 'rota-ruas',
+    type: 'line',
+    source: 'rota',
+    filter: ['!', ['get', 'linhaReta']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': corDaRota, 'line-width': 4 },
+  })
+  mapa.addLayer({
+    id: 'rota-reta',
+    type: 'line',
+    source: 'rota',
+    filter: ['get', 'linhaReta'],
+    paint: { 'line-color': corDaRota, 'line-width': 4, 'line-dasharray': [1, 1.5] },
+  })
+  mapa.addLayer({
+    id: 'rota-pontas',
+    type: 'circle',
+    source: 'rota-pontas',
+    paint: { 'circle-radius': 6, 'circle-color': corDaRota, 'circle-stroke-color': halo, 'circle-stroke-width': 2 },
+  })
+  mapa.addLayer({
+    id: 'rota-nomes',
+    type: 'symbol',
+    source: 'rota-pontas',
+    layout: {
+      'text-field': ['get', 'nome'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 13,
+      'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+      'text-radial-offset': 1,
+    },
+    paint: { 'text-color': corDaLetra, 'text-halo-color': halo, 'text-halo-width': 2 },
+  })
+}
+
+// A rota (ou nada) -> a linha e as duas pontas ("Início" e "Água"), em GeoJSON.
+function rotaParaGeoJSON(rota) {
+  const vazio = { type: 'FeatureCollection', features: [] }
+  if (!rota) return { linha: vazio, pontas: vazio }
+  const ponto = (lugar, nome) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [lugar.lon, lugar.lat] },
+    properties: { nome },
+  })
+  return {
+    linha: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: rota.linha, properties: { linhaReta: Boolean(rota.linhaReta) } }],
+    },
+    pontas: {
+      type: 'FeatureCollection',
+      features: [ponto(rota.origem, 'Início'), ponto(rota.destino, `Água: ${rota.destino.nome}`)],
+    },
+  }
 }
 
 // Mapa das estações, ao vivo. O canvas é um desenho que o leitor de tela não
@@ -121,11 +187,12 @@ function montarCamadas(mapa, dados) {
 // - cada estação é também um BOTÃO (MarcadorEstacao), que abre o painel;
 // - a descrição do canvas manda para a tabela, que tem os mesmos dados em texto.
 // "escuro" vem do tema da página (useTema, no App): o mapa acompanha o resto.
-export default function Mapa({ locais, estados, agora, idTabela, escuro = false }) {
+export default function Mapa({ locais, estados, agora, idTabela, escuro = false, rota = null }) {
   const caixa = useRef(null)
   const mapaRef = useRef(null)
   const dadosRef = useRef(null)
   const escuroRef = useRef(escuro)
+  const rotaRef = useRef(rota)
   const estiloAplicado = useRef(null)
   const botoes = useRef({})
   const marcadoresRef = useRef({}) // id -> Marker do MapLibre
@@ -221,7 +288,7 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false 
 
     // "style.load" acontece no 1º estilo e em cada setStyle (troca de tema).
     mapa.on('style.load', () => {
-      if (dadosRef.current) montarCamadas(mapa, dadosRef.current)
+      if (dadosRef.current) montarCamadas(mapa, dadosRef.current, rotaRef.current)
     })
 
     // Os marcadores entram no mapa na ordem E1, E2, E3, E4: é a ordem do Tab.
@@ -257,6 +324,27 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false 
     // diff: false = recomeça do zero (os dois estilos são muito diferentes).
     mapa.setStyle(estilo, { diff: false })
   }, [escuro])
+
+  // 4) A rota a pé: atualiza as fontes e enquadra a rota inteira no mapa.
+  useEffect(() => {
+    rotaRef.current = rota
+    const mapa = mapaRef.current
+    if (!mapa) return
+    const { linha, pontas } = rotaParaGeoJSON(rota)
+    mapa.getSource('rota')?.setData(linha)
+    mapa.getSource('rota-pontas')?.setData(pontas)
+    if (!rota) return
+    const coordenadas = rota.linha.coordinates
+    const lons = coordenadas.map((c) => c[0])
+    const lats = coordenadas.map((c) => c[1])
+    mapa.fitBounds(
+      [
+        [Math.min(...lons), Math.min(...lats)],
+        [Math.max(...lons), Math.max(...lats)],
+      ],
+      { padding: { top: 60, bottom: 60, left: 40, right: 40 }, maxZoom: 17, duration: movimentoReduzido() ? 0 : 1200 },
+    )
+  }, [rota])
 
   function abrir(local) {
     if (aberto === local.id) {
@@ -332,7 +420,8 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false 
         representa, na cor do risco agora (cinza = sem dado). O contorno tracejado é o local
         inteiro, pelo OpenStreetMap. Só a E1, no Largo Glênio Peres, publica ao vivo (um ESP32
         simulado no Wokwi); o anel que pulsa marca quem está publicando. Clique numa estação, ou
-        chegue nela com Tab e aperte Enter, para ver os detalhes.
+        chegue nela com Tab e aperte Enter, para ver os detalhes. Em &quot;Onde e quando ir&quot;, o
+        botão &quot;Como chegar a pé até a água&quot; desenha aqui a rota (linha tracejada = só a linha reta).
       </figcaption>
     </figure>
   )

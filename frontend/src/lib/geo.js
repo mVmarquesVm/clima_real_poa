@@ -64,3 +64,22 @@ function todasAsCoordenadas(geometria) {
   if (geometria.type === 'MultiPolygon') return geometria.coordinates.flat(2)
   return []
 }
+
+// Distância em linha reta entre dois pontos {lat, lon}, em metros: a fórmula
+// de Haversine. A Terra é (quase) uma bola, então a conta usa o ARCO entre os
+// pontos, e não uma reta no plano. Em distâncias de cidade, erra menos de 0,5%.
+const RAIO_DA_TERRA_M = 6371000
+export function distanciaMetros(a, b) {
+  const rad = Math.PI / 180
+  const dLat = (b.lat - a.lat) * rad
+  const dLon = (b.lon - a.lon) * rad
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2
+  return 2 * RAIO_DA_TERRA_M * Math.asin(Math.sqrt(h))
+}
+
+// 471 -> "471 m"; 2345 -> "2,3 km"
+export function formatarDistancia(metros) {
+  if (metros < 1000) return `${Math.round(metros / 10) * 10} m`
+  return `${(metros / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`
+}
