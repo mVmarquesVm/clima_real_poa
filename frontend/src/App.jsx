@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import BarraStatus from './componentes/comum/BarraStatus'
 import BotaoTema from './componentes/comum/BotaoTema'
+import SecaoCadastro from './componentes/cadastro/SecaoCadastro'
 import EstacaoAoVivo from './componentes/estacao/EstacaoAoVivo'
 import TabelaLocais from './componentes/locais/TabelaLocais'
 import dadosLocais from './dados/locais.json'
@@ -62,6 +63,8 @@ export default function App() {
           </Suspense>
           <TabelaLocais locais={dadosLocais.locais} passagens={dadosLocais.passagens} />
         </section>
+
+        <SecaoCadastro />
       </main>
     </>
   )
