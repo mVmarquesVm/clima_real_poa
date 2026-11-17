@@ -6,9 +6,9 @@
 // o local aparece no mapa só com os dados do satélite.
 export const ESTACOES = [
   { id: 'E1', canal: 3578427 }, // Largo Glênio Peres (Wokwi)
-  { id: 'E2', canal: null }, // Calçadão da Rua dos Andradas
-  { id: 'E3', canal: null }, // Parque Harmonia (piso)
-  { id: 'E4', canal: null }, // Parque Marinha do Brasil (sob as árvores)
+  { id: 'E2', canal: 3584100 }, // Calçadão da Rua dos Andradas (Wokwi)
+  { id: 'E3', canal: 3584102 }, // Parque Harmonia, piso (Wokwi)
+  { id: 'E4', canal: 3584103 }, // Parque Marinha do Brasil, sob as árvores (Wokwi)
 ]
 
 export const ESTACOES_AO_VIVO = ESTACOES.filter((e) => e.canal !== null)

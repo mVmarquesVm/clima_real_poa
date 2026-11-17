@@ -717,3 +717,18 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 - Pesquisei (Grok e Perplexity) os horários de outros possíveis refúgios no Centro e se a prefeitura tem refúgios climáticos. Um subagente conferiu nos sites oficiais: o Rua da Praia Shopping passou a usar o Instagram oficial (seg.–sex. 9h–20h, sáb. 9h–18h, dom. 11h–18h), no lugar da notícia de 2024; o Praia de Belas vale das 11h no domingo (praça de alimentação). O Plano de Ação Climática de POA (2024) prevê "espaços de refúgio do calor" (ação 27), mas não achamos nenhum implantado: entrou no `docs/problema.md`.
 - Decidi deixar de fora os museus (CCMQ, MARGS, Força e Luz) e o Mercado Público: o Mercado não tem ar-condicionado e é mais fresco que a rua só em alguns dias, e o ar dos museus não foi confirmado. Melhor deixar de fora do que mandar a pessoa a um lugar que pode não refrescar.
 - Propus a bateria de reserva para a estação continuar avisando sem energia da rua (ficou como proposta no README, com o relógio DS3231).
+
+## Edge — Canais do ThingSpeak das E2 a E4 (17/11/2026)
+
+**O que eu pedi**
+- Que a IA criasse os canais e os dispositivos MQTT das outras 3 estações pelo meu Chrome (já logado), sem me fazer repetir o trabalho da E1.
+
+**O que a IA gerou**
+- **3 canais públicos**, com os mesmos 8 campos da E1: E2 Calçadão da Rua dos Andradas (3584100), E3 Parque Harmonia (3584102) e E4 Parque Marinha do Brasil (3584103), cada um com uma descrição de até 255 caracteres.
+- **3 dispositivos MQTT** (`estacao-E2` a `estacao-E4`), cada um autorizado **só no canal da sua estação** (publicar e assinar). Assim, se uma senha vazar, ela não mexe nos outros canais.
+- **Dashboard da Public View** igual ao da E1 nos 3 canais: medidor da TA (−10 a 65, faixas 9/27/34/40/52 e o roxo #6f42c1), lâmpada do relé (field7 > 0, azul) e número do risco (field6, inteiro). Conferido depois de recarregar a página.
+- **Credenciais:** baixadas pelo botão "Download Credentials" do ThingSpeak e transformadas por um script em `secrets_E2.h` a `secrets_E4.h` **fora do repositório** (na pasta de downloads), sem a senha aparecer para a IA.
+- `frontend/src/lib/estacoes.js`: os canais das E2 a E4 preenchidos; o mapa e a barra passam a buscar as 4 estações.
+
+**O que eu mudei ou fiz sozinho**
+- Autorizei a criação dos canais e dos dispositivos e decidi baixar as credenciais em arquivo, com a regra de que elas não vão para o repositório.
