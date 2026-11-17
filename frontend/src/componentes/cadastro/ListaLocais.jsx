@@ -1,22 +1,15 @@
 import { ATIVIDADES, rotulo, TIPOS_DE_LOCAL } from '../../lib/cadastro'
-
-// Um "sim/não" com ícone + texto (nunca só a cor ou só o ícone).
-function SimNao({ sim, texto }) {
-  return (
-    <li>
-      <span aria-hidden="true">{sim ? '✓' : '✕'} </span>
-      {sim ? texto : `Sem ${texto.toLowerCase()}`}
-    </li>
-  )
-}
+import AcoesDoItem from '../comum/AcoesDoItem'
+import SimNao from '../comum/SimNao'
 
 // Os locais de lazer cadastrados, em cartões. É uma lista (<ul>) de verdade:
 // o leitor de tela diz "lista, 5 itens", e cada cartão começa pelo nome (<h4>),
 // então dá para pular de local em local pelos títulos.
-export default function ListaLocais({ locais }) {
+// aoEditar(local) e aoApagar(local): os botões de cada cartão.
+export default function ListaLocais({ itens, aoEditar, aoApagar }) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {locais.map((local) => (
+      {itens.map((local) => (
         <li key={local.id} className="space-y-2 rounded border border-borda bg-superficie p-4">
           <h4 className="font-semibold">{local.nome}</h4>
           <p className="text-sm text-texto-suave">{rotulo(TIPOS_DE_LOCAL, local.tipo)}</p>
@@ -35,6 +28,7 @@ export default function ListaLocais({ locais }) {
             </ul>
           </div>
           {local.observacao && <p className="text-sm text-texto-suave">{local.observacao}</p>}
+          <AcoesDoItem prefixo="local" item={local} aoEditar={aoEditar} aoApagar={aoApagar} />
         </li>
       ))}
     </ul>
