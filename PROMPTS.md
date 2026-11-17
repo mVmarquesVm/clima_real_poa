@@ -636,3 +636,20 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Autorizei a correção. A desconfiança de que havia um bug nas rotas e requisições foi minha.
+
+## Web — Formulário de adicionar local (17/11/2026)
+
+**O que eu pedi**
+- Seguir para o próximo passo combinado do Web: o formulário de criar local.
+
+**O que a IA gerou**
+- `componentes/cadastro/FormularioLocal.jsx`: o formulário "Novo local de lazer" (nome, tipo, latitude, longitude, sombra, bebedouro, atividades e observação). Quem valida é a API: o 422 vira um erro embaixo de cada campo (pelo `errosPorCampo`), e o foco vai ao 1º campo com erro, só logo depois do envio. Corrigir um campo apaga o erro dele. Os outros erros (API fora do ar, 500) aparecem numa caixa no topo do formulário.
+- Uma trava com `useRef` contra 2 cliques rápidos (o estado do React só muda na renderização seguinte) e o cancelamento da requisição se o formulário fechar.
+- Os campos reutilizáveis em `componentes/comum/`: `CampoTexto` (texto ou `textarea`), `CampoEscolha` (`select` com "Escolha…"), `CampoOpcoes` (caixas de marcar num `fieldset` que viram uma lista) e `ErroDoCampo`, mais o `lib/formulario.js` (ids e `aria-describedby`). Todo campo tem `label`, `aria-invalid` e `aria-describedby` com a ajuda e o erro.
+- `lib/cadastro.js`: `LOCAL_VAZIO`, `numeroDoCampo` (aceita vírgula: "-30,03" → -30.03) e `localParaApi` (campo vazio não vai no JSON, para a API responder "Campo obrigatório").
+- `SecaoCadastro.jsx`: o botão "+ Adicionar local". Ao salvar, a lista é recarregada; ao salvar ou cancelar, o foco volta ao botão.
+- O token `--color-erro` no `index.css` (claro #c92a2a, 5,46:1; escuro #ff8787, 6,96:1): o vermelho dos LEDs daria só 2,96:1 no escuro. O botão "Salvar local" usa `bg-foco text-fundo` (4,99:1 e 8,0:1).
+- O teste no navegador (subagente, API e front em portas próprias) passou em 11 itens: abrir, erros por campo, foco, vírgula, salvar, cancelar, API desligada, teclado, tema escuro a 375 px e console. Ele achou 2 pontos, corrigidos e conferidos num reteste: 2 cliques no mesmo instante criavam 2 locais (agora a trava é um `ref`), e as caixas de "Bom para" não apontavam para a mensagem de erro (o NVDA pode não ler a do `fieldset`).
+
+**O que eu mudei ou fiz sozinho**
+- Pedi para seguir com o passo do formulário.

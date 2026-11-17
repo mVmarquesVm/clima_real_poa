@@ -28,6 +28,8 @@
   --color-borda: #d1d5db;
   --color-borda-forte: #9ca3af; /* contorno dos botões */
   --color-foco: #c2410c; /* o anel de foco do teclado */
+  /* Texto e contorno de um campo com erro no formulário. Medido: 5,46:1 sobre a superfície. */
+  --color-erro: #c92a2a;
 }
 
 /*
@@ -48,6 +50,7 @@
   --color-borda-forte: #6b727d;
   --color-foco: #fb923c; /* o laranja da marca daria 3,5:1, no limite; este dá 8,0:1 */
   --color-risco-frio: #74c0fc; /* o azul do claro daria menos de 4,5:1 no escuro; este dá 8,2:1 */
+  --color-erro: #ff8787; /* o vermelho do claro daria 2,96:1 no escuro; este dá 6,96:1 */
   /* Barras de rolagem e campos do navegador também no escuro. */
   color-scheme: dark;
 }
