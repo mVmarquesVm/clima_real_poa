@@ -20,7 +20,33 @@
 - **RNF-ESC-2 (futuro):** para mais de 4 locais, trocar por um broker MQTT próprio e um banco de séries temporais atrás da API (FastAPI).
 - **RNF-ESC-3 (futuro):** o app lê o ThingSpeak direto, o que não escala com muitas pessoas usando. O próximo passo é um servidor com cache entre os dois.
 
+## Cadastro (Web: API em `backend/` + telas em `frontend/src/componentes/cadastro/`)
+
+### RF — O que o cadastro faz
+- **RF-CAD-1:** listar, criar, editar e apagar **locais de lazer** (nome, tipo, latitude, longitude, sombra, bebedouro, atividades e observação).
+- **RF-CAD-2:** listar, criar, editar e apagar **pontos de hidratação** (nome, tipo, latitude, longitude, horário de abrir e de fechar ou "aberto 24 h", se abre no domingo e se está ativo).
+- **RF-CAD-3:** listar só os pontos ativos (`GET /hidratacao?so_ativos=true`), para a recomendação não mandar a pessoa a um bebedouro quebrado.
+- **RF-CAD-4:** pedir confirmação antes de apagar, com o nome do item e o aviso de que não dá para desfazer.
+- **RF-CAD-5:** avisar o resultado de cada ação ("Local X salvo/atualizado/apagado") e mostrar cada erro embaixo do seu campo.
+- **RF-CAD-6:** `GET /saude`, para o app saber se a API está no ar.
+
+### RNF — Como o cadastro deve ser
+- **RNF-CAD-1 (estados):** toda tela de dados mostra os 4 estados: carregando, erro (com "Tentar de novo"), vazio e a lista. Se a lista já apareceu e uma atualização falhar, ela continua na tela com o erro em cima.
+- **RNF-CAD-2 (validação em 2 camadas):** o navegador confere antes de enviar (`lib/validacao.js`), com as mesmas regras e frases da API; a API confere de novo, porque é a regra de verdade. Conferido por um teste que manda 29 formulários aos dois: 28 iguais, mais 1 regra a mais de propósito no navegador.
+- **RNF-CAD-3 (erros):** um formato único de erro em português (`{"detail", "erros": [{campo, mensagem}]}`); o 500 não mostra detalhes internos; todo erro leva o cabeçalho do CORS; a API desligada e a demora de mais de 10 s viram mensagens claras.
+- **RNF-CAD-4 (acessibilidade):** `label` em todo campo; o erro ligado ao campo (`aria-invalid` + `aria-describedby`); o foco no 1º campo com erro; o aviso numa região `role="status"`; a confirmação num `<dialog>` modal que fecha com Esc; as abas no padrão da WAI-ARIA; o foco nunca cai no `<body>` depois de salvar, apagar ou tentar de novo; contraste medido de 4,5:1 ou mais nos 2 temas.
+- **RNF-CAD-5 (robustez):** 2 cliques rápidos não criam 2 itens; fechar o formulário cancela a requisição; requisições ao mesmo tempo não dão erro (teste com 40 em paralelo).
+- **RNF-CAD-6 (segurança):** a API aceita só os tipos certos (`strict`), ids de até 2^63 − 1, nomes com 3 letras visíveis e sem caracteres de controle; o CORS aceita só a origem do app.
+
+### RN — Regras do cadastro
+- **RN-CAD-1:** a latitude e a longitude ficam dentro de Porto Alegre (lat −30,27 a −29,93; lon −51,31 a −51,01). Ponto fora disso é erro de digitação (lat e lon trocadas, sinal esquecido).
+- **RN-CAD-2:** os dois horários vazios = aberto 24 h; um só não vale; o de fechar vem depois do de abrir; não aceita horário que vira a noite. No formulário, desmarcar "Aberto 24 h" obriga a preencher os dois.
+- **RN-CAD-3:** um local tem pelo menos 1 atividade (é por ela que a recomendação filtra).
+- **RN-CAD-4:** um ponto desativado continua no cadastro, mas a recomendação não o usa.
+- **RN-CAD-5:** os dados iniciais (sombra, bebedouro, atividades) são estimativa nossa, e a observação de cada um diz isso.
+
 ## Backlog: épicos
+- **Épico — Cadastro (Web):** CRUD de locais e de pontos de hidratação, com estados, validação e acessibilidade (RF-CAD-1 a 6). *Feito em 16–17/11.* **Futuro:** login para quem edita (hoje qualquer pessoa com o app pode editar), escolher o ponto clicando no mapa e um histórico de mudanças.
 - **Épico — Cobertura de parques grandes (futuro):** nós sensores com bateria + estação principal (gateway); o pior ponto no field5/field6 e o detalhe por nó no `status`; o mapa pinta um círculo de 50 m por nó funcionando. Detalhes no [README do Edge](../edge/README.md), na seção "Próximo passo: vários aparelhos no mesmo parque".
 
 ## Hardware real (anotar no relatório)

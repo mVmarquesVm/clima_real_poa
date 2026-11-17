@@ -653,3 +653,22 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Pedi para seguir com o passo do formulário.
+
+## Web — Editar, apagar, avisos, hidratação e validação no navegador (17/11/2026)
+
+**O que eu pedi**
+- Fazer, na ordem, os 6 passos que faltavam no cadastro: editar local, apagar com confirmação, aviso com `aria-live` (corrigindo o foco do "Tentar de novo"), lista da hidratação com abas, formulário da hidratação (horários e "24 h") e a validação no navegador igual à do servidor. Pedi para não se preocupar com a quantidade de commits.
+
+**O que a IA gerou**
+- `ganchos/useFormulario.js`: a lógica comum aos 2 formulários (valores, erros por campo, foco no 1º erro, trava contra 2 cliques, cancelamento), tirada de dentro do `FormularioLocal`.
+- **Editar:** o `FormularioLocal` recebe o `item` e serve para criar (`POST`) e editar (`PUT`), já preenchido (`localParaFormulario`, com a vírgula na latitude).
+- **Apagar:** `comum/ConfirmarApagar.jsx`, um `<dialog>` nativo com `showModal()` (o resto da página fica inerte e o Esc fecha), com o nome do item, "Isso não pode ser desfeito" e o foco começando no "Cancelar". O 404 (alguém já apagou) conta como apagado. Token novo `--color-veu` para o fundo escurecido.
+- **Avisos e foco:** `comum/Aviso.jsx` (região `role="status"` sempre montada; só o texto fica dentro dela). Depois de salvar, o foco volta ao botão que abriu o formulário; depois de apagar, vai ao título da lista; no "Tentar de novo", vai ao título antes do botão sumir (era a pendência do foco no `body`).
+- **Hidratação:** `cadastro/PainelCadastro.jsx` (a "máquina" do CRUD, a mesma para os locais e a hidratação), `comum/Abas.jsx` (padrão de abas da WAI-ARIA: setas, Home e End), `cadastro/ListaHidratacao.jsx` (horário, domingo e ativo) e `cadastro/FormularioHidratacao.jsx` ("Aberto 24 h" marcado esconde os horários; os campos são `type="time"`).
+- Peças comuns: `AcoesDoItem` (Editar/Apagar com o nome do item para o leitor de tela), `BotoesFormulario`, `CampoMarcar` e `SimNao`.
+- **Validação no navegador:** `lib/validacao.js` (`validarLocal` e `validarHidratacao`), com as mesmas regras e frases da API, na mesma ordem. Uma regra a mais, de propósito: desmarcar "Aberto 24 h" e deixar os 2 horários vazios dá erro (para a API, seria 24 h sem ninguém perceber).
+- Os RF, RNF e RN do cadastro no `docs/requisitos_rascunho.md`.
+- **Testes:** um script em Node mandou 29 formulários ao `validacao.js` e à API rodando: 28 deram os mesmos campos e frases, e o único diferente é a regra a mais. No navegador (subagente), os 12 itens passaram: validação sem ir à API, criar, editar, cancelar, apagar (Esc, Tab preso na caixa, fundo escuro), "Tentar de novo", abas, hidratação, tema escuro a 375 px e console.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi a ordem dos 6 passos e pedi para fazê-los em sequência.
