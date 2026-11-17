@@ -590,3 +590,49 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - A ideia de testar a API tentando quebrá-la foi minha.
+
+## Web — Cliente da API no front (16/11/2026)
+
+**O que eu pedi**
+- Começar as telas do Web pelo cliente que conversa com a nossa API.
+
+**O que a IA gerou**
+- `frontend/src/servicos/api.js`, no mesmo molde do `thingspeak.js`:
+  - `api.locais` e `api.hidratacao`, cada um com `listar`, `mostrar`, `criar`, `substituir` e `apagar`, e `api.saude`;
+  - o erro próprio `ErroApi` (a frase em `message`, mais o `status` e a lista `erros`), lido do formato único da API;
+  - a API desligada vira "A API está fora do ar. Ligue o back-end e tente de novo." (status 0), e a falta de resposta em 10 s vira um aviso de demora;
+  - o 204 do DELETE devolve `null` (sem tentar ler um JSON que não existe), e o cancelamento pelo `signal` é repassado para a tela ignorar;
+  - `errosPorCampo`, que transforma a lista do 422 em `{campo: mensagem}` para o formulário;
+  - o endereço vem do `VITE_API_URL`, com o padrão `http://127.0.0.1:8000`, e o modelo está em `frontend/.env.example`.
+- Um teste em Node contra a API de verdade (porta 8011, banco temporário): 11/11, cobrindo o CRUD inteiro, o 404, o 422 por campo, o filtro `so_ativos`, o cancelamento e a API desligada. O lint e o build passaram.
+
+**O que eu mudei ou fiz sozinho**
+- Confirmei que o Front e o Web podem ficar no mesmo repositório, que os commits de várias partes contam e que a nossa API vale como API externa.
+
+## Web — Lista de locais na seção Cadastro (17/11/2026)
+
+**O que eu pedi**
+- Seguir para as telas do Web; escolhi pôr o Cadastro numa seção da própria página (sem roteador).
+
+**O que a IA gerou**
+- `ganchos/useLista.js`: busca a lista na API e guarda os estados (carregando, erro e itens; `null` = "ainda não sei", `[]` = "não tem nenhum"), com "Tentar de novo" e cancelamento quando a tela sai.
+- `componentes/comum/EstadoCarregando.jsx` (`role="status"`, rodinha que para com movimento reduzido) e `componentes/comum/MensagemErro.jsx` (`role="alert"`, ícone + texto, botão "Tentar de novo"; serve também para a recomendação).
+- `componentes/cadastro/ListaLocais.jsx` (cartões numa lista `<ul>`, cada um com o nome em `<h4>`, sombra e bebedouro com ✓/✕ + texto e as atividades em português) e `componentes/cadastro/SecaoCadastro.jsx` (escolhe a tela pelo estado; se a lista já apareceu e a atualização falhar, a lista fica e o erro aparece em cima).
+- `lib/cadastro.js`: os valores da API e o texto em português de cada um.
+- O teste no navegador (subagente) passou nos 7 itens: os 4 estados, o teclado, os 2 temas, o celular e o console.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi a seção na página em vez de abas.
+
+## Web — Correção: erro 500 com requisições ao mesmo tempo (17/11/2026)
+
+**O que eu pedi**
+- Corrigir o bug que o teste da lista achou (eu já desconfiava de um bug nas rotas e requisições).
+
+**O que a IA gerou**
+- O diagnóstico: o FastAPI abre a conexão do SQLite numa thread (a dependência `obter_conexao`) e a usa ou fecha em outra (a rota), e o `sqlite3` recusa isso por padrão. Com uma requisição por vez quase nunca acontece; com várias ao mesmo tempo, 35 de 40 davam 500. A caça a erros anterior mandava as requisições uma de cada vez, por isso não pegou.
+- A correção: `check_same_thread=False` no `conectar()` (`backend/app/banco.py`). É seguro porque cada requisição tem a sua conexão, e só uma thread por vez mexe nela.
+- O teste `test_requisicoes_ao_mesmo_tempo_nao_dao_500` (40 GETs em paralelo), que falhava antes e passa depois. São 81 testes.
+
+**O que eu mudei ou fiz sozinho**
+- Autorizei a correção. A desconfiança de que havia um bug nas rotas e requisições foi minha.
