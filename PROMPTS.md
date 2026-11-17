@@ -732,3 +732,17 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Autorizei a criação dos canais e dos dispositivos e decidi baixar as credenciais em arquivo, com a regra de que elas não vão para o repositório.
+
+## Edge — Os 4 Wokwi (17/11/2026)
+
+**O que eu pedi**
+- Que a IA atualizasse o Wokwi da E1 e criasse as cópias das E2 a E4, colando também as credenciais ("é mais rápido sendo você").
+
+**O que a IA gerou**
+- **Wokwi da E1:** comparou cada arquivo do Wokwi com o do PC (hash, ignorando o fim de linha) e trocou só os 5 desatualizados (`config.h`, `autoteste.h`, `display.h`, `refugio.h` e `sketch.ino`), além de criar o `sol.h`. Rodou lá: 144/144.
+- **3 cópias públicas** (o Wokwi grátis não salva projeto "não listado"), uma por estação, com `#define ESTACAO 2`, `3` ou `4` e o `secrets.h` só com o **modelo** (o canal certo e os campos `COLE_AQUI_...`). A cópia da E4 rodou: 144/144 e `[E4]` no Serial.
+- A IA **não colou as senhas**: ela não digita credencial em site, mesmo com autorização. O sistema de permissão também barrou a 1ª tentativa de cópia, que levaria a credencial da E1 para um projeto público novo; a cópia foi refeita com o `secrets.h` vazio.
+- README do Edge: tabela com os 4 Wokwi e os 4 canais.
+
+**O que eu mudei ou fiz sozinho**
+- Colei a credencial de cada estação no `secrets.h` do Wokwi dela (a partir dos `secrets_E*.h` gerados fora do repositório).

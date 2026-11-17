@@ -402,6 +402,12 @@ Hoje, se faltar luz, a estação apaga, e é justamente num dia de calor forte q
 - **Energia do sensor:** no Wokwi, o "desligar e religar" o sensor roda de verdade no código, mas o simulador não modela a energia dos componentes. Então o efeito não aparece lá. No hardware real, é isso que destrava um DHT22 travado.
 
 ## A preencher
-- **Simulação no Wokwi:** https://wokwi.com/projects/480541510887151617
-- **Canal no ThingSpeak (dashboard):** https://thingspeak.mathworks.com/channels/3578427
+- **Simulações no Wokwi e canais no ThingSpeak (dashboard na Public View):**
+
+| Estação | Wokwi | Canal ThingSpeak |
+|---|---|---|
+| E1 Largo Glênio Peres | https://wokwi.com/projects/480541510887151617 | https://thingspeak.mathworks.com/channels/3578427 |
+| E2 Calçadão da Rua dos Andradas | https://wokwi.com/projects/480968836933960705 | https://thingspeak.mathworks.com/channels/3584100 |
+| E3 Parque Harmonia | https://wokwi.com/projects/480968883292563457 | https://thingspeak.mathworks.com/channels/3584102 |
+| E4 Parque Marinha do Brasil | https://wokwi.com/projects/480968911326252033 | https://thingspeak.mathworks.com/channels/3584103 |
 - Ainda falta: diagrama, vídeo de demonstração e integrantes.

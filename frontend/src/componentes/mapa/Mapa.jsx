@@ -418,8 +418,9 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false,
       <figcaption className="text-sm text-texto-suave">
         As 4 estações no Centro de Porto Alegre. A área colorida é a parte que cada estação
         representa, na cor do risco agora (cinza = sem dado). O contorno tracejado é o local
-        inteiro, pelo OpenStreetMap. Só a E1, no Largo Glênio Peres, publica ao vivo (um ESP32
-        simulado no Wokwi); o anel que pulsa marca quem está publicando. Clique numa estação, ou
+        inteiro, pelo OpenStreetMap. Cada estação é um ESP32 simulado no Wokwi, com os valores
+        ajustados à mão (demonstração, não medição); o anel que pulsa marca quem está publicando
+        agora. Clique numa estação, ou
         chegue nela com Tab e aperte Enter, para ver os detalhes. Em &quot;Onde e quando ir&quot;, o
         botão &quot;Como chegar a pé até a água&quot; desenha aqui a rota (linha tracejada = só a linha reta).
       </figcaption>
