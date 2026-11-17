@@ -746,3 +746,55 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Colei a credencial de cada estação no `secrets.h` do Wokwi dela (a partir dos `secrets_E*.h` gerados fora do repositório).
+
+## Edge — Botão físico de manutenção, roteiro do vídeo e entrevista (17/11/2026)
+
+**O que eu pedi**
+- Conferir se o Edge atende ao que o professor pediu: arquivos, funções, structs e enums; watchdog; nada de `delay()`; debounce e interrupções para botões físicos.
+- Um roteiro para o vídeo do Edge.
+- Adicionar o botão físico (o código só tinha a interrupção com debounce no anemômetro).
+
+**O que a IA gerou**
+- **Conferência:** 15 arquivos `.h`, 14 structs e 9 enums; watchdog de 8 s com o motivo do reinício no boot; nenhum `delay()` (tudo com `millis()`); o único `while(true)` é o do comando `w`, de propósito.
+- **Botão de manutenção** (GPIO 13, pull-up interno): `botao.h` (a interrupção só anota a borda; o `loop()` confirma o aperto depois de 50 ms sem tremida e com o pino ainda em LOW; segurar conta 1 vez; a tremida de quem solta é ignorada), a manutenção no `rele.h` (desliga na hora por 2 min no Wokwi, vence até o `rele:on` da nuvem, acaba sozinha ou com o 2º aperto), `Rele:DESL manutencao` no LCD 1, `(manutencao)` no status do ThingSpeak e o botão no `diagram.json`. 7 autotestes novos: 151/151 nas 4 estações e o firmware compila (76% da flash).
+- **Os 4 Wokwi** atualizados (6 arquivos trocados + o `botao.h` criado, cada um com a sua `ESTACAO`). A E4 rodou lá com 151/151; o botão segurado, com a tremida simulada pelo Wokwi, contou 1 aperto, e o LCD 1 mostrou `Rele:DESL manutencao`.
+- **Roteiro do vídeo** (10 cenas + a do botão, com os valores de cada cor e a tabela critério → cena), usado só para gravar: fica no meu PC, fora do repositório.
+- **Entrevista** organizada em `docs/entrevista.md` (sem o nome do entrevistado), com o que ela confirma e o que ela questiona no projeto.
+
+**O que eu mudei ou fiz sozinho**
+- Pedi a conferência dos requisitos do professor e decidi adicionar o botão físico.
+- Fiz a entrevista com um amigo do grupo sensível ao calor (2 rodadas) e pedi a autorização dele para usar as respostas sem o nome.
+- Decidi que, como o grupo de risco prefere o ar-condicionado, o visor deve indicar o shopping refrigerado aberto.
+- Notei que abreviações como "Pc" no LCD são pouco intuitivas e perguntei sobre acentos e ç no display.
+
+## Edge — Shopping refrigerado do laranja para cima e acentos nos LCDs (17/11/2026)
+
+**O que eu pedi**
+- Depois da entrevista (o grupo de risco prefere o ar-condicionado, "não importa a distância"): que o visor indique o shopping.
+- Acentos e ç no LCD, e nomes sem abreviação ("Pc" é pouco intuitivo).
+
+**O que a IA gerou**
+- **Regra nova** (`PREFERIR_REFRIGERADO` no `config.h` + `deveIndicarRefrigerado` no `display.h`): do laranja para cima, nas 4 estações, o shopping **aberto** ganha da sombra, mesmo mais longe; fechado (noite, domingo cedo, sem relógio), vale o refúgio aberto mais perto. Substitui a regra "só no vermelho, só nas E3 e E4".
+- **`acentos.h`** (novo): o LCD (HD44780) não tem ç, ã, é de fábrica, mas tem 8 gavetas para desenhar letras (5 x 8 pontos). Elas viram á Á ç ã â é í ú; a seta → já vem de fábrica. `paraLcd` traduz os textos UTF-8 para os códigos do LCD (1 a 8; o 0 marca o fim do texto em C), e uma letra sem desenho vira a letra sem acento.
+- **LCD 2 com o refúgio em 2 linhas:** `→ Praça da Alfândega` / `a 8m a pé   15:42`, ou `→ Rua da Praia` / `Shopping 448m   15:42`. Nomes por extenso (até 18 colunas), distância com vírgula (`1,2km`), conselhos com acento (`Beba água e descanse`, `SAIA DO SOL + ÁGUA`) e `Relé:` no LCD 1.
+- 5 autotestes novos e outros ajustados: 156/156 nas 4 estações e o firmware compila (76% da flash).
+- **Os 4 Wokwi** atualizados (5 arquivos + o `acentos.h` criado). A E4 rodou com 156/156 e, às 20h05 de uma terça, o LCD 2 mostrou `Beba água e descanse`, `→ Praia de Belas` e `Shopping 531m`, com os acentos desenhados.
+- README do Edge, `docs/entrevista.md` (2ª rodada) e `docs/requisitos_rascunho.md` (RF/RNF/RN-EST) atualizados.
+
+**O que eu mudei ou fiz sozinho**
+- Fiz a 2ª rodada da entrevista (sensação de 35 °C, 15 min até a tontura, a avó idosa com pressão que piora no calor, "se está indicando, é porque está aberto") e tive a autorização para usar as respostas sem o nome.
+- Decidi que o visor indica o shopping, porque o grupo de risco preferiu o ar-condicionado.
+- Notei que "Pc" no LCD não era intuitivo e pedi os acentos.
+
+## Edge — Fiação sem fios na frente dos LCDs (17/11/2026)
+
+**O que eu pedi**
+- Uma fiação em que os fios não passem na frente dos displays.
+
+**O que a IA gerou**
+- Mediu no Wokwi o tamanho das peças e a posição dos pinos (cada LCD tem 355 x 180, com os 4 pinos na borda esquerda; por isso o Wokwi puxava os fios por cima da tela).
+- `diagram.json`: os 2 LCDs subiram (`top` −330) e ganharam um vão entre eles; os 8 fios dos LCDs ganharam pontos de passagem: saem do pino para a esquerda, descem pelo vão ou pela lateral, passam por um "corredor" abaixo das telas e chegam ao ESP32 pelos dois lados. Os fios de 5V contornam pela esquerda.
+- Conferência pela geometria (não só pelo olho): um script mediu pontos ao longo de todos os fios desenhados no Wokwi e contou **0** pontos dentro das telas. Os 4 Wokwi foram atualizados e salvos; a E4 rodou com 156/156 e os 2 LCDs mostrando tudo.
+
+**O que eu mudei ou fiz sozinho**
+- Percebi que os fios atrapalhavam a leitura dos displays e pedi a mudança.

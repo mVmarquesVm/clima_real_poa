@@ -68,6 +68,17 @@
 - **RN-REC-3:** a previsão é igual para os locais do Centro (modelo em grade), então a ordem dos locais é: com sombra → mais perto → com bebedouro → nome.
 - **RN-REC-4:** um ponto de hidratação só conta se estiver ativo e aberto na hora da visita (horário, e domingo só se `abre_domingo`).
 
+## Orientação na estação, sem app (Edge: `edge/display.h`, `refugio.h`, `botao.h`)
+Base: entrevista com um usuário do grupo sensível ao calor (`docs/entrevista.md`, 17/11/2026).
+
+- **RF-EST-1:** do laranja para cima, o visor indica para onde ir: o nome do refúgio por extenso, com acento, e a distância.
+- **RF-EST-2:** um botão físico de manutenção desliga o nebulizador por um tempo limitado.
+- **RNF-EST-1:** o aviso aparece na rua, sem depender de celular (o entrevistado não usaria o app; a avó dele, idosa, precisa ver a informação no local).
+- **RNF-EST-2:** o visor mostra ç e acentos (8 letras desenhadas no LCD) e não usa abreviações como "Pc".
+- **RN-EST-1:** do laranja para cima, o refúgio refrigerado (shopping) **aberto** ganha da sombra, mesmo mais longe. Fechado ou sem relógio, vale o refúgio aberto mais perto. Motivo: com 35 °C de sensação, o entrevistado sente tontura em 15 min e prefere o ar-condicionado "não importa a distância".
+- **RN-EST-2:** o visor só indica refúgio aberto agora (hora e dia da semana); por isso não mostra horário ("se está indicando, é porque está aberto").
+- **RN-EST-3:** a manutenção pelo botão vence até o comando remoto `rele:on` e acaba sozinha (2 min no Wokwi, 30 min numa estação real).
+
 ## Backlog: épicos
 - **Épico — Recomendação "onde e quando ir" (Front):** RF-REC-1 a 6. *Feito em 17/11.* **Futuro:** usar a leitura ao vivo de cada estação quando os 4 canais existirem; recomendar em linguagem natural com IA.
 - **Épico — Cadastro (Web):** CRUD de locais e de pontos de hidratação, com estados, validação e acessibilidade (RF-CAD-1 a 6). *Feito em 16–17/11.* **Futuro:** login para quem edita (hoje qualquer pessoa com o app pode editar), escolher o ponto clicando no mapa e um histórico de mudanças.
