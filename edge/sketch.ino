@@ -26,12 +26,13 @@
 #include "vigia.h"
 #include "risco.h"
 #include "rele.h"
+#include "botao.h"
 #include "display.h"
 #include "sol.h"
 #include "rede.h"
 #include "nuvem.h"
 #include "autoteste.h"
-#include "secrets.h"             // senhas do ThingSpeak: fora do Git (ver secrets.example.h)
+#include "secrets.h"           // senhas do ThingSpeak: fora do Git (ver secrets.example.h)
 
 // ---------- Estado da estação ----------
 DHTesp            dht;
@@ -78,6 +79,22 @@ void IRAM_ATTR aoPulsoDoAnemometro() {
     ultimoPulsoUs = agora;
   }
   portEXIT_CRITICAL_ISR(&travaVento);
+}
+
+// ---------- Botão de manutenção: interrupção + debounce (botao.h) ----------
+// A interrupção só ANOTA a borda; quem decide se foi um aperto de verdade
+// é o loop (cuidarDoBotao), depois de 50 ms sem tremida.
+Botao        botao;
+portMUX_TYPE travaBotao = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR aoApertarBotao() {
+  unsigned long agora = millis();
+  portENTER_CRITICAL_ISR(&travaBotao);
+  // O mesmo que marcarBorda(botao, agora), escrito aqui dentro: a
+  // interrupção só pode chamar código que está na RAM (IRAM).
+  botao.pendente = true;
+  botao.bordaMs  = agora;
+  portEXIT_CRITICAL_ISR(&travaBotao);
 }
 
 // Pega o total e zera, sem deixar a interrupção mexer no meio.
@@ -399,12 +416,36 @@ void decidirRiscoERele(unsigned long agora) {
                            : RISCO_SEM_DADO;
   if (nivelAtual != antes) Serial.printf("  risco: %s -> %s\n", textoNivel(antes), textoNivel(nivelAtual));
 
-  bool estavaLigado = rele.ligado;
+  bool estavaLigado     = rele.ligado;
+  bool estavaManutencao = rele.manutencao;
   bool ligar = atualizarRele(rele, sensacaoC, podeDecidir, limites.laranja, agora);
   digitalWrite(PINO_RELE, ligar ? HIGH : LOW);
   if (ligar != estavaLigado) {
     Serial.printf("  rele %s (%s)\n", ligar ? "LIGADO" : "DESLIGADO", textoMotivoRele(rele.motivo));
   }
+  if (estavaManutencao && !rele.manutencao) {
+    Serial.println(">> Manutencao: o tempo acabou, o rele volta ao automatico");
+  }
+}
+
+// ---------- Botão de manutenção: confere o aperto e aplica na hora ----------
+void cuidarDoBotao() {
+  bool emLow = digitalRead(PINO_BOTAO) == LOW;   // LOW = apertado (pull-up)
+  // O millis() é lido DENTRO da trava: assim a interrupção não consegue
+  // anotar uma borda "do futuro" entre a leitura do relógio e a conta.
+  portENTER_CRITICAL(&travaBotao);
+  unsigned long agora = millis();
+  bool apertou = confirmarAperto(botao, agora, emLow, DEBOUNCE_BOTAO_MS);
+  portEXIT_CRITICAL(&travaBotao);
+  if (!apertou) return;
+
+  if (alternarManutencao(rele, agora)) {
+    Serial.printf(">> Botao: MANUTENCAO por %lu min, nebulizador desligado (aperte de novo para sair)\n",
+                  MANUTENCAO_MS / 60000UL);
+  } else {
+    Serial.println(">> Botao: fim da manutencao, o rele volta ao automatico");
+  }
+  decidirRiscoERele(agora);   // aplica agora, sem esperar o próximo ciclo de 2 s
 }
 
 // Roda a cada volta do loop (e não só a cada 2 s) para o pisca ficar regular.
@@ -442,6 +483,23 @@ void relogioLocal(int& hora, int& minuto, int& dia) {
 }
 
 // Só reescreve a linha que mudou: o I2C é lento (~1 ms por letra)
+// Grava os 8 desenhos (á Á ç ã â é í ú) nas gavetas do LCD (acentos.h).
+// A gaveta é o código & 7: o código 8 cai na gaveta 0.
+void carregarAcentos(LiquidCrystal_I2C& tela) {
+  for (const Acento& a : ACENTOS) {
+    uint8_t desenho[8];
+    memcpy(desenho, a.desenho, sizeof(desenho));   // a biblioteca pede um vetor que não seja const
+    tela.createChar(a.codigo & 7, desenho);
+  }
+}
+
+// Escreve um texto com acento (UTF-8) no ponto atual do cursor.
+void escreverComAcento(LiquidCrystal_I2C& tela, const char* texto) {
+  char lcdTexto[LCD_COLUNAS + 1];
+  paraLcd(lcdTexto, sizeof(lcdTexto), texto);
+  tela.print(lcdTexto);
+}
+
 void escreverLcd(LiquidCrystal_I2C& tela, char linhas[LCD_LINHAS][LCD_COLUNAS + 1],
                  char anterior[LCD_LINHAS][LCD_COLUNAS + 1]) {
   for (int i = 0; i < LCD_LINHAS; i++) {
@@ -459,11 +517,9 @@ void atualizarDisplay(unsigned long agora) {
   DadosTela d;
   d.hora       = hora;
   d.minuto     = minuto;
-  // Com risco VERMELHO ou ROXO, nas estações em que a regra vale (E3 e E4),
-  // o refrigerado aberto ganha da sombra mais perto (ver config.h).
-  bool preferirFrio = REFRIGERADO_NO_VERMELHO &&
-                      (nivelAtual == RISCO_VERMELHO || nivelAtual == RISCO_ROXO);
-  d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia, preferirFrio);
+  // Do LARANJA para cima, o refrigerado aberto ganha da sombra, mesmo
+  // mais longe (entrevista com o grupo de risco: ver config.h).
+  d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia, deveIndicarRefrigerado(nivelAtual));
   // Dia ou noite: relógio (NTP) + posição do sol; sem relógio, o LDR.
   // hora >= 0 quer dizer que o NTP já sincronizou (ver relogioLocal).
   d.noite      = periodoDoDia(hora >= 0, (double)time(nullptr), LAT_ESTACAO, LON_ESTACAO,
@@ -657,9 +713,9 @@ void publicar(unsigned long agora) {
   l.releLigado = rele.ligado;
 
   char status[200];
-  snprintf(status, sizeof(status), "%s | cmd: %s | lim %.1f/%.1f/%.1f/%.1f | rele %s",
+  snprintf(status, sizeof(status), "%s | cmd: %s | lim %.1f/%.1f/%.1f/%.1f | rele %s%s",
            ultimoAlerta, ultimoComando, limites.amarelo, limites.laranja, limites.vermelho, limites.roxo,
-           textoModoRele(rele.modo));
+           textoModoRele(rele.modo), rele.manutencao ? " (manutencao)" : "");
   l.status = status;
 
   char msg[MQTT_TAMANHO_BUFFER - 64];   // sobra espaço para o tópico e o cabeçalho do MQTT
@@ -709,6 +765,7 @@ void setup() {
   Wire.begin();
   lcd.init();
   lcd.backlight();
+  carregarAcentos(lcd);    // antes do setCursor: o createChar mexe no ponteiro de escrita do LCD
   lcd.setCursor(0, 0);
   lcd.print("Forno Alegre ");
   lcd.print(ID_ESTACAO);
@@ -716,8 +773,9 @@ void setup() {
   lcd.print("Autoteste...");
   lcd2.init();
   lcd2.backlight();
+  carregarAcentos(lcd2);
   lcd2.setCursor(0, 0);
-  lcd2.print("Orientacao ");
+  escreverComAcento(lcd2, "Orientação ");
   lcd2.print(ID_ESTACAO);
   lcd2.setCursor(0, 1);
   lcd2.print("Aguarde...");
@@ -761,6 +819,11 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PINO_ANEMOMETRO), aoPulsoDoAnemometro, FALLING);
   inicioJanelaVentoMs = millis();
 
+  // Botão de manutenção: mesma ideia do anemômetro (contato para o GND +
+  // pull-up interno); FALLING = a borda de quando ele é apertado.
+  pinMode(PINO_BOTAO, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PINO_BOTAO), aoApertarBotao, FALLING);
+
   analogReadResolution(12);   // 0 a 4095 (ADC_MAX)
   randomSeed(micros());   // só para a simulação de "sensor louco"
 
@@ -769,6 +832,7 @@ void setup() {
 
   Serial.println("Comandos no Serial: w = travar programa | f = sensor em falha | x = sensor louco | n = normal");
   Serial.println("                    d = derrubar o WiFi por 30 s | m = derrubar o MQTT por 30 s");
+  Serial.println("Botao MANUTENCAO (GPIO 13): desliga o nebulizador por 2 min; aperte de novo para sair");
 
   // O primeiro ciclo vem 2 s depois do FIM do setup (e não 2 s depois de
   // ligar): o autoteste e o LCD levam quase 2 s, e a primeira janela do
@@ -784,6 +848,7 @@ void loop() {
 
   unsigned long agora = millis();
   verificarComandosSerial(agora);
+  cuidarDoBotao();
   cuidarDaEnergiaDoSensor(agora);
   atualizarLeds(agora);
   cuidarDaRede(agora);

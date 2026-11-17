@@ -27,6 +27,7 @@
 #define PINO_LED_VERMELHO 26
 #define PINO_LED_ROXO     19   // 5º nível (roxo) da nota técnica da SMS de POA
 #define PINO_RELE         18   // HIGH = relé ligado = nebulizador ligado
+#define PINO_BOTAO        13   // botão de manutenção para o GND; usa o pull-up interno (solto = HIGH)
 // O LCD usa o I2C padrão do ESP32: SDA no GPIO 21 e SCL no GPIO 22
 #define LCD_ENDERECO_I2C  0x27   // LCD 1: medição
 #define LCD2_ENDERECO_I2C 0x26   // LCD 2: orientação (mesmo fio I2C, outro endereço)
@@ -113,21 +114,29 @@ const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por seg
 // A estação é fixa, então a distância também: medida uma vez no
 // OpenStreetMap, em linha reta, da estação até a borda da praça/bosque
 // ou até a entrada do shopping (E1 em 15/11/2026; E2 a E4 em 17/11/2026).
-// O LCD indica o MAIS PERTO que estiver ABERTO agora (ver refugio.h).
-// Um shopping só ganha da praça se estiver mais perto; ele fica na lista
-// para valer a regra quando a praça mudar (ex.: obra).
+// O LCD indica o refrigerado (shopping) que estiver ABERTO agora, mesmo
+// mais longe; fechado, o mais perto que estiver aberto (ver refugio.h).
 // Cada shopping usa o horário mais curto que achamos, e "vale até" é
 // 1 h antes de fechar (para dar tempo de chegar). Feriado a estação
 // não sabe: limitação (está no README).
+// Nomes por extenso e com acento (acentos.h), com até 18 colunas: a
+// linha 2 do LCD 2 é "→ " + nome. O shopping aparece em 2 linhas:
+// "→ Rua da Praia" e "Shopping 448m" (ver display.h).
 #include "refugio.h"
+
+// Do LARANJA para cima, o refrigerado aberto ganha da sombra, mesmo mais
+// longe, em TODAS as estações. Motivo: entrevista com um usuário do
+// grupo sensível ao calor (17/11/2026, docs/entrevista.md): com 35 °C de
+// sensação, em 15 min ele tem tontura e enjoo; entre a sombra a 75 m e o
+// shopping a 600 m, "não importa a distância, ele iria para o
+// ar-condicionado", e a avó idosa também. A sombra ajuda, mas não basta.
+// Decisão do Matheus, 17/11/2026 (substitui a regra "só no vermelho, só
+// nas E3 e E4").
+const bool PREFERIR_REFRIGERADO = true;
 
 #if ESTACAO == 1
   #define ID_ESTACAO   "E1"
   #define NOME_ESTACAO "Largo Glenio Peres"
-  // Com risco VERMELHO ou ROXO, indicar o refrigerado (se aberto) no lugar
-  // da sombra mais perto? Só nas estações em que a sombra é o parque
-  // (E3 e E4): decisão do Matheus, 17/11/2026.
-  const bool REFRIGERADO_NO_VERMELHO = false;
   const double LAT_ESTACAO = -30.0280671;
   const double LON_ESTACAO = -51.2276134;
   // Rua da Praia Shopping, pelo Instagram oficial (@ruadapraiashopping,
@@ -135,26 +144,24 @@ const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por seg
   // 9h-18h, domingo e feriado 11h-18h. A lista guarda um horário só para
   // seg-sáb, então fica o do sábado (o mais curto): vale até as 17h.
   const Refugio REFUGIOS[] = {
-    // nome (até 10, sem acento)  distância (m)  seg-sáb: abre  vale até  domingo: abre  vale até  refrigerado
-    { "Praca XV",                  24,           -1,            0,        0,             0  , false },  // Praça XV de Novembro: árvores, 24 h
-    { "Shop.Praia",                448,          9,             17,       11,            17 , true  },  // Rua da Praia Shopping (R. dos Andradas, 1001)
+    // nome (até 18 colunas)      distância (m)  seg-sáb: abre  vale até  domingo: abre  vale até  refrigerado
+    { "Praça XV",                  24,           -1,            0,        0,             0  , false },  // Praça XV de Novembro: árvores, 24 h
+    { "Rua da Praia",              448,          9,             17,       11,            17 , true  },  // Rua da Praia Shopping (R. dos Andradas, 1001)
   };
 
 #elif ESTACAO == 2
   #define ID_ESTACAO   "E2"
   #define NOME_ESTACAO "Calcadao da Rua dos Andradas"
-  const bool REFRIGERADO_NO_VERMELHO = false;
   const double LAT_ESTACAO = -30.0302953;
   const double LON_ESTACAO = -51.2309031;
   const Refugio REFUGIOS[] = {
-    { "Pc Alfand.",                8,            -1,            0,        0,             0  , false },  // Praça da Alfândega (OSM way 206611684), 24 h
-    { "Shop.Praia",                69,           9,             17,       11,            17 , true  },  // Rua da Praia Shopping, entrada principal (horário da E1)
+    { "Praça da Alfândega",        8,            -1,            0,        0,             0  , false },  // Praça da Alfândega (OSM way 206611684), 24 h
+    { "Rua da Praia",              69,           9,             17,       11,            17 , true  },  // Rua da Praia Shopping, entrada principal (horário da E1)
   };
 
 #elif ESTACAO == 3
   #define ID_ESTACAO   "E3"
   #define NOME_ESTACAO "Parque Harmonia (piso)"
-  const bool REFRIGERADO_NO_VERMELHO = true;    // vermelho/roxo -> Praia de Belas Shopping, se aberto
   const double LAT_ESTACAO = -30.040690;
   const double LON_ESTACAO = -51.237354;
   // Parque Harmonia: "aberto diariamente, das 6h às 00h" (site oficial
@@ -166,23 +173,22 @@ const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por seg
   // 20h, mas a praça de alimentação abre das 11h às 22h: o prédio (com
   // ar-condicionado) já está aberto às 11h -> vale das 11h às 21h.
   const Refugio REFUGIOS[] = {
-    { "Bosque",                    47,           6,             23,       6,             23 , false },  // bosque dentro do Harmonia (OSM way 338078463)
-    { "Orla",                      200,          -1,            0,        0,             0  , false },  // Orla do Guaíba (OSM relation 2896007), aberta
-    { "Shop.Belas",                1193,         10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada mais perto
+    { "Bosque do Harmonia",        47,           6,             23,       6,             23 , false },  // bosque dentro do Harmonia (OSM way 338078463)
+    { "Orla do Guaíba",            200,          -1,            0,        0,             0  , false },  // Orla do Guaíba (OSM relation 2896007), aberta
+    { "Praia de Belas",            1193,         10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada mais perto
   };
 
 #elif ESTACAO == 4
   #define ID_ESTACAO   "E4"
   #define NOME_ESTACAO "Parque Marinha do Brasil"
-  const bool REFRIGERADO_NO_VERMELHO = true;    // vermelho/roxo -> Praia de Belas Shopping, se aberto
   const double LAT_ESTACAO = -30.054441;
   const double LON_ESTACAO = -51.231272;
   // A estação já fica sob as árvores (é o CONTROLE). Se mesmo assim o
   // risco subir, o LCD indica a Praça Rotary: aberta (pega mais vento) e
   // arborizada. Não indica o próprio parque ("Marinha 0m" não ajudaria).
   const Refugio REFUGIOS[] = {
-    { "Pc Rotary",                 174,          -1,            0,        0,             0  , false },  // Praça Rotary (OSM way 70640036), 24 h
-    { "Shop.Belas",                531,          10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada principal
+    { "Praça Rotary",              174,          -1,            0,        0,             0  , false },  // Praça Rotary (OSM way 70640036), 24 h
+    { "Praia de Belas",            531,          10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada principal
   };
 
 #else
@@ -209,6 +215,14 @@ const unsigned long CONFIRMAR_CALMA_MS    = 20000;          // calma por 20 s se
 const unsigned long RELE_MIN_DESLIGADO_MS = 30000;          // descanso mínimo de 30 s
 const unsigned long RELE_MAX_LIGADO_MS    = 10UL * 60UL * 1000UL;  // no máximo 10 min ligado direto
                                                                    // (vale também para o "rele:on" remoto)
+
+// --- Botão de manutenção (botao.h) ---
+// Um botão treme por uns 5 a 20 ms ao apertar e ao soltar: 50 ms de
+// silêncio garantem que a tremida acabou, e ninguém aperta 2 vezes em
+// menos de 50 ms. Manutenção CURTA para o vídeo; numa estação de
+// verdade, 30 min (o tempo de limpar o bico do nebulizador).
+const unsigned long DEBOUNCE_BOTAO_MS = 50;
+const unsigned long MANUTENCAO_MS     = 2UL * 60UL * 1000UL;   // 2 min desligado, depois volta ao automático
 
 // --- Rede: WiFi e MQTT do ThingSpeak (as senhas ficam no secrets.h) ---
 #define WIFI_SSID          "Wokwi-GUEST"   // a rede do Wokwi: aberta, sem senha

@@ -38,8 +38,9 @@
     { "type": "wokwi-relay-module", "id": "rele1", "top": 160, "left": -230, "attrs": {} },
     { "type": "wokwi-led", "id": "ledNebulizador", "top": 260, "left": -120, "attrs": { "color": "blue", "label": "NEBULIZADOR" } },
     { "type": "wokwi-resistor", "id": "r5", "top": 300, "left": -200, "attrs": { "value": "220" } },
-    { "type": "wokwi-lcd2004", "id": "lcd1", "top": -260, "left": -250, "attrs": { "pins": "i2c" } },
-    { "type": "wokwi-lcd2004", "id": "lcd2", "top": -260, "left": 120, "attrs": { "pins": "i2c", "i2cAddress": "0x26" } }
+    { "type": "wokwi-pushbutton", "id": "btnManutencao", "top": 250, "left": 40, "attrs": { "color": "black", "label": "MANUTENCAO" } },
+    { "type": "wokwi-lcd2004", "id": "lcd1", "top": -330, "left": -300, "attrs": { "pins": "i2c" } },
+    { "type": "wokwi-lcd2004", "id": "lcd2", "top": -330, "left": 120, "attrs": { "pins": "i2c", "i2cAddress": "0x26" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -76,15 +77,17 @@
     [ "rele1:NO", "r5:1", "blue", [] ],
     [ "r5:2", "ledNebulizador:A", "blue", [] ],
     [ "ledNebulizador:C", "esp:GND.1", "black", [] ],
+    [ "btnManutencao:1.l", "esp:13", "gray", [] ],
+    [ "btnManutencao:2.l", "esp:GND.2", "black", [] ],
 
-    [ "lcd1:GND", "esp:GND.2", "black", [] ],
-    [ "lcd1:VCC", "esp:5V", "red", [] ],
-    [ "lcd1:SDA", "esp:21", "green", [] ],
-    [ "lcd1:SCL", "esp:22", "cyan", [] ],
-    [ "lcd2:GND", "esp:GND.2", "black", [] ],
-    [ "lcd2:VCC", "esp:5V", "red", [] ],
-    [ "lcd2:SDA", "esp:21", "green", [] ],
-    [ "lcd2:SCL", "esp:22", "cyan", [] ]
+    [ "lcd1:GND", "esp:GND.2", "black", [ "h-38", "v183", "h446", "*", "h11" ] ],
+    [ "lcd1:VCC", "esp:5V", "red", [ "h-30", "v538", "h321", "*", "h-10" ] ],
+    [ "lcd1:SDA", "esp:21", "green", [ "h-20", "v144", "h446", "*", "h29" ] ],
+    [ "lcd1:SCL", "esp:22", "cyan", [ "h-12", "v144", "h428", "*", "h19" ] ],
+    [ "lcd2:GND", "esp:GND.2", "black", [ "h-54", "v178", "h45", "*", "h14" ] ],
+    [ "lcd2:VCC", "esp:5V", "red", [ "h-44", "v178", "h-380", "v350", "h290", "*", "h-15" ] ],
+    [ "lcd2:SDA", "esp:21", "green", [ "h-34", "v139", "h45", "*", "h34" ] ],
+    [ "lcd2:SCL", "esp:22", "cyan", [ "h-24", "v139", "h25", "*", "h24" ] ]
   ],
   "dependencies": {}
 }

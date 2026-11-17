@@ -21,6 +21,7 @@
 #include "sol.h"
 #include "rede.h"
 #include "nuvem.h"
+#include "botao.h"
 #include <string.h>
 
 struct Placar {
@@ -35,6 +36,13 @@ inline void verificar(Placar& p, bool condicao, const char* nome) {
 
 inline bool perto(float a, float b, float tolerancia) {
   return fabsf(a - b) <= tolerancia;
+}
+
+// A linha do LCD (já traduzida) contém este texto com acento?
+inline bool lcdTem(const char* linha, const char* textoComAcento) {
+  char procurado[64];
+  paraLcd(procurado, sizeof(procurado), textoComAcento);
+  return strstr(linha, procurado) != nullptr;
 }
 
 // Devolve true se TUDO passou.
@@ -282,6 +290,37 @@ inline bool rodarAutoteste() {
   montarTela(dt, tela);
   verificar(p, strstr(tela[3], "REMOTO") && strlen(tela[3]) == LCD_COLUNAS, "LCD 1: relé ligado pela nuvem mostra REMOTO");
 
+  // --- Botão de manutenção: debounce (botao.h) ---
+  Botao bt;
+  marcarBorda(bt, 1000); marcarBorda(bt, 1003); marcarBorda(bt, 1007);   // tremida ao apertar
+  bool cedo = confirmarAperto(bt, 1030, true, DEBOUNCE_BOTAO_MS);
+  bool vale = confirmarAperto(bt, 1057, true, DEBOUNCE_BOTAO_MS);
+  verificar(p, !cedo && vale, "botão: 3 tremidas ao apertar contam 1 aperto, só depois de 50 ms quieto");
+  verificar(p, !confirmarAperto(bt, 2000, true, DEBOUNCE_BOTAO_MS), "botão: segurar apertado não conta de novo");
+  marcarBorda(bt, 3000); marcarBorda(bt, 3004);                          // tremida ao soltar
+  verificar(p, !confirmarAperto(bt, 3060, false, DEBOUNCE_BOTAO_MS), "botão: a tremida de quem solta não vira aperto");
+  marcarBorda(bt, 5000);
+  verificar(p, confirmarAperto(bt, 5060, true, DEBOUNCE_BOTAO_MS), "botão: depois de solto, um aperto novo vale");
+
+  // --- Botão de manutenção: o relé ---
+  ControleRele mt;
+  definirModoRele(mt, MODO_LIGAR, 0);
+  atualizarRele(mt, 45, true, 34, 0);                                    // ligado pela nuvem
+  alternarManutencao(mt, 1000);
+  bool mtDesligou = !atualizarRele(mt, 45, true, 34, 1000) && mt.motivo == RELE_MANUTENCAO;
+  bool mtSegura   = !atualizarRele(mt, 45, true, 34, 1000 + MANUTENCAO_MS - 1);
+  verificar(p, mtDesligou && mtSegura, "manutenção vence o rele:on e o calor de 45 °C até o tempo acabar");
+  verificar(p, atualizarRele(mt, 45, true, 34, 1000 + MANUTENCAO_MS) && !mt.manutencao,
+            "manutenção acaba sozinha e o relé volta a obedecer");
+  ControleRele mt2;
+  alternarManutencao(mt2, 0);
+  bool saiu = !alternarManutencao(mt2, 5000);
+  dt.releLigado = false;
+  dt.releMotivo = RELE_MANUTENCAO;
+  montarTela(dt, tela);
+  verificar(p, saiu && lcdTem(tela[3], "Relé:DESL manutenção") && strlen(tela[3]) == LCD_COLUNAS,
+            "2º aperto sai da manutenção; LCD 1 mostra Relé:DESL manutenção (20 colunas)");
+
   // --- Refúgio mais perto e orientação sem app ---
   const Refugio teste[] = { {"Praca", 400, -1, 0, 0, 0, false}, {"Shopping", 200, 10, 21, -1, 0, true} };
   const Refugio domingoTarde = {"Shop.Dom", 300, 10, 21, 14, 19, true};   // domingo só das 14h às 19h
@@ -292,10 +331,17 @@ inline bool rodarAutoteste() {
   verificar(p, refugioMaisPerto(teste, 2, 23, 3) == &teste[0], "refúgio: às 23h, o shopping fechado sai e fica a praça");
   verificar(p, refugioMaisPerto(teste, 2, 15, 0) == &teste[0], "refúgio: no domingo, o shopping que não abre sai");
   verificar(p, refugioMaisPerto(parque, 3, 15, 3) == &parque[0] && refugioMaisPerto(parque, 3, 15, 3, true) == &parque[2],
-            "refúgio: no vermelho, o refrigerado aberto ganha da sombra mais perto (sem o vermelho, a sombra)");
+            "refúgio: preferindo o refrigerado, o shopping aberto a 1.193 m ganha da sombra a 47 m");
   verificar(p, refugioMaisPerto(parque, 3, 23, 3, true) == &parque[1] && refugioMaisPerto(parque, 3, 11, 0, true) == &parque[0]
                && refugioMaisPerto(parque, 3, -1, -1, true) == &parque[1],
-            "refúgio: no vermelho, com o shopping fechado (23h, domingo 11h, sem relógio), fica o mais perto aberto");
+            "refúgio: preferindo o refrigerado, com o shopping fechado (23h, domingo 11h, sem relógio), fica o mais perto aberto");
+  verificar(p, deveIndicarRefrigerado(RISCO_LARANJA) && deveIndicarRefrigerado(RISCO_ROXO)
+               && !deveIndicarRefrigerado(RISCO_AMARELO) && !deveIndicarRefrigerado(RISCO_SEM_DADO),
+            "refúgio: o refrigerado é preferido do LARANJA para cima (entrevista: 35 °C de sensação já faz mal)");
+  const Refugio largo[] = { {"Praça XV", 24, -1, 0, 0, 0, false}, {"Rua da Praia", 448, 9, 17, 11, 17, true} };
+  verificar(p, refugioMaisPerto(largo, 2, 15, 3, deveIndicarRefrigerado(RISCO_LARANJA)) == &largo[1]
+               && refugioMaisPerto(largo, 2, 20, 3, deveIndicarRefrigerado(RISCO_LARANJA)) == &largo[0],
+            "refúgio (como na E1): no laranja, às 15h o shopping a 448 m ganha da praça a 24 m; às 20h, fechado, fica a praça");
   verificar(p, !refugioAberto(domingoTarde, 11, 0) && refugioAberto(domingoTarde, 14, 0) && !refugioAberto(domingoTarde, 19, 0)
                && refugioAberto(domingoTarde, 11, 1),
             "refúgio: horário de domingo próprio (fechado às 11h de domingo, aberto às 14h, fecha às 19h; aberto às 11h de segunda)");
@@ -305,15 +351,32 @@ inline bool rodarAutoteste() {
   textoDistancia(dist, sizeof(dist), 90);
   bool metros = strcmp(dist, "90m") == 0;
   textoDistancia(dist, sizeof(dist), 1260);
-  verificar(p, metros && strcmp(dist, "1.3km") == 0, "refúgio: distância em m até 999 e em km depois");
+  verificar(p, metros && strcmp(dist, "1,3km") == 0, "refúgio: distância em m até 999 e em km (com vírgula) depois");
+
+  // --- Acentos no LCD (acentos.h) ---
+  char lcdTxt[32];
+  paraLcd(lcdTxt, sizeof(lcdTxt), "Praça");
+  bool praca = strlen(lcdTxt) == 5 && lcdTxt[3] == 3;
+  paraLcd(lcdTxt, sizeof(lcdTxt), "→ água");
+  bool seta = lcdTxt[0] == SETA_DIREITA && strlen(lcdTxt) == 6 && lcdTxt[2] == 1;
+  verificar(p, praca && seta, "acentos: cada letra com acento vira 1 coluna (ç e á desenhados; → de fábrica)");
+  paraLcd(lcdTxt, sizeof(lcdTxt), "Ônibus só");
+  verificar(p, strcmp(lcdTxt, "Onibus so") == 0, "acentos: letra sem desenho vira a letra sem acento (Ô -> O, ó -> o)");
 
   // LCD 2 (orientação): conselho, refúgio, hora e rede, tudo na tela ao mesmo tempo
   dt.releMotivo = RELE_CALMO;  dt.refugio = &teste[0];   // dt está em LARANJA (34,6 °C)
   montarTelaOrientacao(dt, tela);
   todas20 = true;
   for (int i = 0; i < LCD_LINHAS; i++) todas20 = todas20 && strlen(tela[i]) == LCD_COLUNAS;
-  verificar(p, todas20 && strstr(tela[0], "Beba agua e descanse") && strstr(tela[1], "Va: Praca 400m"),
-            "LCD 2: no LARANJA, conselho e refúgio aparecem juntos (4 linhas de 20)");
+  verificar(p, todas20 && lcdTem(tela[0], "Beba água e descanse") && lcdTem(tela[1], "→ Praca")
+               && lcdTem(tela[2], "a 400m a pé") && strstr(tela[2], "09:05"),
+            "LCD 2: no LARANJA, conselho, refúgio (→ nome; a 400m a pé) e hora juntos (4 linhas de 20)");
+  const Refugio shop = {"Rua da Praia", 448, 9, 17, 11, 17, true};
+  dt.refugio = &shop;  montarTelaOrientacao(dt, tela);
+  verificar(p, lcdTem(tela[1], "→ Rua da Praia") && strncmp(tela[2], "Shopping 448m", 13) == 0
+               && strcmp(tela[2] + 15, "09:05") == 0,
+            "LCD 2: o shopping aparece em 2 linhas (→ Rua da Praia / Shopping 448m), com a hora no canto");
+  dt.refugio = &teste[0];
   montarTela(dt, tela);
   verificar(p, strstr(tela[1], "T30.2C") != nullptr, "LCD 1: com risco alto, as leituras continuam na tela");
   dt.nivel = RISCO_VERMELHO;  montarTelaOrientacao(dt, tela);
@@ -322,11 +385,12 @@ inline bool rodarAutoteste() {
   verificar(p, strstr(tela[0], "SUSPENDA ATIVIDADES") != nullptr, "LCD 2: no ROXO, o conselho é suspender as atividades");
   dt.nivel = RISCO_VERMELHO;  dt.refugio = nullptr;  montarTelaOrientacao(dt, tela);
   verificar(p, strstr(tela[1], "Procure uma sombra") != nullptr, "LCD 2: sem refúgio aberto, manda procurar sombra");
-  const Refugio longe = {"NomeMuitoComprido", 9900, -1, 0, 0, 0, false};
+  const Refugio longe = {"Nome Muito Comprido Demais", 9900, -1, 0, 0, 0, false};
   dt.refugio = &longe;  montarTelaOrientacao(dt, tela);
-  verificar(p, strstr(tela[1], "9.9km") && strlen(tela[1]) == LCD_COLUNAS, "LCD 2: nome longo e 9,9 km cabem na linha");
+  verificar(p, strstr(tela[2], "9,9km") && strlen(tela[1]) == LCD_COLUNAS && strlen(tela[2]) == LCD_COLUNAS,
+            "LCD 2: nome longo é cortado em 20 colunas e 9,9 km cabe na linha");
   dt.nivel = RISCO_AMARELO;  dt.refugio = &teste[0];  montarTelaOrientacao(dt, tela);
-  verificar(p, strstr(tela[0], "beba agua") && strstr(tela[1], "Pausas na sombra") && !strstr(tela[1], "Va:"),
+  verificar(p, lcdTem(tela[0], "beba água") && strstr(tela[1], "Pausas na sombra") && !strchr(tela[1], SETA_DIREITA),
             "LCD 2: no AMARELO, água e pausas, sem mandar ao refúgio");
   dt.nivel = RISCO_VERDE;  dt.ta = 22;  montarTelaOrientacao(dt, tela);
   verificar(p, strstr(tela[0], "Sem risco de calor") != nullptr, "LCD 2: no VERDE, sem risco de calor");
@@ -334,7 +398,7 @@ inline bool rodarAutoteste() {
   verificar(p, strstr(tela[0], "Frio") != nullptr, "LCD 2: abaixo de 9 °C, avisa o frio");
   ruim.refugio = &teste[0];
   montarTelaOrientacao(ruim, tela);
-  verificar(p, strstr(tela[0], "Sem leitura") && strstr(tela[1], "Na duvida") && !strstr(tela[1], "Va:"),
+  verificar(p, strstr(tela[0], "Sem leitura") && lcdTem(tela[1], "Na dúvida") && !strchr(tela[1], SETA_DIREITA),
             "LCD 2: SEM DADO nunca manda ao refúgio (não sabe se há risco), mas aconselha a sombra");
 
   // --- Dia ou noite (sol.h): à noite, nada de "sombra" ---
@@ -355,7 +419,7 @@ inline bool rodarAutoteste() {
   verificar(p, periodoDoDia(true, MEIO_DIA - 9 * HORA, -30, -51, true, 90000, 50) == PERIODO_NOITE,
             "período: o relógio vence o LDR (luz forte às 3h é um poste, não o sol)");
   ruim.noite = true;  montarTelaOrientacao(ruim, tela);
-  verificar(p, strstr(tela[0], "Sem leitura") && !strstr(tela[1], "sombra") && strstr(tela[1], "agua"),
+  verificar(p, strstr(tela[0], "Sem leitura") && !strstr(tela[1], "sombra") && lcdTem(tela[1], "água"),
             "LCD 2: SEM DADO à noite não fala de sombra; fala de água");
   dt.noite = true;  dt.ta = 30;  dt.nivel = RISCO_AMARELO;  montarTelaOrientacao(dt, tela);
   verificar(p, strstr(tela[1], "Lugar ventilado") && !strstr(tela[1], "sombra"), "LCD 2: AMARELO à noite = lugar ventilado");
@@ -426,12 +490,12 @@ inline bool rodarAutoteste() {
   bool nomesCabem = true, horariosOk = true, tem24h = false;
   for (int i = 0; i < NUM_REFUGIOS; i++) {
     const Refugio& r = REFUGIOS[i];
-    nomesCabem &= strlen(r.nome) >= 1 && strlen(r.nome) <= 10;
+    nomesCabem &= colunasNoLcd(r.nome) >= 1 && colunasNoLcd(r.nome) <= 18;   // "→ " + nome = 20
     if (r.abreH < 0) tem24h = true;
     else horariosOk &= r.abreH < r.fechaH && r.fechaH <= 24
                        && (r.domAbreH < 0 || (r.domAbreH < r.domFechaH && r.domFechaH <= 24));
   }
-  verificar(p, NUM_REFUGIOS >= 1 && nomesCabem, "estação: refúgios com nome de 1 a 10 letras (cabe no LCD 2)");
+  verificar(p, NUM_REFUGIOS >= 1 && nomesCabem, "estação: refúgios com nome de 1 a 18 colunas, contando o acento como 1 (cabe no LCD 2)");
   verificar(p, tem24h, "estação: pelo menos 1 refúgio 24 h (à noite ou sem relógio, sempre há para onde ir)");
   verificar(p, horariosOk, "estação: cada refúgio com horário abre antes de fechar (na semana e no domingo)");
   verificar(p, LAT_ESTACAO > -30.27 && LAT_ESTACAO < -29.93 && LON_ESTACAO > -51.31 && LON_ESTACAO < -51.01,

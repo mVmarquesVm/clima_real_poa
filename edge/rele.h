@@ -22,6 +22,10 @@
 // RELE_MAX_LIGADO_MS; "rele:off" desliga até chegar "rele:auto"
 // (por exemplo, para a manutenção do nebulizador). O fail-safe vale
 // MESMO com comando remoto: a nuvem não liga o relé às cegas.
+//
+// Botão de manutenção (botao.h): desliga por MANUTENCAO_MS e vence
+// TUDO, até o "rele:on" da nuvem: quem está com a mão no bico do
+// nebulizador manda mais do que quem está longe, no navegador.
 // Tudo é lógica pura: recebe o "agora" e devolve a decisão.
 // ============================================================
 
@@ -36,7 +40,8 @@ enum MotivoRele {
   RELE_LIGADO_CALOR,   // ligado: risco alto confirmado
   RELE_LIGADO_ESFRIANDO, // ligado: já esfriou, mas esperando a calma se confirmar
   RELE_REMOTO_LIGADO,    // ligado por comando da nuvem ("rele:on")
-  RELE_REMOTO_DESLIGADO  // desligado por comando da nuvem ("rele:off")
+  RELE_REMOTO_DESLIGADO, // desligado por comando da nuvem ("rele:off")
+  RELE_MANUTENCAO        // desligado pelo botão de manutenção (no local)
 };
 
 enum ModoRele { MODO_AUTO, MODO_LIGAR, MODO_DESLIGAR };
@@ -60,11 +65,21 @@ struct ControleRele {
   unsigned long calmaDesdeMs   = 0;
   ModoRele      modo           = MODO_AUTO;   // comando remoto
   unsigned long modoDesdeMs    = 0;
+  bool          manutencao     = false;   // botão de manutenção apertado
+  unsigned long manutencaoDesdeMs = 0;
 };
 
 inline void definirModoRele(ControleRele& r, ModoRele modo, unsigned long agora) {
   r.modo        = modo;
   r.modoDesdeMs = agora;
+}
+
+// O botão alterna: 1º aperto entra na manutenção, 2º aperto sai.
+// Devolve o estado novo (true = em manutenção).
+inline bool alternarManutencao(ControleRele& r, unsigned long agora) {
+  r.manutencao        = !r.manutencao;
+  r.manutencaoDesdeMs = agora;
+  return r.manutencao;
 }
 
 inline const char* textoMotivoRele(MotivoRele m) {
@@ -76,6 +91,7 @@ inline const char* textoMotivoRele(MotivoRele m) {
     case RELE_LIGADO_CALOR:     return "calor";
     case RELE_REMOTO_LIGADO:    return "remoto-on";
     case RELE_REMOTO_DESLIGADO: return "remoto-off";
+    case RELE_MANUTENCAO:       return "manutencao";
     default:                    return "esfriando";
   }
 }
@@ -94,6 +110,17 @@ inline void mudarRele(ControleRele& r, bool ligar, unsigned long agora) {
 //   limiteLiga = a partir de que TA o risco é "alto" (o início do LARANJA)
 inline bool atualizarRele(ControleRele& r, float ta, bool confiavel,
                           float limiteLiga, unsigned long agora) {
+  // Botão de manutenção: vence tudo, até acabar o tempo
+  if (r.manutencao) {
+    if (agora - r.manutencaoDesdeMs < MANUTENCAO_MS) {
+      if (r.ligado) mudarRele(r, false, agora);
+      r.riscoContando = false;
+      r.motivo = RELE_MANUTENCAO;
+      return false;
+    }
+    r.manutencao = false;   // acabou o tempo: volta ao automático sozinho
+  }
+
   // Regra 4: fail-safe
   if (!confiavel || isnan(ta)) {
     if (r.ligado) mudarRele(r, false, agora);

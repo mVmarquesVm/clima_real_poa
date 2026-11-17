@@ -10,24 +10,28 @@
 //   TA  36.6C  LARANJA     <- valor atual e nível de risco
 //   T30.0C U50% V0.0m/s    <- leituras (ou o problema, se houver)
 //   Sol  50000lx Q 50      <- luz do sol e a radiação que entra na conta
-//   Rele:LIGADO   02:15    <- status do atuador (REMOTO = ligado pela nuvem)
+//   Relé:LIGADO   02:15    <- status do atuador (REMOTO = ligado pela nuvem)
 //
-// LCD 2 — ORIENTACAO (endereço I2C 0x26): o que a pessoa deve fazer,
+// LCD 2 — ORIENTAÇÃO (endereço I2C 0x26): o que a pessoa deve fazer,
 // sem depender de app (conselhos da nota técnica da SMS de POA)
-//   Beba agua e descanse   <- conselho do nível
-//   Va: Praca XV 24m       <- refúgio mais perto e aberto (do LARANJA para cima)
-//   Hora 15:42             <- relógio da internet (NTP)
+//   Beba água e descanse   <- conselho do nível
+//   → Rua da Praia         <- refúgio (do LARANJA para cima): o refrigerado
+//   Shopping 448m   15:42  <-   aberto ganha; senão, o mais perto ("a 24m a pé")
 //   E1 WiFi:OK  MQTT:OK    <- estação e conexão
+// Sem refúgio para indicar, as linhas 2 e 3 voltam a "Pausas na sombra"
+// e "Hora 15:42".
 //
-// Cada linha tem SEMPRE 20 caracteres (completa com espaços): assim
+// Cada linha tem SEMPRE 20 colunas (completa com espaços): assim
 // não precisa de lcd.clear(), que faz a tela piscar a cada 2 s.
-// O LCD não tem acento, por isso os textos são sem acento.
+// Os textos são escritos com acento (UTF-8) e ajustarLinha traduz para
+// os desenhos das 8 gavetas do LCD (acentos.h).
 // ============================================================
 
 #include <stdio.h>
 #include "risco.h"
 #include "rele.h"
 #include "refugio.h"
+#include "acentos.h"
 
 const int LCD_COLUNAS = 20;
 const int LCD_LINHAS  = 4;
@@ -61,9 +65,18 @@ inline bool deveOrientar(const DadosTela& d) {
   return d.nivel != RISCO_SEM_DADO && d.nivel >= RISCO_LARANJA && !isnan(d.ta);
 }
 
-// Copia o texto e completa com espaços até 20 (corta se passar).
+// Prefere o refrigerado (shopping) neste nível? Do LARANJA para cima,
+// com dado confiável (ver PREFERIR_REFRIGERADO no config.h).
+inline bool deveIndicarRefrigerado(NivelRisco nivel) {
+  return PREFERIR_REFRIGERADO && nivel != RISCO_SEM_DADO && nivel >= RISCO_LARANJA;
+}
+
+// Traduz o texto para o LCD (acentos) e completa com espaços até 20
+// colunas (corta se passar). Depois do paraLcd, 1 byte = 1 coluna.
 inline void ajustarLinha(char destino[LCD_COLUNAS + 1], const char* texto) {
-  snprintf(destino, LCD_COLUNAS + 1, "%-20.20s", texto);
+  char lcd[64];
+  paraLcd(lcd, sizeof(lcd), texto);
+  snprintf(destino, LCD_COLUNAS + 1, "%-20.20s", lcd);
 }
 
 // ---------- LCD 1: MEDICAO ----------
@@ -92,15 +105,16 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
   // Linha 3: o relé (ligado mostra há quanto tempo, em mm:ss)
   if (d.releLigado) {
     unsigned long s = d.releHaMs / 1000;
-    snprintf(tmp, sizeof(tmp), "Rele:%-8s %02lu:%02lu",
+    snprintf(tmp, sizeof(tmp), "Relé:%-8s %02lu:%02lu",
              d.releMotivo == RELE_REMOTO_LIGADO ? "REMOTO" : "LIGADO", s / 60, s % 60);
   } else {
     const char* porque = d.releMotivo == RELE_CONFIRMANDO ? "DESL confirma"
                        : d.releMotivo == RELE_DESCANSO    ? "DESL descanso"
                        : d.releMotivo == RELE_BLOQUEADO   ? "DESL (falha)"
                        : d.releMotivo == RELE_REMOTO_DESLIGADO ? "DESL remoto"
+                       : d.releMotivo == RELE_MANUTENCAO  ? "DESL manutenção"
                                                           : "desligado";
-    snprintf(tmp, sizeof(tmp), "Rele:%s", porque);
+    snprintf(tmp, sizeof(tmp), "Relé:%s", porque);
   }
   ajustarLinha(linhas[3], tmp);
 }
@@ -114,9 +128,9 @@ inline void montarTela(const DadosTela& d, char linhas[LCD_LINHAS][LCD_COLUNAS +
 inline const char* conselhoDoNivel(const DadosTela& d) {
   switch (d.nivel) {
     case RISCO_ROXO:     return "SUSPENDA ATIVIDADES";
-    case RISCO_VERMELHO: return d.noite ? "LUGAR FRESCO + AGUA" : "SAIA DO SOL + AGUA";
-    case RISCO_LARANJA:  return "Beba agua e descanse";
-    case RISCO_AMARELO:  return "Calor: beba agua";
+    case RISCO_VERMELHO: return d.noite ? "LUGAR FRESCO + ÁGUA" : "SAIA DO SOL + ÁGUA";
+    case RISCO_LARANJA:  return "Beba água e descanse";
+    case RISCO_AMARELO:  return "Calor: beba água";
     case RISCO_VERDE:    return (!isnan(d.ta) && d.ta < LIMITE_FRIO_C) ? "Frio: se agasalhe" : "Sem risco de calor";
     default:             return "Sem leitura agora";
   }
@@ -129,27 +143,40 @@ inline void montarTelaOrientacao(const DadosTela& d, char linhas[LCD_LINHAS][LCD
   // Linha 0: o conselho
   ajustarLinha(linhas[0], conselhoDoNivel(d));
 
-  // Linha 1: para onde ir. Do LARANJA para cima, o refúgio mais perto
-  // que está aberto; no AMARELO, pausas; sem dado, o lado seguro.
-  if (deveOrientar(d) && d.refugio != nullptr) {
-    textoDistancia(dist, sizeof(dist), d.refugio->distanciaM);
-    snprintf(tmp, sizeof(tmp), "Va: %.10s %s", d.refugio->nome, dist);
-  } else if (deveOrientar(d)) {
-    // nenhum refúgio aberto agora
-    snprintf(tmp, sizeof(tmp), d.noite ? "Procure lugar fresco" : "Procure uma sombra");
-  } else if (d.nivel == RISCO_AMARELO) {
-    snprintf(tmp, sizeof(tmp), d.noite ? "Lugar ventilado" : "Pausas na sombra");
-  } else if (d.nivel == RISCO_SEM_DADO) {
-    snprintf(tmp, sizeof(tmp), d.noite ? "Abafado? Beba agua" : "Na duvida: sombra");
-  } else {
-    tmp[0] = '\0';
-  }
-  ajustarLinha(linhas[1], tmp);
+  char hora[6];
+  if (d.hora >= 0 && d.minuto >= 0) snprintf(hora, sizeof(hora), "%02d:%02d", d.hora, d.minuto);
+  else                              snprintf(hora, sizeof(hora), "--:--");
 
-  // Linha 2: a hora (mostra que o relógio da internet está valendo)
-  if (d.hora >= 0 && d.minuto >= 0) snprintf(tmp, sizeof(tmp), "Hora %02d:%02d", d.hora, d.minuto);
-  else                              snprintf(tmp, sizeof(tmp), "Hora --:--");
-  ajustarLinha(linhas[2], tmp);
+  // Linhas 1 e 2: para onde ir. Do LARANJA para cima, o refúgio (nome
+  // inteiro na linha 1; na linha 2, "Shopping 448m" ou "a 24m a pé", e
+  // a hora no canto). No AMARELO, pausas; sem dado, o lado seguro.
+  if (deveOrientar(d) && d.refugio != nullptr) {
+    snprintf(tmp, sizeof(tmp), "→ %s", d.refugio->nome);
+    ajustarLinha(linhas[1], tmp);
+    textoDistancia(dist, sizeof(dist), d.refugio->distanciaM);
+    char comoChegar[32];
+    if (d.refugio->refrigerado) snprintf(comoChegar, sizeof(comoChegar), "Shopping %s", dist);
+    else                        snprintf(comoChegar, sizeof(comoChegar), "a %s a pé", dist);
+    char lcd[32];
+    paraLcd(lcd, sizeof(lcd), comoChegar);             // "é" ocupa 1 coluna só depois de traduzido
+    snprintf(tmp, sizeof(tmp), "%-14.14s %s", lcd, hora);
+    snprintf(linhas[2], LCD_COLUNAS + 1, "%-20.20s", tmp);   // já está traduzido: não passa de novo
+  } else {
+    if (deveOrientar(d)) {
+      // nenhum refúgio aberto agora
+      snprintf(tmp, sizeof(tmp), d.noite ? "Procure lugar fresco" : "Procure uma sombra");
+    } else if (d.nivel == RISCO_AMARELO) {
+      snprintf(tmp, sizeof(tmp), d.noite ? "Lugar ventilado" : "Pausas na sombra");
+    } else if (d.nivel == RISCO_SEM_DADO) {
+      snprintf(tmp, sizeof(tmp), d.noite ? "Abafado? Beba água" : "Na dúvida: sombra");
+    } else {
+      tmp[0] = '\0';
+    }
+    ajustarLinha(linhas[1], tmp);
+    // Linha 2: a hora (mostra que o relógio da internet está valendo)
+    snprintf(tmp, sizeof(tmp), "Hora %s", hora);
+    ajustarLinha(linhas[2], tmp);
+  }
 
   // Linha 3: estação e conexão
   snprintf(tmp, sizeof(tmp), "%s WiFi:%s  MQTT:%s", d.estacao,

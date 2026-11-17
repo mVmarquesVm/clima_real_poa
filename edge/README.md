@@ -13,9 +13,10 @@
 - **Watchdog do programa:** se o `loop()` travar por mais de 8 s, o ESP32 reinicia sozinho e, no boot, mostra o motivo.
 - **Defesa da leitura** em 3 barreiras: faixa física do sensor, filtro de salto e contador de falhas seguidas.
 - **Vigia do sensor:** detecta sensor em falha, instável ou travado, tenta consertá-lo em escada e **avisa**.
-- **Autoteste no boot:** 144 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do display, do dia e da noite, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
+- **Autoteste no boot:** 156 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do botão, do display, do dia e da noite, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
 - **LEDs de risco** (verde, amarelo, laranja, vermelho e roxo), nas 5 faixas da nota técnica da Secretaria Municipal de Saúde de Porto Alegre, com limites configuráveis e histerese.
 - **Relé do nebulizador**, decidido no próprio ESP32: liga só com risco alto **seguido**, desliga com folga (histerese), respeita tempo mínimo desligado e máximo ligado, e **desliga na hora** se o dado não for confiável.
+- **Botão físico de manutenção**, lido por **interrupção** com **debounce**: o zelador aperta e o nebulizador desliga na hora, por um tempo limitado, vencendo até o comando da nuvem.
 - **2 LCDs 20x4 (I2C):** o LCD 1 (medição) mostra a sensação, o nível de risco, as leituras (ou o problema), o sol e o status do relé; o LCD 2 (orientação) mostra o conselho do nível, o refúgio mais perto que esteja aberto, a hora e o status WiFi/MQTT, sem depender de app.
 - **Nuvem (ThingSpeak):** publica por **MQTT** a cada 20 s, reconecta o WiFi e o MQTT com **espera crescente** sem travar o `loop()`, e recebe **comandos remotos** pelo field8 (limites de risco e ligar/desligar o relé), com validação completa.
 
@@ -75,7 +76,24 @@ O ESP32 decide sozinho, sem depender da nuvem: se a internet cair, o nebulizador
 | Tempo máximo ligado | 10 min | 30 min | não esvazia a caixa d'água nem encharca o chão |
 | Sem dado confiável (sensor em falha, modo seguro) | na hora | na hora | **fail-safe**: melhor sem névoa do que névoa sem controle |
 
+| Botão de manutenção apertado | 2 min | 30 min | quem limpa o bico do nebulizador não leva névoa na cara; o tempo acaba sozinho para ninguém esquecer o equipamento desligado |
+
 Os tempos do Wokwi são curtos para dar para ver tudo no vídeo; ficam em `config.h`. O relé também nasce **desligado**: é a primeira coisa do `setup()`, antes até do autoteste.
+
+## O botão de manutenção (interrupção + debounce)
+No Wokwi, é o botão preto **MANUTENCAO**, ligado ao GPIO 13 e ao GND, com o pull-up interno do ESP32 (solto = HIGH, apertado = LOW).
+
+- **1º aperto:** o nebulizador desliga na hora e o LCD 1 mostra `Relé:DESL manutenção`. Ele fica desligado por 2 min no Wokwi (30 min numa estação real), mesmo com calor e mesmo com `rele:on` vindo da nuvem: quem está com a mão no equipamento manda mais do que quem está no navegador. O fail-safe continua valendo.
+- **2º aperto** (ou o fim do tempo): volta ao automático, e o Serial avisa.
+- Segurar o botão conta **1 aperto só**.
+
+**Por que interrupção:** o ESP32 não fica olhando o pino a cada volta do `loop()`. Quando o pino cai (borda `FALLING`), a interrupção (`aoApertarBotao`, em `IRAM_ATTR`) anota o momento e volta ao que estava fazendo, como uma campainha.
+
+**Por que debounce:** o contato de um botão **treme**: ao apertar e ao soltar, ele abre e fecha várias vezes em poucos milissegundos (o botão do Wokwi também simula isso). Sem o debounce, 1 aperto viraria 3 ou 4, e o nebulizador ligaria e desligaria sozinho. A conferência é feita no `loop()` (`confirmarAperto`, em `botao.h`): só vale se o pino ficou **50 ms sem tremer** e continua em LOW. Se voltou a HIGH, era a tremida de quem soltou.
+
+É a mesma técnica do anemômetro (interrupção + debounce de 5 ms), só que com um tempo maior, porque um dedo nunca aperta 2 vezes em 50 ms.
+
+> No Wokwi grátis, com várias simulações abertas, a velocidade cai para 3 a 12% da real. Aí um clique rápido dura menos de 50 ms **no tempo da simulação** e é ignorado: **segure o botão por cerca de 1 s**.
 
 ## Os displays (2 LCDs 20x4 I2C)
 São duas telas no mesmo fio I2C, com endereços diferentes: uma para **o que a estação mede** e outra para **o que a pessoa deve fazer**. Assim nada precisa ficar trocando na tela.
@@ -85,7 +103,7 @@ São duas telas no mesmo fio I2C, com endereços diferentes: uma para **o que a 
 TA  36.6C  LARANJA       <- sensação térmica e nível de risco
 T30.0C U50% V0.0m/s      <- temperatura, umidade e vento (ou o problema, com "!")
 Sol  50000lx Q 50        <- luz do sol (lux) e a radiação que entra na conta (Q, W/m²)
-Rele:LIGADO   02:15      <- relé e há quanto tempo está ligado
+Relé:LIGADO   02:15      <- relé e há quanto tempo está ligado
 ```
 - **Linha 1:** a sensação térmica (`TA`) e a cor do risco. `TA --.-C SEM DADO` quer dizer que não há leitura confiável. `TA  -5.9C  FRIO` aparece no lugar de `VERDE` quando a TA está abaixo de 9 °C.
 - **Linha 2:** as leituras. Se houver problema, ela mostra o mais grave, começando com `!`: `!MODO SEGURO`, `!MANUTENCAO SENSOR`, `!SENSOR EM FALHA`, `!SENSOR INSTAVEL`, `!SENSOR TRAVADO`, `!AGUARDANDO SENSOR`, `!VENTO ERRO: usa 0` ou `!LDR ERRO: usa sol`.
@@ -95,24 +113,29 @@ Rele:LIGADO   02:15      <- relé e há quanto tempo está ligado
   - `desligado`: sem risco alto;
   - `DESL confirma`: risco alto, esperando se confirmar;
   - `DESL descanso`: no tempo mínimo desligado;
-  - `DESL (falha)`: bloqueado pelo fail-safe.
+  - `DESL (falha)`: bloqueado pelo fail-safe;
+  - `DESL remoto`: desligado pela nuvem (`rele:off`);
+  - `DESL manutenção`: desligado pelo botão de manutenção.
 
 **LCD 2 — Orientação (endereço 0x26)**
 ```
-Beba agua e descanse     <- o conselho do nível
-Va: Praca XV 24m         <- o refúgio mais perto que está aberto agora
-Hora 15:42               <- relógio da internet (NTP)
+Beba água e descanse     <- o conselho do nível
+→ Rua da Praia           <- para onde ir (do LARANJA para cima)
+Shopping 448m   15:42    <- shopping ou "a 24m a pé", e a hora (NTP)
 E1 WiFi:OK  MQTT:OK      <- estação e conexão
 ```
+Sem refúgio para indicar (verde, amarelo, sem dado), as linhas 2 e 3 voltam a mostrar a orientação (`Pausas na sombra`, por exemplo) e `Hora 15:42`.
 
-| Nível | Linha 1 (conselho) | Linha 2 | À noite |
+| Nível | Linha 1 (conselho) | Linhas 2 e 3 | À noite |
 |---|---|---|---|
-| Verde | `Sem risco de calor` (abaixo de 9 °C: `Frio: se agasalhe`) | vazia | igual |
-| Amarelo | `Calor: beba agua` | `Pausas na sombra` | linha 2: `Lugar ventilado` |
-| Laranja | `Beba agua e descanse` | `Va: <refúgio> <distância>` | igual |
-| Vermelho | `SAIA DO SOL + AGUA` | `Va: <refúgio> <distância>` | linha 1: `LUGAR FRESCO + AGUA` |
-| Roxo | `SUSPENDA ATIVIDADES` | `Va: <refúgio> <distância>` | igual |
-| Sem dado | `Sem leitura agora` | `Na duvida: sombra` (nunca manda ao refúgio: não sabe se há risco) | linha 2: `Abafado? Beba agua` |
+| Verde | `Sem risco de calor` (abaixo de 9 °C: `Frio: se agasalhe`) | vazia + `Hora` | igual |
+| Amarelo | `Calor: beba água` | `Pausas na sombra` + `Hora` | linha 2: `Lugar ventilado` |
+| Laranja | `Beba água e descanse` | `→ <refúgio>` + `Shopping <distância>` ou `a <distância> a pé` | igual |
+| Vermelho | `SAIA DO SOL + ÁGUA` | igual ao laranja | linha 1: `LUGAR FRESCO + ÁGUA` |
+| Roxo | `SUSPENDA ATIVIDADES` | igual ao laranja | igual |
+| Sem dado | `Sem leitura agora` | `Na dúvida: sombra` (nunca manda ao refúgio: não sabe se há risco) + `Hora` | linha 2: `Abafado? Beba água` |
+
+**Acentos e ç (`acentos.h`):** o chip dos LCDs (HD44780) vem de fábrica sem ç, ã e é, mas tem 8 "gavetas" onde dá para desenhar uma letra nova, ponto por ponto (5 x 8). As 8 gavetas viram **á Á ç ã â é í ú**, as letras que os textos usam. A seta **→** já vem de fábrica. Os textos ficam escritos com acento no código (UTF-8), e a função `paraLcd` troca cada letra pelo código da gaveta (1 a 8; o 0 não dá, porque marca o fim do texto em C). Uma letra sem desenho vira a letra sem acento (ó → o). Assim, o nome do refúgio sai **por extenso** (`Praça da Alfândega`, e não `Pc Alfand.`), com até 18 colunas.
 
 Os conselhos seguem a nota técnica da SMS de POA: hidratação e pausas na sombra no amarelo; evitar o sol do laranja para cima; suspender as atividades no roxo. A linha 4 mostra o ID da estação e o status do WiFi e do MQTT (`OK` ou `--`).
 
@@ -127,7 +150,8 @@ O relógio vence o LDR porque um poste perto da estação acenderia o LDR à noi
 
 Quem não tem celular, está sem bateria ou não pode parar para olhar a tela (o ambulante do Largo, por exemplo) também precisa saber o que fazer. Por isso, o LCD 2 orienta **sem depender de app**.
 
-- **Quais refúgios:** uma praça com sombra de árvore (aberta 24 h) ou um shopping (ar-condicionado, água e banheiro). O LCD indica o **mais perto que estiver aberto agora**. O shopping só ganha se estiver mais perto que a praça.
+- **Quais refúgios:** uma praça com sombra de árvore (aberta 24 h) ou um shopping (ar-condicionado, água e banheiro). Do laranja para cima, o LCD indica o **shopping que estiver aberto agora, mesmo mais longe**; fechado (à noite, domingo cedo, sem relógio), indica o refúgio mais perto que estiver aberto.
+- **Por que o shopping ganha da sombra:** numa entrevista com um usuário do grupo sensível ao calor (`docs/entrevista.md`), ele contou que, com 35 °C de sensação, em 15 minutos já sente tontura e enjoo, e que entre a sombra a 75 m e o shopping a 600 m prefere o shopping: "não importa a distância", o ar-condicionado alivia quase na hora, e a sombra ajuda, mas não basta. A avó dele, idosa e com pressão que piora no calor, faria o mesmo. É uma pessoa só, mas é do público que mais precisa: a regra vale nas 4 estações (`PREFERIR_REFRIGERADO` no `config.h`). Ele também disse que o visor não precisa do horário: "se está indicando, é porque está aberto", e é isso que a estação garante.
 - **Como a estação sabe se o shopping está aberto:** pela hora e pelo dia da semana do relógio da internet (NTP, fuso UTC−3), pedidos quando o WiFi conecta. Sem hora, ela só indica o que é 24 h, para nunca mandar alguém a um lugar fechado. Sem nenhum refúgio aberto, mostra `Procure uma sombra`.
 - **A lista de cada estação** fica no `config.h`, no bloco "Por estação". Ela foi medida no OpenStreetMap (E1 em 15/11/2026; E2 a E4 em 17/11/2026), em linha reta da estação até a borda da praça ou do bosque, ou até a entrada do shopping. "Vale até" é 1 h antes de fechar, para dar tempo de chegar:
 
@@ -143,11 +167,11 @@ Quem não tem celular, está sem bateria ou não pode parar para olhar a tela (o
 | E4 | Praça Rotary | 174 m | 24 h | OSM |
 | E4 | Praia de Belas Shopping (entrada principal) | 531 m | o mesmo da E3 | o mesmo da E3 |
 
-- Em todas as estações, a praça ou o bosque fica mais perto que o shopping, então ganha sempre que está aberto. O shopping fica na lista para a regra valer se a praça não puder ser usada (é só tirá-la da lista).
+- No LCD, os shoppings aparecem em 2 linhas: `→ Rua da Praia` + `Shopping 448m` (E1) e `→ Praia de Belas` + `Shopping 531m` (E4), por exemplo.
 - **E3:** o Harmonia é cercado e abre das 6h às 0h. Das 23h às 6h, o bosque sai da lista e o LCD indica a Orla do Guaíba, que é aberta 24 h.
 - **E4:** a estação já fica sob as árvores (é o controle). Se o risco subir mesmo assim, o LCD indica a Praça Rotary: um local aberto (pega mais vento) e arborizado. Não indica o próprio parque ("Marinha 0m" não ajudaria ninguém).
 - **Domingo:** cada refúgio tem um horário de segunda a sábado e outro de domingo (no domingo, o Rua da Praia Shopping abre das 11h às 18h, e o Praia de Belas Shopping, das 11h às 22h).
-- **Refrigerado no vermelho (E3 e E4):** com risco **vermelho ou roxo**, o LCD indica o Praia de Belas Shopping (ar-condicionado, água e banheiro) no lugar da sombra mais perto, **se ele estiver aberto**. Fechado (de noite, domingo de manhã, sem relógio), volta a valer o mais perto aberto. Nas E1 e E2 a regra fica desligada (`REFRIGERADO_NO_VERMELHO = false` no `config.h`).
+- **Mudança de 17/11/2026:** antes, o shopping só ganhava nas E3 e E4, no vermelho ou no roxo. Depois da entrevista, ele passou a ganhar do laranja para cima, nas 4 estações.
 
 As telas são atualizadas a cada 2 s, só nas linhas que mudaram, sem `lcd.clear()` (que faria a tela piscar). O texto das linhas é montado em `display.h`, uma função pura testada no autoteste (por exemplo: "as 4 linhas têm exatamente 20 caracteres").
 
@@ -192,7 +216,7 @@ No ThingSpeak, a visão pública (*Public View*) e a privada (*Private View*) t�
 | Comando | O que faz |
 |---|---|
 | `lim:28,35,41,52` | Muda onde começam o amarelo, o laranja, o vermelho e o roxo (°C). Ficam guardados na flash (NVS) e valem depois de um reinício |
-| `rele:on` | Liga o nebulizador na hora (o LCD mostra `Rele:REMOTO`). Volta sozinho ao automático depois de 10 min |
+| `rele:on` | Liga o nebulizador na hora (o LCD mostra `Relé:REMOTO`). Volta sozinho ao automático depois de 10 min |
 | `rele:off` | Desliga e segura desligado (por exemplo, para a manutenção do nebulizador) |
 | `rele:auto` | Volta à decisão automática da estação |
 
@@ -259,8 +283,10 @@ Depois de 10 min funcionando bem, o contador de reinícios volta a zero.
 | `defesa.h` | As 3 barreiras contra leitura ruim |
 | `vigia.h` | Detectores de sensor instável ou travado e a escada de recuperação |
 | `risco.h` | Os níveis de risco, a histerese da cor e qual LED acende |
-| `rele.h` | A máquina de estados do relé (confirmação, histerese, descanso, fail-safe) |
+| `rele.h` | A máquina de estados do relé (confirmação, histerese, descanso, manutenção, fail-safe) |
+| `botao.h` | O debounce do botão de manutenção (a interrupção anota, o `loop()` confere) |
 | `display.h` | O texto das 4 linhas de cada LCD (medição e orientação) |
+| `acentos.h` | Os 8 desenhos de letra (á Á ç ã â é í ú) e a tradução dos textos para o LCD |
 | `refugio.h` | Escolhe o refúgio mais perto que está aberto agora |
 | `sol.h` | Dia ou noite, pela posição do sol (ou pelo LDR, sem relógio) |
 | `rede.h` | A espera crescente (backoff) das reconexões |
@@ -285,6 +311,7 @@ Depois de 10 min funcionando bem, o contador de reinícios volta a zero.
 | LED verde / amarelo / laranja / vermelho / roxo | ânodo (via resistor de 220 Ω) | GPIO 32 / 33 / 25 / 26 / 19 |
 | LEDs | cátodo | GND |
 | Relé | IN | GPIO 18 |
+| Botão de manutenção | um lado / outro lado | GPIO 13 (pull-up interno, interrupção) / GND |
 | Relé | VCC / GND | 5V / GND |
 | Relé | COM → NO | 3V3 → resistor de 220 Ω → LED azul (nebulizador) → GND |
 | LCD 1 (0x27) e LCD 2 (0x26), 20x4 I2C | SDA / SCL | GPIO 21 / GPIO 22 (os dois no mesmo I2C padrão do ESP32) |
@@ -297,7 +324,7 @@ O LDR fica num pino do **ADC1** de propósito: o ADC2 do ESP32 para de funcionar
 ## Como rodar no Wokwi
 1. Em [wokwi.com](https://wokwi.com), crie um projeto novo de **ESP32 (Arduino)**.
 2. Substitua o `sketch.ino`, o `diagram.json` e o `libraries.txt` pelos desta pasta.
-3. Crie os arquivos `config.h`, `sensacao.h`, `conversao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h`, `nuvem.h` e `autoteste.h` (botão de novo arquivo) e cole o conteúdo de cada um. Crie também o `secrets.h` a partir do `secrets.example.h`, com os valores do seu canal (ver "Como criar o canal e a credencial no ThingSpeak").
+3. Crie os arquivos `config.h`, `sensacao.h`, `conversao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `botao.h`, `display.h`, `acentos.h`, `refugio.h`, `sol.h`, `rede.h`, `nuvem.h` e `autoteste.h` (botão de novo arquivo) e cole o conteúdo de cada um. Crie também o `secrets.h` a partir do `secrets.example.h`, com os valores do seu canal (ver "Como criar o canal e a credencial no ThingSpeak").
 4. Crie os arquivos `anemometro.chip.json` e `anemometro.chip.c` e cole o conteúdo de cada um. O nome tem que ser exatamente esse: o `diagram.json` procura o chip pelo nome (`chip-anemometro`).
 5. Clique em ▶ e veja o **Serial Monitor**.
 
@@ -318,15 +345,15 @@ Os valores de cada Wokwi (temperatura, umidade, vento e sol) são ajustados à m
 | `d` | Queda do WiFi por 30 s | O LCD 2 mostra `WiFi:--  MQTT:--`, o Serial mostra `ALERTA`, e depois a estação reconecta sozinha |
 | `m` | Queda só do MQTT por 30 s | O LCD 2 mostra `WiFi:OK  MQTT:--` e o Serial avisa a queda; depois dos 30 s, a estação reconecta sozinha |
 
-Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 reinícios, a estação para de reiniciar e pede técnico.
+Para ver o **modo manutenção do sensor**, use `f` três vezes seguidas: depois de 2 reinícios, a estação para de reiniciar e pede técnico. (É outra coisa que o **botão de manutenção**, que só desliga o nebulizador: ver a seção do botão.)
 
 ## O que conferir
-- O autoteste mostra **"144 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
+- O autoteste mostra **"156 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
 - Em poucos segundos, o Serial mostra `OK: WiFi conectado` e `OK: MQTT conectado ao ThingSpeak`, e a linha 4 do LCD 2 fica `E1 WiFi:OK  MQTT:OK`; a linha 3 passa a mostrar a hora (`Hora 15:42`). A cada 20 s aparece `MQTT: publicado -> field1=...`, e o gráfico do canal no ThingSpeak ganha um ponto.
 - A cada 2 s aparece uma linha como `[E1] T=30.0 C  UR=50%  Vento=0.0 m/s  Luz=50000 lux (Q=50 W/m2)  Sensacao=36.6 C | risco=LARANJA rele=OFF(confirmando) | sensor=OK`. O vento começa em 0 (ver o aviso abaixo).
-- Com 36,6 °C de sensação, o LED **laranja** acende e, 10 s depois, o relé liga (o LED azul acende e o LCD mostra `Rele:LIGADO`).
-- Com o risco em LARANJA, o LCD 2 mostra `Beba agua e descanse` e `Va: Praca XV 24m`, e o LCD 1 continua com as leituras. Suba a temperatura até o VERMELHO (TA ≥ 40 °C): o conselho vira `SAIA DO SOL + AGUA`. Com 40 °C e 60% no DHT22 e o LDR no máximo, a TA passa de 52 °C: o LED **roxo** acende e o conselho vira `SUSPENDA ATIVIDADES`.
-- Com 30 °C e 50% no DHT22 e o LDR no escuro (sem sol), a TA fica em ~33,1 °C: **amarelo**, e o LCD 2 mostra `Calor: beba agua` e `Pausas na sombra`, sem mandar ao refúgio. É o "dia comum" de Porto Alegre. Se você testar à noite, a linha 2 mostra `Lugar ventilado`: a estação usa a hora de verdade (NTP).
+- Com 36,6 °C de sensação, o LED **laranja** acende e, 10 s depois, o relé liga (o LED azul acende e o LCD mostra `Relé:LIGADO`).
+- Com o risco em LARANJA, o LCD 2 mostra `Beba água e descanse`, `→ Rua da Praia` e `Shopping 448m` (de dia, com o shopping aberto; à noite, `→ Praça XV` e `a 24m a pé`), e o LCD 1 continua com as leituras. Suba a temperatura até o VERMELHO (TA ≥ 40 °C): o conselho vira `SAIA DO SOL + ÁGUA`. Com 40 °C e 60% no DHT22 e o LDR no máximo, a TA passa de 52 °C: o LED **roxo** acende e o conselho vira `SUSPENDA ATIVIDADES`.
+- Com 30 °C e 50% no DHT22 e o LDR no escuro (sem sol), a TA fica em ~33,1 °C: **amarelo**, e o LCD 2 mostra `Calor: beba água` e `Pausas na sombra`, sem mandar ao refúgio. É o "dia comum" de Porto Alegre. Se você testar à noite, a linha 2 mostra `Lugar ventilado`: a estação usa a hora de verdade (NTP).
 - Baixe a temperatura do DHT22 até a sensação ficar abaixo de 30 °C: o LCD mostra `DESL` só 20 s depois, e o relé não religa antes de 30 s de descanso.
 - Digite `f`: o amarelo pisca, o LCD mostra `!SENSOR EM FALHA` e o relé desliga **na hora**.
 - Clique no anemômetro e mexa no slider do vento: o `Vento=` acompanha, e a sensação cai. Com 7 m/s, ela vai para ~30 °C e o risco desce para AMARELO, mas o relé continua ligado (`esfriando`) até a TA ficar abaixo de 30 °C por 20 s: é a histerese.
@@ -338,7 +365,7 @@ Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 rein
 
 ## Testar no PC (sem abrir o Wokwi)
 A pasta `teste_pc/` confere o código no próprio computador, em 3 etapas:
-1. **g++** compila e **roda** os 144 autotestes **4 vezes, uma por estação** (`-DESTACAO=1` a `4`): os 4 testes finais conferem a configuração de cada uma (nomes que cabem no LCD, pelo menos 1 refúgio 24 h, horários que abrem antes de fechar, na semana e no domingo, e o ponto dentro de Porto Alegre). As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
+1. **g++** compila e **roda** os 156 autotestes **4 vezes, uma por estação** (`-DESTACAO=1` a `4`): os 4 testes finais conferem a configuração de cada uma (nomes que cabem no LCD, pelo menos 1 refúgio 24 h, horários que abrem antes de fechar, na semana e no domingo, e o ponto dentro de Porto Alegre). As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
 2. **gcc** roda o **chip do anemômetro** com um Wokwi falso (`teste_pc/wokwi-api.h`) e confere se ele fecha a chave o número certo de vezes em 10 s (por exemplo, 30 vezes com 2 m/s).
 3. **arduino-cli** compila o **firmware inteiro** para o ESP32 (sem o `secrets.h`, ele usa o `secrets.example.h`). Ele acha erros de compilação antes do Wokwi, mas não roda nada: sem a placa, o comportamento só aparece no Wokwi.
 
