@@ -146,3 +146,17 @@ def test_erro_inesperado_vira_500_em_portugues():
         assert resposta.headers["access-control-allow-origin"] == "http://localhost:5173"
     finally:
         app.router.routes[:] = [r for r in app.router.routes if getattr(r, "path", "") != "/_quebra"]
+
+
+def test_requisicoes_ao_mesmo_tempo_nao_dao_500():
+    """Achado no teste da tela de Cadastro (17/11): com requisições simultâneas,
+    o FastAPI abria a conexão numa thread e usava/fechava em outra, e o sqlite3
+    recusava ("SQLite objects created in a thread can only be used in that same
+    thread"). Antes da correção, 35 de 40 davam 500."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    rotas = ["/locais", "/hidratacao"] * 20
+    with TestClient(app, raise_server_exceptions=False) as cliente:
+        with ThreadPoolExecutor(max_workers=20) as grupo:
+            codigos = list(grupo.map(lambda rota: cliente.get(rota).status_code, rotas))
+    assert codigos == [200] * len(rotas)

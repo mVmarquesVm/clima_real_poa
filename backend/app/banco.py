@@ -79,8 +79,15 @@ HIDRATACAO_INICIAL = [
 
 
 def conectar() -> sqlite3.Connection:
-    """Abre o banco. O row_factory faz cada linha virar algo parecido com um dict."""
-    conexao = sqlite3.connect(caminho_do_banco())
+    """Abre o banco. O row_factory faz cada linha virar algo parecido com um dict.
+
+    check_same_thread=False: o FastAPI pode abrir a conexão numa thread (a
+    dependência obter_conexao) e usá-la ou fechá-la em outra (a rota). Por
+    padrão, o sqlite3 recusa isso, e com requisições ao mesmo tempo dava 500.
+    É seguro aqui porque cada requisição tem a SUA conexão, e uma thread de
+    cada vez mexe nela (a dependência, depois a rota, depois o fechamento).
+    """
+    conexao = sqlite3.connect(caminho_do_banco(), check_same_thread=False)
     conexao.row_factory = sqlite3.Row
     return conexao
 
