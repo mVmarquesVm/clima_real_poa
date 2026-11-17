@@ -692,3 +692,28 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Mandei a tabela que serviu de base para os limites e escolhi usar a sensação ao sol.
+
+## Edge — As 4 estações no mesmo firmware (17/11/2026)
+
+**O que eu pedi**
+- Seguir para os 4 Wokwi ao mesmo tempo (uma estação em cada local), com o mesmo firmware.
+- Informei que a tabela dos limites por atividade (passo anterior) foi feita com o Gemini.
+
+**O que a IA gerou**
+- **Refúgios das E2 a E4:** um subagente mediu no OpenStreetMap (Overpass e a API do OSM), em linha reta, da estação até a borda da praça ou do bosque, ou até a entrada do shopping, e buscou os horários (site oficial do Praia de Belas Shopping; o do Rua da Praia Shopping segue com o certificado vencido, então fica o Jornal do Comércio de 2024). E2: Praça da Alfândega 8 m e Rua da Praia Shopping 69 m; E3: bosque do Harmonia 47 m, Orla 200 m e Praia de Belas Shopping 1.193 m; E4: Praça Rotary 174 m e Praia de Belas Shopping 531 m. Bebedouros no OSM a menos de 1 km: só na E4 (72 m e 96 m, sem saber se funcionam).
+- **`config.h`:** a linha `#define ESTACAO 1` escolhe o bloco "Por estação" (nome, ponto da cobertura do solo e refúgios). Um número fora de 1 a 4 nem compila (`#error`). Na E4, o LCD não indica o próprio parque ("Marinha 0m").
+- **Horário de domingo (`refugio.h`):** cada refúgio tem uma faixa de segunda a sábado e outra de domingo (o if/else que eu propus). Praia de Belas: 10h–21h na semana e 14h–19h no domingo (1 h antes de fechar); Rua da Praia Shopping: não abre no domingo (corrigido logo depois: abre, pelo Instagram oficial).
+- **Harmonia:** 6h às 0h todos os dias (conferido no site oficial do parque e no portal de turismo da prefeitura) → o bosque vale das 6h às 23h; fora disso, o LCD indica a Orla, que é 24 h.
+- **Autoteste:** 5 testes novos: 4 conferem a configuração da estação que vai rodar (nomes que cabem no LCD, pelo menos 1 refúgio 24 h, horários coerentes na semana e no domingo, ponto dentro de POA) e 1 confere o horário de domingo: 142 no total. O `testar.ps1` roda os autotestes 4 vezes, uma por estação (`-DESTACAO=1` a `4`).
+- **Refrigerado no vermelho (E3 e E4):** um campo `refrigerado` em cada refúgio e a regra `REFRIGERADO_NO_VERMELHO` por estação. Com risco vermelho ou roxo, o refrigerado aberto mais perto ganha da sombra; fechado, volta o mais perto aberto. 2 testes novos (o shopping ganha no vermelho às 15h; às 23h, no domingo às 11h e sem relógio, fica a sombra ou a Orla): 144/144 nas 4 estações, e o firmware compila (76% da flash).
+- README do Edge: a tabela de refúgios das 4 estações, a seção "As 4 estações (o mesmo firmware)", a regra do refrigerado no vermelho, a proposta "Bateria de reserva e relógio próprio" e as limitações (bebedouros, hora sem internet).
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi fazer as 4 estações no Wokwi, cada uma com o seu canal.
+- Achei o horário do Parque Harmonia (6h às 0h; busca com o Grok e o Gemini, fontes: site oficial do parque e portal de turismo da prefeitura).
+- Propus o if/else do horário para o Praia de Belas entrar no domingo à tarde, em vez de ficar de fora.
+- Corrigi o refúgio da E4: é a **Praça** Rotary (aberta, pega vento e é arborizada), e não o "Bosque Rotary" do OSM.
+- Decidi que, nas E3 e E4, o shopping refrigerado é indicado quando o risco está no vermelho (ou acima).
+- Pesquisei (Grok e Perplexity) os horários de outros possíveis refúgios no Centro e se a prefeitura tem refúgios climáticos. Um subagente conferiu nos sites oficiais: o Rua da Praia Shopping passou a usar o Instagram oficial (seg.–sex. 9h–20h, sáb. 9h–18h, dom. 11h–18h), no lugar da notícia de 2024; o Praia de Belas vale das 11h no domingo (praça de alimentação). O Plano de Ação Climática de POA (2024) prevê "espaços de refúgio do calor" (ação 27), mas não achamos nenhum implantado: entrou no `docs/problema.md`.
+- Decidi deixar de fora os museus (CCMQ, MARGS, Força e Luz) e o Mercado Público: o Mercado não tem ar-condicionado e é mais fresco que a rua só em alguns dias, e o ar dos museus não foi confirmado. Melhor deixar de fora do que mandar a pessoa a um lugar que pode não refrescar.
+- Propus a bateria de reserva para a estação continuar avisando sem energia da rua (ficou como proposta no README, com o relógio DS3231).

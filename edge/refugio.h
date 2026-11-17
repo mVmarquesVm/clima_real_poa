@@ -20,9 +20,11 @@
 struct Refugio {
   const char* nome;        // curto e sem acento (o LCD não tem): até 10 letras
   unsigned int distanciaM; // em linha reta, da estação até a entrada
-  int abreH;               // hora em que abre (0 a 23); -1 = aberto 24 h (praça)
+  int abreH;               // de segunda a sábado: hora em que abre (0 a 23); -1 = aberto 24 h (praça)
   int fechaH;              // vale até esta hora (exclusiva): use 1 h antes de fechar, para dar tempo de chegar
-  bool domingo;            // abre no domingo?
+  int domAbreH;            // no domingo, o horário é outro (muitos shoppings abrem mais tarde):
+  int domFechaH;           //   domAbreH = -1 quer dizer que NÃO abre no domingo
+  bool refrigerado;        // tem ar-condicionado (shopping)? Com risco VERMELHO ou ROXO, pode ganhar da sombra
 };
 
 // Está aberto agora? "hora" (0 a 23) e "dia" (0 = domingo ... 6 = sábado)
@@ -30,19 +32,40 @@ struct Refugio {
 inline bool refugioAberto(const Refugio& r, int hora, int dia) {
   if (r.abreH < 0)          return true;    // praça: sempre aberta
   if (hora < 0 || dia < 0)  return false;   // sem relógio, não arrisca mandar a pessoa para um lugar fechado
-  if (dia == 0 && !r.domingo) return false;
-  return hora >= r.abreH && hora < r.fechaH;
+  // É o if/else do horário: domingo tem a sua própria faixa de horas.
+  // (Em Python: abre, fecha = (dom_abre, dom_fecha) if dia == 0 else (abre, fecha))
+  int abre  = (dia == 0) ? r.domAbreH  : r.abreH;
+  int fecha = (dia == 0) ? r.domFechaH : r.fechaH;
+  if (abre < 0) return false;               // não abre neste dia
+  return hora >= abre && hora < fecha;
 }
 
 // O mais perto entre os que estão abertos agora. nullptr = nenhum.
 // É o mesmo "achar o menor" que se faz em Python com min(..., key=...).
-inline const Refugio* refugioMaisPerto(const Refugio* lista, int n, int hora, int dia) {
+// soRefrigerados = true olha só os que têm ar-condicionado.
+inline const Refugio* maisPertoAberto(const Refugio* lista, int n, int hora, int dia, bool soRefrigerados) {
   const Refugio* melhor = nullptr;
   for (int i = 0; i < n; i++) {
     if (!refugioAberto(lista[i], hora, dia)) continue;
+    if (soRefrigerados && !lista[i].refrigerado) continue;
     if (melhor == nullptr || lista[i].distanciaM < melhor->distanciaM) melhor = &lista[i];
   }
   return melhor;
+}
+
+// Para onde mandar a pessoa AGORA.
+// preferirRefrigerado = true (o sketch liga com risco VERMELHO ou ROXO,
+// nas estações em que a regra vale): primeiro tenta o refrigerado mais
+// perto que está aberto; se nenhum estiver (de noite, domingo cedo, sem
+// relógio), fica o mais perto de todos, como sempre.
+// Em Python: return mais_perto(so_frio=True) or mais_perto()
+inline const Refugio* refugioMaisPerto(const Refugio* lista, int n, int hora, int dia,
+                                       bool preferirRefrigerado = false) {
+  if (preferirRefrigerado) {
+    const Refugio* frio = maisPertoAberto(lista, n, hora, dia, true);
+    if (frio != nullptr) return frio;
+  }
+  return maisPertoAberto(lista, n, hora, dia, false);
 }
 
 // 90 -> "90m"; 1250 -> "1.3km" (cabe em 6 letras até 99,9 km).

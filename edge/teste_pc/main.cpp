@@ -23,6 +23,7 @@ int main() {
   static_assert(sizeof(unsigned long) == 4,
                 "unsigned long precisa ter 4 bytes, como no ESP32");
 
+  printf("=== Forno Alegre | estacao %s (%s) ===\n", ID_ESTACAO, NOME_ESTACAO);
   bool tudoPassou = rodarAutoteste();
   return tudoPassou ? 0 : 1;     // 0 = sucesso (padrão de programas de terminal)
 }

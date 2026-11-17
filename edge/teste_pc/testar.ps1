@@ -20,11 +20,19 @@ $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
 
 # ---------- Etapa 1: autotestes no PC ----------
 Write-Host "`n### Etapa 1: autotestes no PC (g++)" -ForegroundColor Cyan
-$exe = Join-Path $build 'autoteste.exe'
-g++ -std=c++17 -Wall -Wextra -I "$PSScriptRoot" "$PSScriptRoot\main.cpp" -o $exe
-if ($LASTEXITCODE -ne 0) { Write-Host 'ERRO: nao compilou' -ForegroundColor Red; exit 1 }
-& $exe
-if ($LASTEXITCODE -ne 0) { Write-Host 'ERRO: algum autoteste falhou' -ForegroundColor Red; exit 1 }
+# Roda 1 vez para cada estação (ESTACAO = 1 a 4): o config.h muda o nome,
+# o ponto e os refúgios, e os testes conferem a configuração de cada uma.
+# A saída completa aparece só na E1; nas outras, só o resultado.
+foreach ($n in 1..4) {
+    $exe = Join-Path $build "autoteste_E$n.exe"
+    g++ -std=c++17 -Wall -Wextra "-DESTACAO=$n" -I "$PSScriptRoot" "$PSScriptRoot\main.cpp" -o $exe
+    if ($LASTEXITCODE -ne 0) { Write-Host "ERRO: nao compilou (E$n)" -ForegroundColor Red; exit 1 }
+    if ($n -eq 1) { & $exe } else {
+        $saida = & $exe
+        $saida | Select-String 'FALHOU|=== Forno|Resultado' | ForEach-Object { "  E${n}: $($_.Line.Trim())" }
+    }
+    if ($LASTEXITCODE -ne 0) { Write-Host "ERRO: algum autoteste falhou (E$n)" -ForegroundColor Red; exit 1 }
+}
 
 # ---------- Etapa 2: chip do anemômetro ----------
 Write-Host "`n### Etapa 2: chip do anemometro (gcc)" -ForegroundColor Cyan

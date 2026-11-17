@@ -459,7 +459,11 @@ void atualizarDisplay(unsigned long agora) {
   DadosTela d;
   d.hora       = hora;
   d.minuto     = minuto;
-  d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia);
+  // Com risco VERMELHO ou ROXO, nas estações em que a regra vale (E3 e E4),
+  // o refrigerado aberto ganha da sombra mais perto (ver config.h).
+  bool preferirFrio = REFRIGERADO_NO_VERMELHO &&
+                      (nivelAtual == RISCO_VERMELHO || nivelAtual == RISCO_ROXO);
+  d.refugio    = refugioMaisPerto(REFUGIOS, NUM_REFUGIOS, hora, dia, preferirFrio);
   // Dia ou noite: relógio (NTP) + posição do sol; sem relógio, o LDR.
   // hora >= 0 quer dizer que o NTP já sincronizou (ver relogioLocal).
   d.noite      = periodoDoDia(hora >= 0, (double)time(nullptr), LAT_ESTACAO, LON_ESTACAO,

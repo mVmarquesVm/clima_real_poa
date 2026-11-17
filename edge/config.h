@@ -6,9 +6,14 @@
 
 #include <stdint.h>
 
-// --- Identidade da estação (o mesmo firmware serve para as 4) ---
-#define ID_ESTACAO   "E1"
-#define NOME_ESTACAO "Largo Glenio Peres"
+// --- Qual estação é esta (o mesmo firmware serve para as 4) ---
+// Em cada Wokwi, SÓ esta linha muda: 1, 2, 3 ou 4. O nome, o ponto
+// e os refúgios de cada uma estão no bloco "Por estação", mais abaixo.
+// O canal do ThingSpeak e a senha MQTT ficam no secrets.h de cada Wokwi.
+// (O #ifndef deixa o teste do PC trocar a estação: g++ -DESTACAO=2.)
+#ifndef ESTACAO
+#define ESTACAO 1
+#endif
 
 // --- Pinos ---
 #define PINO_DHT          15
@@ -98,23 +103,91 @@ const float LIMITE_MIN_C      = 15.0f;  // faixa aceita para a config remota
 const float LIMITE_MAX_C      = 60.0f;
 const unsigned long PISCA_MS  = 500;    // SEM DADO: amarelo pisca 1 vez por segundo
 
-// --- Refúgios: para onde o LCD manda a pessoa com risco LARANJA ou VERMELHO ---
+// ============================================================
+// Por estação: nome, ponto e refúgios (escolhidos por ESTACAO)
+// ============================================================
+// Ponto (LAT/LON): o ponto da estação na cobertura do solo (Python,
+// fontes/cobertura.py). Serve para a conta do sol (sol.h).
+//
+// Refúgios: para onde o LCD 2 manda a pessoa com risco LARANJA ou acima.
 // A estação é fixa, então a distância também: medida uma vez no
-// OpenStreetMap (15/11/2026), em linha reta, da E1 até a borda do local.
+// OpenStreetMap, em linha reta, da estação até a borda da praça/bosque
+// ou até a entrada do shopping (E1 em 15/11/2026; E2 a E4 em 17/11/2026).
 // O LCD indica o MAIS PERTO que estiver ABERTO agora (ver refugio.h).
-// Um shopping só ganha da praça se estiver mais perto. Na E1, a
-// Praça XV fica colada no Largo (24 m), então ela ganha sempre; o
-// shopping fica na lista para valer a regra quando a praça mudar
-// (ex.: obra) e como modelo para as outras estações.
-// Horário do shopping: o mais curto entre o OSM (9h-21h) e o Jornal do
-// Comércio (03/07/2024: 9h-19h, de segunda a sábado). Fecha às 19h,
-// então vale até as 18h. Feriado a estação não sabe: limitação.
+// Um shopping só ganha da praça se estiver mais perto; ele fica na lista
+// para valer a regra quando a praça mudar (ex.: obra).
+// Cada shopping usa o horário mais curto que achamos, e "vale até" é
+// 1 h antes de fechar (para dar tempo de chegar). Feriado a estação
+// não sabe: limitação (está no README).
 #include "refugio.h"
-const Refugio REFUGIOS[] = {
-  // nome (até 10, sem acento)  distância (m)  abre  vale até  domingo
-  { "Praca XV",                  24,           -1,   0,        true  },   // Praça XV de Novembro: árvores, 24 h
-  { "Shop.Praia",                448,          9,    18,       false },   // Rua da Praia Shopping (R. dos Andradas, 1001)
-};
+
+#if ESTACAO == 1
+  #define ID_ESTACAO   "E1"
+  #define NOME_ESTACAO "Largo Glenio Peres"
+  // Com risco VERMELHO ou ROXO, indicar o refrigerado (se aberto) no lugar
+  // da sombra mais perto? Só nas estações em que a sombra é o parque
+  // (E3 e E4): decisão do Matheus, 17/11/2026.
+  const bool REFRIGERADO_NO_VERMELHO = false;
+  const double LAT_ESTACAO = -30.0280671;
+  const double LON_ESTACAO = -51.2276134;
+  // Rua da Praia Shopping, pelo Instagram oficial (@ruadapraiashopping,
+  // perfil ativo em 11/2026, lido em 17/11/2026): seg-sex 9h-20h, sábado
+  // 9h-18h, domingo e feriado 11h-18h. A lista guarda um horário só para
+  // seg-sáb, então fica o do sábado (o mais curto): vale até as 17h.
+  const Refugio REFUGIOS[] = {
+    // nome (até 10, sem acento)  distância (m)  seg-sáb: abre  vale até  domingo: abre  vale até  refrigerado
+    { "Praca XV",                  24,           -1,            0,        0,             0  , false },  // Praça XV de Novembro: árvores, 24 h
+    { "Shop.Praia",                448,          9,             17,       11,            17 , true  },  // Rua da Praia Shopping (R. dos Andradas, 1001)
+  };
+
+#elif ESTACAO == 2
+  #define ID_ESTACAO   "E2"
+  #define NOME_ESTACAO "Calcadao da Rua dos Andradas"
+  const bool REFRIGERADO_NO_VERMELHO = false;
+  const double LAT_ESTACAO = -30.0302953;
+  const double LON_ESTACAO = -51.2309031;
+  const Refugio REFUGIOS[] = {
+    { "Pc Alfand.",                8,            -1,            0,        0,             0  , false },  // Praça da Alfândega (OSM way 206611684), 24 h
+    { "Shop.Praia",                69,           9,             17,       11,            17 , true  },  // Rua da Praia Shopping, entrada principal (horário da E1)
+  };
+
+#elif ESTACAO == 3
+  #define ID_ESTACAO   "E3"
+  #define NOME_ESTACAO "Parque Harmonia (piso)"
+  const bool REFRIGERADO_NO_VERMELHO = true;    // vermelho/roxo -> Praia de Belas Shopping, se aberto
+  const double LAT_ESTACAO = -30.040690;
+  const double LON_ESTACAO = -51.237354;
+  // Parque Harmonia: "aberto diariamente, das 6h às 00h" (site oficial
+  // parqueharmoniapoa.com.br e portal de turismo da prefeitura, lidos em
+  // 17/11/2026) -> o bosque vale das 6h às 23h, todos os dias. Fora disso,
+  // fica a Orla, que é aberta 24 h.
+  // Praia de Belas Shopping (site oficial, lido em 17/11/2026): de segunda a
+  // sábado, 10h-22h (vale até 21h). No domingo, as lojas abrem das 14h às
+  // 20h, mas a praça de alimentação abre das 11h às 22h: o prédio (com
+  // ar-condicionado) já está aberto às 11h -> vale das 11h às 21h.
+  const Refugio REFUGIOS[] = {
+    { "Bosque",                    47,           6,             23,       6,             23 , false },  // bosque dentro do Harmonia (OSM way 338078463)
+    { "Orla",                      200,          -1,            0,        0,             0  , false },  // Orla do Guaíba (OSM relation 2896007), aberta
+    { "Shop.Belas",                1193,         10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada mais perto
+  };
+
+#elif ESTACAO == 4
+  #define ID_ESTACAO   "E4"
+  #define NOME_ESTACAO "Parque Marinha do Brasil"
+  const bool REFRIGERADO_NO_VERMELHO = true;    // vermelho/roxo -> Praia de Belas Shopping, se aberto
+  const double LAT_ESTACAO = -30.054441;
+  const double LON_ESTACAO = -51.231272;
+  // A estação já fica sob as árvores (é o CONTROLE). Se mesmo assim o
+  // risco subir, o LCD indica a Praça Rotary: aberta (pega mais vento) e
+  // arborizada. Não indica o próprio parque ("Marinha 0m" não ajudaria).
+  const Refugio REFUGIOS[] = {
+    { "Pc Rotary",                 174,          -1,            0,        0,             0  , false },  // Praça Rotary (OSM way 70640036), 24 h
+    { "Shop.Belas",                531,          10,            21,       11,            21 , true  },  // Praia de Belas Shopping, entrada principal
+  };
+
+#else
+  #error "ESTACAO tem que ser 1, 2, 3 ou 4"
+#endif
 const int NUM_REFUGIOS = sizeof(REFUGIOS) / sizeof(REFUGIOS[0]);
 
 // --- Relógio da internet (NTP): para saber se o shopping está aberto ---
@@ -122,9 +195,7 @@ const int NUM_REFUGIOS = sizeof(REFUGIOS) / sizeof(REFUGIOS[0]);
 const long FUSO_HORARIO_S = -3L * 3600L;   // Brasília (UTC-3, sem horário de verão desde 2019)
 
 // --- Dia ou noite (sol.h): muda o conselho do LCD 2 ("sombra" só de dia) ---
-// Onde a estação está, para a conta da posição do sol (centro do Largo, OSM).
-const double LAT_ESTACAO = -30.028067;
-const double LON_ESTACAO = -51.227613;
+// O ponto da estação (LAT/LON) está no bloco "Por estação", acima.
 // Sem relógio, a estação usa o LDR: abaixo disto é noite. Um poste perto dá
 // ~10-20 lux; um dia nublado passa de 1.000 lux.
 const float LUX_NOITE = 50.0f;

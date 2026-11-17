@@ -13,7 +13,7 @@
 - **Watchdog do programa:** se o `loop()` travar por mais de 8 s, o ESP32 reinicia sozinho e, no boot, mostra o motivo.
 - **Defesa da leitura** em 3 barreiras: faixa física do sensor, filtro de salto e contador de falhas seguidas.
 - **Vigia do sensor:** detecta sensor em falha, instável ou travado, tenta consertá-lo em escada e **avisa**.
-- **Autoteste no boot:** 137 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do display, do dia e da noite, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
+- **Autoteste no boot:** 144 testes das fórmulas, das conversões, das defesas, do vigia, do risco, do relé, do display, do dia e da noite, da reconexão e dos comandos da nuvem, rodando no próprio ESP32. Se algum falhar, entra em **modo seguro**.
 - **LEDs de risco** (verde, amarelo, laranja, vermelho e roxo), nas 5 faixas da nota técnica da Secretaria Municipal de Saúde de Porto Alegre, com limites configuráveis e histerese.
 - **Relé do nebulizador**, decidido no próprio ESP32: liga só com risco alto **seguido**, desliga com folga (histerese), respeita tempo mínimo desligado e máximo ligado, e **desliga na hora** se o dado não for confiável.
 - **2 LCDs 20x4 (I2C):** o LCD 1 (medição) mostra a sensação, o nível de risco, as leituras (ou o problema), o sol e o status do relé; o LCD 2 (orientação) mostra o conselho do nível, o refúgio mais perto que esteja aberto, a hora e o status WiFi/MQTT, sem depender de app.
@@ -129,14 +129,25 @@ Quem não tem celular, está sem bateria ou não pode parar para olhar a tela (o
 
 - **Quais refúgios:** uma praça com sombra de árvore (aberta 24 h) ou um shopping (ar-condicionado, água e banheiro). O LCD indica o **mais perto que estiver aberto agora**. O shopping só ganha se estiver mais perto que a praça.
 - **Como a estação sabe se o shopping está aberto:** pela hora e pelo dia da semana do relógio da internet (NTP, fuso UTC−3), pedidos quando o WiFi conecta. Sem hora, ela só indica o que é 24 h, para nunca mandar alguém a um lugar fechado. Sem nenhum refúgio aberto, mostra `Procure uma sombra`.
-- **A lista da E1** fica no `config.h`. Ela foi medida em 15/11/2026 no OpenStreetMap, em linha reta da estação até a borda do local:
+- **A lista de cada estação** fica no `config.h`, no bloco "Por estação". Ela foi medida no OpenStreetMap (E1 em 15/11/2026; E2 a E4 em 17/11/2026), em linha reta da estação até a borda da praça ou do bosque, ou até a entrada do shopping. "Vale até" é 1 h antes de fechar, para dar tempo de chegar:
 
-| Refúgio | Distância | Horário usado | Fonte |
-|---|---|---|---|
-| Praça XV de Novembro | 24 m (é vizinha do Largo) | 24 h | OSM (9 árvores mapeadas) |
-| Rua da Praia Shopping (R. dos Andradas, 1001) | 448 m | seg. a sáb., 9h às 19h (vale até as 18h, para dar tempo de chegar) | O horário mais curto entre o OSM (9h–21h) e o Jornal do Comércio (03/07/2024: 9h–19h, fechado aos domingos). O site oficial não abriu (certificado vencido) |
+| Estação | Refúgio | Distância | Horário usado | Fonte |
+|---|---|---|---|---|
+| E1 | Praça XV de Novembro | 24 m (é vizinha do Largo) | 24 h | OSM (9 árvores mapeadas) |
+| E1 | Rua da Praia Shopping (R. dos Andradas, 1001) | 448 m | seg. a sáb., 9h às 18h (o sábado, o mais curto; vale até as 17h); dom., 11h às 18h (vale até as 17h) | Instagram oficial (@ruadapraiashopping, lido em 17/11/2026: seg.–sex. 9h–20h, sáb. 9h–18h, dom. e feriado 11h–18h). O site oficial não abre (certificado vencido) |
+| E2 | Praça da Alfândega | 8 m | 24 h | OSM (praça sem cerca) |
+| E2 | Rua da Praia Shopping (entrada principal) | 69 m | o mesmo da E1 | o mesmo da E1 |
+| E3 | Bosque dentro do Parque Harmonia | 47 m | todos os dias, 6h às 0h (vale até as 23h) | OSM (`landuse=forest`, sem nome); horário: site oficial do parque e portal de turismo da prefeitura, 17/11/2026 |
+| E3 | Orla do Guaíba | 200 m | 24 h | OSM (parque aberto) |
+| E3 | Praia de Belas Shopping (entrada mais perto) | 1.193 m | seg. a sáb., 10h às 22h (vale até as 21h); dom., 11h às 22h (vale até as 21h) | Site oficial, 17/11/2026 (no domingo, a praça de alimentação abre às 11h e as lojas às 14h) |
+| E4 | Praça Rotary | 174 m | 24 h | OSM |
+| E4 | Praia de Belas Shopping (entrada principal) | 531 m | o mesmo da E3 | o mesmo da E3 |
 
-Na E1, a Praça XV ganha sempre, porque fica colada no Largo. O shopping fica na lista para a regra valer se a praça não puder ser usada (é só tirá-la da lista) e como modelo para as outras estações.
+- Em todas as estações, a praça ou o bosque fica mais perto que o shopping, então ganha sempre que está aberto. O shopping fica na lista para a regra valer se a praça não puder ser usada (é só tirá-la da lista).
+- **E3:** o Harmonia é cercado e abre das 6h às 0h. Das 23h às 6h, o bosque sai da lista e o LCD indica a Orla do Guaíba, que é aberta 24 h.
+- **E4:** a estação já fica sob as árvores (é o controle). Se o risco subir mesmo assim, o LCD indica a Praça Rotary: um local aberto (pega mais vento) e arborizado. Não indica o próprio parque ("Marinha 0m" não ajudaria ninguém).
+- **Domingo:** cada refúgio tem um horário de segunda a sábado e outro de domingo (no domingo, o Rua da Praia Shopping abre das 11h às 18h, e o Praia de Belas Shopping, das 11h às 22h).
+- **Refrigerado no vermelho (E3 e E4):** com risco **vermelho ou roxo**, o LCD indica o Praia de Belas Shopping (ar-condicionado, água e banheiro) no lugar da sombra mais perto, **se ele estiver aberto**. Fechado (de noite, domingo de manhã, sem relógio), volta a valer o mais perto aberto. Nas E1 e E2 a regra fica desligada (`REFRIGERADO_NO_VERMELHO = false` no `config.h`).
 
 As telas são atualizadas a cada 2 s, só nas linhas que mudaram, sem `lcd.clear()` (que faria a tela piscar). O texto das linhas é montado em `display.h`, uma função pura testada no autoteste (por exemplo: "as 4 linhas têm exatamente 20 caracteres").
 
@@ -290,6 +301,13 @@ O LDR fica num pino do **ADC1** de propósito: o ADC2 do ESP32 para de funcionar
 4. Crie os arquivos `anemometro.chip.json` e `anemometro.chip.c` e cole o conteúdo de cada um. O nome tem que ser exatamente esse: o `diagram.json` procura o chip pelo nome (`chip-anemometro`).
 5. Clique em ▶ e veja o **Serial Monitor**.
 
+### As 4 estações (o mesmo firmware)
+As 4 estações usam **o mesmo código**. Em cada projeto do Wokwi, só mudam 2 coisas:
+- a linha `#define ESTACAO 1` do `config.h` (1 = Largo Glênio Peres, 2 = Calçadão da Rua dos Andradas, 3 = Parque Harmonia, 4 = Parque Marinha do Brasil), que escolhe o nome, o ponto e os refúgios;
+- o `secrets.h`, com o canal e a credencial MQTT **daquela** estação.
+
+Os valores de cada Wokwi (temperatura, umidade, vento e sol) são ajustados à mão: é uma **demonstração** de 4 estações ao mesmo tempo, e não uma medição real dos 4 locais.
+
 ## Comandos de teste (digite no Serial Monitor)
 | Tecla | O que simula | O que deve acontecer |
 |---|---|---|
@@ -303,7 +321,7 @@ O LDR fica num pino do **ADC1** de propósito: o ADC2 do ESP32 para de funcionar
 Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 reinícios, a estação para de reiniciar e pede técnico.
 
 ## O que conferir
-- O autoteste mostra **"137 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
+- O autoteste mostra **"144 passaram, 0 falharam"**, e o LCD 1 mostra "Autoteste OK".
 - Em poucos segundos, o Serial mostra `OK: WiFi conectado` e `OK: MQTT conectado ao ThingSpeak`, e a linha 4 do LCD 2 fica `E1 WiFi:OK  MQTT:OK`; a linha 3 passa a mostrar a hora (`Hora 15:42`). A cada 20 s aparece `MQTT: publicado -> field1=...`, e o gráfico do canal no ThingSpeak ganha um ponto.
 - A cada 2 s aparece uma linha como `[E1] T=30.0 C  UR=50%  Vento=0.0 m/s  Luz=50000 lux (Q=50 W/m2)  Sensacao=36.6 C | risco=LARANJA rele=OFF(confirmando) | sensor=OK`. O vento começa em 0 (ver o aviso abaixo).
 - Com 36,6 °C de sensação, o LED **laranja** acende e, 10 s depois, o relé liga (o LED azul acende e o LCD mostra `Rele:LIGADO`).
@@ -320,7 +338,7 @@ Para ver o **modo manutenção**, use `f` três vezes seguidas: depois de 2 rein
 
 ## Testar no PC (sem abrir o Wokwi)
 A pasta `teste_pc/` confere o código no próprio computador, em 3 etapas:
-1. **g++** compila e **roda** os 137 autotestes. As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
+1. **g++** compila e **roda** os 144 autotestes **4 vezes, uma por estação** (`-DESTACAO=1` a `4`): os 4 testes finais conferem a configuração de cada uma (nomes que cabem no LCD, pelo menos 1 refúgio 24 h, horários que abrem antes de fechar, na semana e no domingo, e o ponto dentro de Porto Alegre). As funções de `sensacao.h`, `defesa.h`, `vigia.h`, `risco.h`, `rele.h`, `display.h`, `refugio.h`, `sol.h`, `rede.h` e `nuvem.h` são lógica pura, então rodam em qualquer computador. O `teste_pc/Arduino.h` é um **dublê** do Arduino: troca o `Serial` por um `printf` comum.
 2. **gcc** roda o **chip do anemômetro** com um Wokwi falso (`teste_pc/wokwi-api.h`) e confere se ele fecha a chave o número certo de vezes em 10 s (por exemplo, 30 vezes com 2 m/s).
 3. **arduino-cli** compila o **firmware inteiro** para o ESP32 (sem o `secrets.h`, ele usa o `secrets.example.h`). Ele acha erros de compilação antes do Wokwi, mas não roda nada: sem a placa, o comportamento só aparece no Wokwi.
 
@@ -331,6 +349,19 @@ powershell -ExecutionPolicy Bypass -File edge\teste_pc\testar.ps1
 Precisa do g++ (WinLibs) e do arduino-cli com o núcleo `esp32:esp32` e as bibliotecas `DHT sensor library for ESPx`, `LiquidCrystal I2C` e `PubSubClient` (os avisos de `B00000001` obsoleto vêm de dentro dessa biblioteca, não do nosso código). Os arquivos gerados ficam na pasta temporária do Windows, fora do repositório.
 
 > **Não cole a pasta `teste_pc/` no Wokwi.** O `Arduino.h` e o `wokwi-api.h` falsos só servem no PC.
+
+## Próximo passo: bateria de reserva e relógio próprio (proposta, não simulada)
+
+Hoje, se faltar luz, a estação apaga, e é justamente num dia de calor forte que a rede elétrica mais cai (todo mundo liga o ar-condicionado). A ideia é a estação continuar **avisando** mesmo sem energia da rua, como a luz de emergência de um prédio.
+
+- **Bateria:** uma bateria de lítio (ex.: 18650) com um módulo carregador com proteção, que carrega enquanto há energia e assume sozinha quando ela falta (como um nobreak pequeno).
+- **Saber que faltou luz:** um pino do ESP32 lê a fonte da rua por um divisor de tensão. Sem tensão, a estação entra em **modo bateria**:
+  - **continua:** a leitura dos sensores, a sensação térmica, os LEDs de risco e o LCD 2 com o conselho e o refúgio (o que protege a pessoa);
+  - **desliga:** o relé do nebulizador (a bomba gasta muito, e sem a rede ela nem teria água/energia) e a luz de fundo do LCD 1;
+  - **publica menos:** 1 mensagem a cada alguns minutos, com o status `bateria`, para a prefeitura saber que aquele ponto está sem luz.
+- **Relógio com bateria (DS3231):** hoje a hora vem da internet (NTP) quando o WiFi conecta, e depois o ESP32 conta sozinho. Se a luz voltar sem internet, ele não sabe a hora e só indica os refúgios 24 h. Um módulo de relógio com bateria de moeda (DS3231, no mesmo I2C dos LCDs) guarda a hora por anos, e a estação passa a saber se o shopping está aberto mesmo sem internet. O NTP continua acertando esse relógio quando há rede.
+- **Quanto tempo dura:** depende do consumo medido no aparelho real (o WiFi é a parte que mais gasta). Fica para a montagem física.
+- **Por que não está no Wokwi:** o simulador não tem bateria nem falta de energia. Dá para imitar com uma chave "energia da rua" no circuito, mas a parte importante (a autonomia) só se mede no aparelho real.
 
 ## Próximo passo: vários aparelhos no mesmo parque (proposta, não simulada)
 **O problema:** uma estação representa só a área em volta dela. No local misto (piso, árvore e grama), isso é um raio de cerca de 50 m (Guia de Instrumentos da OMM, WMO-No. 8, seção 11.1.1.4: "algumas dezenas de metros"). Num parque grande, como o Harmonia ou o Marinha do Brasil, um aparelho só cobre um pedaço.
@@ -367,7 +398,7 @@ Precisa do g++ (WinLibs) e do arduino-cli com o núcleo `esp32:esp32` e as bibli
 - **Comando perdido com a estação desligada:** o MQTT do ThingSpeak não guarda a mensagem para quem estava fora. Se a estação estiver desconectada quando o comando chegar, ele precisa ser mandado de novo.
 - **Sem alerta de frio:** os níveis de risco, os LEDs e o field6 tratam só do calor. No frio, o LCD avisa `FRIO`, mas não há alerta; isso fica como trabalho futuro.
 - **Os 61 °C do Parque Harmonia não são sensação térmica:** esse valor é a temperatura do **piso de concreto** (superfície), medida pelo InGá em 04/02/2025. A estação mede o **ar** com o DHT22 e calcula a TA a partir dele, então os dois números não se comparam diretamente.
-- **Refúgios:** a distância é em linha reta, e não pelo caminho a pé. A estação não sabe dos feriados, quando o shopping pode estar fechado. O horário do Rua da Praia Shopping não foi confirmado no site oficial, por isso usamos o mais curto entre as fontes. Também não há bebedouro público mapeado no OSM a menos de 1 km da E1: o mais perto fica a cerca de 1,5 km. A água fica com o shopping e com o cadastro de pontos de hidratação (parte do Web).
+- **Refúgios:** a distância é em linha reta, e não pelo caminho a pé. A estação não sabe dos feriados, quando o shopping pode estar fechado. Sem internet depois de ligar, ela não sabe a hora e só indica os refúgios 24 h (ver "Bateria de reserva e relógio próprio"). O horário do Rua da Praia Shopping vem do Instagram oficial, porque o site não abre; como a estação guarda um horário só de segunda a sábado, usa o do sábado (o mais curto). Também não há bebedouro público mapeado no OSM a menos de 1 km da E1, da E2 e da E3 (o mais perto da E1 fica a cerca de 1,5 km; o da E3, a 1.255 m). A E4 tem 2 no OSM, a 72 m e a 96 m, mas sem informação de que funcionam. A água fica com o shopping e com o cadastro de pontos de hidratação (parte do Web).
 - **Energia do sensor:** no Wokwi, o "desligar e religar" o sensor roda de verdade no código, mas o simulador não modela a energia dos componentes. Então o efeito não aparece lá. No hardware real, é isso que destrava um DHT22 travado.
 
 ## A preencher

@@ -283,10 +283,22 @@ inline bool rodarAutoteste() {
   verificar(p, strstr(tela[3], "REMOTO") && strlen(tela[3]) == LCD_COLUNAS, "LCD 1: relé ligado pela nuvem mostra REMOTO");
 
   // --- Refúgio mais perto e orientação sem app ---
-  const Refugio teste[] = { {"Praca", 400, -1, 0, true}, {"Shopping", 200, 10, 21, false} };
+  const Refugio teste[] = { {"Praca", 400, -1, 0, 0, 0, false}, {"Shopping", 200, 10, 21, -1, 0, true} };
+  const Refugio domingoTarde = {"Shop.Dom", 300, 10, 21, 14, 19, true};   // domingo só das 14h às 19h
+  // Como no Harmonia: a sombra é bem mais perto que o shopping refrigerado
+  const Refugio parque[] = { {"Bosque", 47, 6, 23, 6, 23, false}, {"Orla", 200, -1, 0, 0, 0, false},
+                             {"Shop.Belas", 1193, 10, 21, 14, 19, true} };
   verificar(p, refugioMaisPerto(teste, 2, 15, 3) == &teste[1], "refúgio: quarta às 15h, o shopping aberto e mais perto ganha da praça");
   verificar(p, refugioMaisPerto(teste, 2, 23, 3) == &teste[0], "refúgio: às 23h, o shopping fechado sai e fica a praça");
   verificar(p, refugioMaisPerto(teste, 2, 15, 0) == &teste[0], "refúgio: no domingo, o shopping que não abre sai");
+  verificar(p, refugioMaisPerto(parque, 3, 15, 3) == &parque[0] && refugioMaisPerto(parque, 3, 15, 3, true) == &parque[2],
+            "refúgio: no vermelho, o refrigerado aberto ganha da sombra mais perto (sem o vermelho, a sombra)");
+  verificar(p, refugioMaisPerto(parque, 3, 23, 3, true) == &parque[1] && refugioMaisPerto(parque, 3, 11, 0, true) == &parque[0]
+               && refugioMaisPerto(parque, 3, -1, -1, true) == &parque[1],
+            "refúgio: no vermelho, com o shopping fechado (23h, domingo 11h, sem relógio), fica o mais perto aberto");
+  verificar(p, !refugioAberto(domingoTarde, 11, 0) && refugioAberto(domingoTarde, 14, 0) && !refugioAberto(domingoTarde, 19, 0)
+               && refugioAberto(domingoTarde, 11, 1),
+            "refúgio: horário de domingo próprio (fechado às 11h de domingo, aberto às 14h, fecha às 19h; aberto às 11h de segunda)");
   verificar(p, refugioMaisPerto(teste, 2, -1, -1) == &teste[0], "refúgio: sem relógio, só indica o que é 24 h");
   verificar(p, refugioMaisPerto(&teste[1], 1, -1, -1) == nullptr, "refúgio: sem relógio e só com shopping, não indica nenhum");
   char dist[8];
@@ -310,7 +322,7 @@ inline bool rodarAutoteste() {
   verificar(p, strstr(tela[0], "SUSPENDA ATIVIDADES") != nullptr, "LCD 2: no ROXO, o conselho é suspender as atividades");
   dt.nivel = RISCO_VERMELHO;  dt.refugio = nullptr;  montarTelaOrientacao(dt, tela);
   verificar(p, strstr(tela[1], "Procure uma sombra") != nullptr, "LCD 2: sem refúgio aberto, manda procurar sombra");
-  const Refugio longe = {"NomeMuitoComprido", 9900, -1, 0, true};
+  const Refugio longe = {"NomeMuitoComprido", 9900, -1, 0, 0, 0, false};
   dt.refugio = &longe;  montarTelaOrientacao(dt, tela);
   verificar(p, strstr(tela[1], "9.9km") && strlen(tela[1]) == LCD_COLUNAS, "LCD 2: nome longo e 9,9 km cabem na linha");
   dt.nivel = RISCO_AMARELO;  dt.refugio = &teste[0];  montarTelaOrientacao(dt, tela);
@@ -407,6 +419,23 @@ inline bool rodarAutoteste() {
   LimiteFrequencia freq;
   verificar(p, frequenciaOk(freq, 0) && !frequenciaOk(freq, 4999) && frequenciaOk(freq, 5000),
             "no máximo 1 comando a cada 5 s");
+
+  // --- Configuração DESTA estação (o config.h muda com ESTACAO = 1 a 4) ---
+  // Um erro de digitação na lista de refúgios de uma estação não pode
+  // passar despercebido: o check-list confere a lista que vai rodar.
+  bool nomesCabem = true, horariosOk = true, tem24h = false;
+  for (int i = 0; i < NUM_REFUGIOS; i++) {
+    const Refugio& r = REFUGIOS[i];
+    nomesCabem &= strlen(r.nome) >= 1 && strlen(r.nome) <= 10;
+    if (r.abreH < 0) tem24h = true;
+    else horariosOk &= r.abreH < r.fechaH && r.fechaH <= 24
+                       && (r.domAbreH < 0 || (r.domAbreH < r.domFechaH && r.domFechaH <= 24));
+  }
+  verificar(p, NUM_REFUGIOS >= 1 && nomesCabem, "estação: refúgios com nome de 1 a 10 letras (cabe no LCD 2)");
+  verificar(p, tem24h, "estação: pelo menos 1 refúgio 24 h (à noite ou sem relógio, sempre há para onde ir)");
+  verificar(p, horariosOk, "estação: cada refúgio com horário abre antes de fechar (na semana e no domingo)");
+  verificar(p, LAT_ESTACAO > -30.27 && LAT_ESTACAO < -29.93 && LON_ESTACAO > -51.31 && LON_ESTACAO < -51.01,
+            "estação: o ponto da conta do sol fica dentro de Porto Alegre");
 
   Serial.printf("== Resultado: %d passaram, %d falharam ==\n", p.passou, p.falhou);
   return p.falhou == 0;
