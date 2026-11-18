@@ -12,6 +12,7 @@ import CampoEscolha from '../comum/CampoEscolha'
 import CampoMarcar from '../comum/CampoMarcar'
 import CampoTexto from '../comum/CampoTexto'
 import MensagemErro from '../comum/MensagemErro'
+import CampoLocalizacao from './CampoLocalizacao'
 
 // O formulário de um ponto de hidratação: o MESMO para criar e para editar
 // (o mesmo molde do FormularioLocal, com o useFormulario).
@@ -56,24 +57,7 @@ export default function FormularioHidratacao({ item, aoSalvar, aoCancelar }) {
       <CampoTexto {...props('nome')} rotulo="Nome" obrigatorio maxLength={80} autoComplete="off" />
       <CampoEscolha {...props('tipo')} rotulo="Tipo" opcoes={TIPOS_DE_HIDRATACAO} obrigatorio />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto
-          {...props('lat')}
-          rotulo="Latitude"
-          dica="Ex.: -30,0331 (vírgula ou ponto)"
-          obrigatorio
-          inputMode="decimal"
-          autoComplete="off"
-        />
-        <CampoTexto
-          {...props('lon')}
-          rotulo="Longitude"
-          dica="Ex.: -51,2300 (vírgula ou ponto)"
-          obrigatorio
-          inputMode="decimal"
-          autoComplete="off"
-        />
-      </div>
+      <CampoLocalizacao lat={props('lat')} lon={props('lon')} />
 
       <fieldset className="space-y-3">
         <legend className="font-semibold">Horário</legend>

@@ -8,6 +8,7 @@ import CampoMarcar from '../comum/CampoMarcar'
 import CampoOpcoes from '../comum/CampoOpcoes'
 import CampoTexto from '../comum/CampoTexto'
 import MensagemErro from '../comum/MensagemErro'
+import CampoLocalizacao from './CampoLocalizacao'
 
 // O formulário de um local de lazer: o MESMO para criar e para editar.
 //   item:      o local da API que vai ser editado; sem ele, é um local novo;
@@ -49,24 +50,7 @@ export default function FormularioLocal({ item, aoSalvar, aoCancelar }) {
       <CampoTexto {...props('nome')} rotulo="Nome" obrigatorio maxLength={80} autoComplete="off" />
       <CampoEscolha {...props('tipo')} rotulo="Tipo" opcoes={TIPOS_DE_LOCAL} obrigatorio />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto
-          {...props('lat')}
-          rotulo="Latitude"
-          dica="Ex.: -30,0331 (vírgula ou ponto)"
-          obrigatorio
-          inputMode="decimal"
-          autoComplete="off"
-        />
-        <CampoTexto
-          {...props('lon')}
-          rotulo="Longitude"
-          dica="Ex.: -51,2300 (vírgula ou ponto)"
-          obrigatorio
-          inputMode="decimal"
-          autoComplete="off"
-        />
-      </div>
+      <CampoLocalizacao lat={props('lat')} lon={props('lon')} />
 
       <fieldset>
         <legend className="font-semibold">O local tem</legend>
