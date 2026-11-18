@@ -892,3 +892,21 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Escolhi o nome **Clima Real POA**.
 - Escolhi quais problemas corrigir (deixei de fora a frase da previsão × estações).
+
+## READMEs finais e diagrama da estação (18/11/2026)
+
+**O que eu pedi**
+- Os commits das mudanças feitas juntos, com o roteiro do pitch fora do Git (o pitch é o vídeo no YouTube).
+- Terminar os READMEs.
+- O diagrama do Edge em Mermaid e também no Canva.
+
+**O que a IA gerou**
+- A Ficha da CitizenTech, agora com o link do repositório, no topo de todos os READMEs (raiz, `edge`, `python`, `matematica`, `backend`, `frontend` e `docs`), como o PDF pede.
+- **Edge:** as seções Integrantes, Links (os 4 Wokwi, os 4 canais e o lugar do vídeo), Contexto e Diagrama: a figura `edge/diagrama.png` (sensores → ESP32 → LEDs, relé e LCDs → MQTT → ThingSpeak → app, com o comando do field8 voltando) e a mesma ideia em Mermaid. A seção "A preencher" saiu.
+- **Frontend:** o README completo: integrantes, as 3 telas (Planejar, Calor agora, Gestão), como rodar, tecnologias, as APIs externas, os 47 componentes por pasta, o CRUD (estados, validação e erros) e a acessibilidade.
+- **Backend e raiz:** integrantes e link para as telas no README da API; a tabela de partes e a seção "Vídeos" (com o lugar dos 2 links) no README da raiz.
+- **Canva:** o diagrama importado como design editável ("Clima Real POA - Diagrama da estação"), com 3 espaços que a importação comeu corrigidos à mão.
+
+**O que eu mudei ou fiz sozinho**
+- Decidi copiar a Ficha em todos os READMEs, deixar o roteiro do pitch fora do Git e ter o diagrama em Mermaid e no Canva.
+- Fiz os commits.

@@ -1,10 +1,97 @@
 # Edge — Estação Clima Real POA (ESP32 no Wokwi)
 
-> Ficha da CitizenTech: ver o [README principal](../README.md).
+## Ficha da CitizenTech
+- **Nome:** Clima Real POA
+- **Cidade e bairro:** Porto Alegre — região central (Centro Histórico e Praia de Belas)
+- **Cidadão beneficiado:** quem vai a locais ao ar livre para lazer, com atenção aos grupos de risco (idosos, crianças, gestantes e pessoas com doença crônica); a estação também protege quem não usa o app, e a prefeitura usa os dados para decidir onde sombrear
+- **Problema em uma frase:** Porto Alegre já mede o tempo em 16 pontos, mas nenhum diz quanto calor a pessoa sente na praça, nem avisa, nem refresca.
+- **Como funciona:** estações com ESP32 em locais de lazer medem temperatura, umidade, vento e sol, calculam a sensação térmica real, avisam o risco e ligam a refrigeração do local; o app recomenda o local e o horário mais seguros para cada atividade, e os dados formam um mapa do calor real da cidade.
+- **O que cada parte faz:** Sensor (mede e alerta) · Lógica (ranking dos locais críticos) · Matemática (taxa de aquecimento e dose de calor) · Interface (mapa acessível) · Interação (cadastro de locais de lazer e pontos de hidratação) · Experiência (requisitos e backlog) · Pitch (história)
+- **Link do repositório:** https://github.com/mVmarquesVm/clima_real_poa
+- **Indicador de impacto:** horas/dia em nível de risco por local; diferença entre o calor oficial e o medido
+- **ODS conectados:** 3, 10, 11 e 13
 
 **Disciplina:** Edge Computing & Computer Systems
 
-## O que esta estação faz (até agora)
+## Integrantes
+| Nome completo | RM |
+|---|---|
+| Matheus Marques De Souza | 573203 |
+
+Trabalho individual (ver também o [INTEGRANTES.md](../INTEGRANTES.md)).
+
+## Links
+- **Vídeo de demonstração:** (link do YouTube, entra depois da gravação)
+- **Simulações no Wokwi e canais no ThingSpeak** (o dashboard fica na *Public View* de cada canal):
+
+| Estação | Wokwi | Canal ThingSpeak |
+|---|---|---|
+| E1 Largo Glênio Peres | https://wokwi.com/projects/480541510887151617 | https://thingspeak.mathworks.com/channels/3578427 |
+| E2 Calçadão da Rua dos Andradas | https://wokwi.com/projects/480968836933960705 | https://thingspeak.mathworks.com/channels/3584100 |
+| E3 Parque Harmonia | https://wokwi.com/projects/480968883292563457 | https://thingspeak.mathworks.com/channels/3584102 |
+| E4 Parque Marinha do Brasil | https://wokwi.com/projects/480968911326252033 | https://thingspeak.mathworks.com/channels/3584103 |
+
+## Contexto
+Num dia de calor, a previsão dá um número só para a cidade, medido como manda a norma: num gramado aberto, na sombra e longe de prédios. Quem passa a tarde numa praça de concreto sente outra coisa. Em 10/02/2025, por exemplo, o ar no Largo Glênio Peres estava em 34 °C, e os ladrilhos, entre 49 e 54 °C (GZH). Os detalhes e as fontes estão no [problema.md](../docs/problema.md).
+
+A estação fica **no local onde a pessoa está** e resolve isso sozinha, sem depender de app nem de internet:
+- mede o ar, o vento e o sol e calcula a **sensação térmica real** (Temperatura Aparente de Steadman);
+- mostra o risco nos LEDs, nas 5 cores da régua da Secretaria Municipal de Saúde de Porto Alegre;
+- escreve no visor o que fazer e indica o **refúgio aberto mais perto** (sombra ou shopping com ar-condicionado);
+- liga o **nebulizador** do local quando o risco fica alto por um tempo seguido;
+- manda tudo para a nuvem, onde as 4 estações formam o mapa do calor real do Centro (o app e a prefeitura usam esses dados).
+
+## Diagrama
+O caminho do dado, do sensor até a nuvem. Os pinos de cada peça estão na tabela [Ligações](#ligações), e o circuito montado está no link do Wokwi de cada estação.
+
+![Diagrama da estação: sensores, ESP32, atuadores e visores, ThingSpeak e app](diagrama.png)
+
+A mesma ideia em Mermaid (o GitHub desenha o texto abaixo):
+
+```mermaid
+flowchart LR
+    subgraph ENTRADAS["Sensores e botão"]
+        DHT["DHT22<br/>temperatura e umidade<br/>dados GPIO 15 · energia GPIO 4"]
+        ANE["Anemômetro (chip customizado)<br/>pulsos · GPIO 27 · interrupção"]
+        LDR["LDR<br/>luz do sol · GPIO 34 (ADC1)"]
+        BOT["Botão de manutenção<br/>GPIO 13 · interrupção + debounce"]
+    end
+
+    subgraph ESP["ESP32: decide tudo na borda"]
+        DEF["Defesa da leitura<br/>+ vigia do sensor"]
+        TA["Temperatura Aparente<br/>de Steadman"]
+        RIS["Nível de risco<br/>27 / 34 / 40 / 52 °C"]
+        REL["Lógica do relé<br/>confirma, histerese, fail-safe"]
+        WDT["Watchdog 8 s<br/>+ autoteste no boot"]
+        DEF --> TA --> RIS --> REL
+    end
+
+    subgraph SAIDAS["Atuadores e visores"]
+        LED["5 LEDs de risco<br/>GPIO 32 / 33 / 25 / 26 / 19"]
+        NEB["Relé GPIO 18<br/>→ nebulizador (LED azul)"]
+        LCD1["LCD 1 · 0x27 · Medição"]
+        LCD2["LCD 2 · 0x26 · Orientação<br/>conselho, refúgio, hora, WiFi/MQTT"]
+    end
+
+    subgraph NUVEM["Nuvem"]
+        TS["ThingSpeak<br/>1 canal por estação<br/>fields 1 a 7 + dashboard"]
+        APP["App Clima Real POA<br/>lê o canal a cada 15 s"]
+    end
+
+    DHT --> DEF
+    ANE --> DEF
+    LDR --> DEF
+    BOT --> REL
+    RIS --> LED
+    REL --> NEB
+    RIS --> LCD1
+    RIS --> LCD2
+    ESP -- "MQTT a cada 20 s<br/>(WiFi Wokwi-GUEST)" --> TS
+    TS -- "field8: limites e<br/>liga/desliga o relé" --> ESP
+    TS --> APP
+```
+
+## O que esta estação faz
 - A cada **2 s**, com `millis()` e sem travar o programa, lê:
   - o **DHT22** (temperatura e umidade);
   - o **anemômetro** (vento), um chip customizado do Wokwi que imita o anemômetro de conchas da SparkFun;
@@ -427,14 +514,3 @@ Hoje, se faltar luz, a estação apaga, e é justamente num dia de calor forte q
 - **Os 61 °C do Parque Harmonia não são sensação térmica:** esse valor é a temperatura do **piso de concreto** (superfície), medida pelo InGá em 04/02/2025. A estação mede o **ar** com o DHT22 e calcula a TA a partir dele, então os dois números não se comparam diretamente.
 - **Refúgios:** a distância é em linha reta, e não pelo caminho a pé. A estação não sabe dos feriados, quando o shopping pode estar fechado. Sem internet depois de ligar, ela não sabe a hora e só indica os refúgios 24 h (ver "Bateria de reserva e relógio próprio"). O horário do Rua da Praia Shopping vem do Instagram oficial, porque o site não abre; como a estação guarda um horário só de segunda a sábado, usa o do sábado (o mais curto). Também não há bebedouro público mapeado no OSM a menos de 1 km da E1, da E2 e da E3 (o mais perto da E1 fica a cerca de 1,5 km; o da E3, a 1.255 m). A E4 tem 2 no OSM, a 72 m e a 96 m, mas sem informação de que funcionam. A água fica com o shopping e com o cadastro de pontos de hidratação (parte do Web).
 - **Energia do sensor:** no Wokwi, o "desligar e religar" o sensor roda de verdade no código, mas o simulador não modela a energia dos componentes. Então o efeito não aparece lá. No hardware real, é isso que destrava um DHT22 travado.
-
-## A preencher
-- **Simulações no Wokwi e canais no ThingSpeak (dashboard na Public View):**
-
-| Estação | Wokwi | Canal ThingSpeak |
-|---|---|---|
-| E1 Largo Glênio Peres | https://wokwi.com/projects/480541510887151617 | https://thingspeak.mathworks.com/channels/3578427 |
-| E2 Calçadão da Rua dos Andradas | https://wokwi.com/projects/480968836933960705 | https://thingspeak.mathworks.com/channels/3584100 |
-| E3 Parque Harmonia | https://wokwi.com/projects/480968883292563457 | https://thingspeak.mathworks.com/channels/3584102 |
-| E4 Parque Marinha do Brasil | https://wokwi.com/projects/480968911326252033 | https://thingspeak.mathworks.com/channels/3584103 |
-- Ainda falta: diagrama, vídeo de demonstração e integrantes.
