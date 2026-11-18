@@ -16,7 +16,7 @@ Ele cruza três fontes de dados reais:
 
 | Fonte | O que mede | Para que serve aqui |
 |---|---|---|
-| **INMET**, estação automática A801 (Jardim Botânico) | ar, umidade, vento e radiação do sol, hora a hora | a sensação térmica "oficial", com a mesma fórmula da estação Forno Alegre |
+| **INMET**, estação automática A801 (Jardim Botânico) | ar, umidade, vento e radiação do sol, hora a hora | a sensação térmica "oficial", com a mesma fórmula da estação Clima Real POA |
 | **Landsat 8 e 9** (NASA/USGS) | a temperatura da **superfície** (piso, telhado, grama), em pixels de 30 m | comparar os 4 locais entre si |
 | **Sentinel-2** (ESA) | o NDVI, o "índice de verde" | explicar **por que** um local é mais quente que outro |
 
@@ -130,7 +130,7 @@ Passagens do Landsat sem nuvens (menos de 2% na cena) nos verões de 2024/25 e 2
 
 ## O que os dados reais mostram (e o que não mostram)
 - **Superfície não é ar:** o satélite mede a temperatura do piso, e não a do ar nem a sensação térmica. Um piso a 46 °C esquenta quem está em cima, mas a sensação depende também do ar, da umidade e do vento.
-- **Ninguém mede o ar no Largo Glênio Peres.** A sensação térmica hora a hora em cada local **não existe como dado público**: a estação oficial mais próxima fica no Jardim Botânico. **Essa é a lacuna que as estações do Forno Alegre vêm preencher.** Por isso, este programa não inventa a sensação em cada local: ele mostra o que dá para medir hoje.
+- **Ninguém mede o ar no Largo Glênio Peres.** A sensação térmica hora a hora em cada local **não existe como dado público**: a estação oficial mais próxima fica no Jardim Botânico. **Essa é a lacuna que as estações do Clima Real POA vêm preencher.** Por isso, este programa não inventa a sensação em cada local: ele mostra o que dá para medir hoje.
 - **O satélite passa às 10h20.** O pico do calor é entre 13h e 16h, então as diferenças à tarde tendem a ser maiores. É uma limitação do horário do satélite.
 - **Resolução:** o sensor térmico do Landsat mede em blocos de 100 m (entregues em pixels de 30 m). Ele não consegue isolar uma rua de pedestres de 15 m entre prédios: no calçadão, ele mede o quarteirão, telhados incluídos. Num raio de 50 m (100 m de diâmetro), ele "vê" mais ou menos um bloco: os vizinhos entram um pouco na conta, e por isso a diferença entre o Marinha e o calçadão (0,3 °C) é pequena demais para tirar conclusão.
 - **Cobertura do solo de 2021:** o WorldCover é de 2021. Se um local mudou depois (obra, corte de árvores), a regra pode mudar.

@@ -4,13 +4,13 @@ A A801 (Porto Alegre - Jardim Botânico) é a estação oficial da cidade.
 Como manda a norma, ela fica num gramado aberto, longe de prédios e de
 concreto. Por isso ela mede bem "o tempo da cidade", mas não o calor
 de quem está no Largo Glênio Peres ao meio-dia. É esse o ponto cego
-que o Forno Alegre quer cobrir.
+que o Clima Real POA quer cobrir.
 
 Fonte: INMET, dados históricos anuais (portal.inmet.gov.br/dadoshistoricos),
 arquivo de 2025, só a estação A801, salvo sem mudanças em
 dados/inmet_A801_2025.csv.
 
-Para cada hora, calculamos com a MESMA fórmula da estação Forno Alegre:
+Para cada hora, calculamos com a MESMA fórmula da estação Clima Real POA:
     ta_sombra -> sensação sem o sol;   ta_sol -> sensação com o sol medido.
 
 Uso:

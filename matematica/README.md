@@ -12,7 +12,7 @@ O jornal dá um número só: "máxima de 37 °C". Para quem vai passar a tarde n
 
 ## Os dados (reais, sem hipóteses)
 - **Estação automática A801 do INMET** (Porto Alegre, Jardim Botânico), hora a hora, em **04/02/2025**: o dia em que o InGá mediu 61 °C no piso do Parque Harmonia ([Sul21, 05/02/2025](https://sul21.com.br/noticias/geral/2025/02/piso-de-concreto-do-parque-harmonia-chega-a-61-oc-formando-ilha-de-calor-no-centro-de-porto-alegre/)).
-- A **sensação térmica ao sol** é a mesma fórmula da estação Forno Alegre (Temperatura Aparente de Steadman, com o sol medido pelo INMET). O código é o do [`python/`](../python/): `fontes/oficial.py` e `processamento/sensacao.py`.
+- A **sensação térmica ao sol** é a mesma fórmula da estação Clima Real POA (Temperatura Aparente de Steadman, com o sol medido pelo INMET). O código é o do [`python/`](../python/): `fontes/oficial.py` e `processamento/sensacao.py`.
 - **34 °C** é o limite em que o relé da estação liga o nebulizador (nível laranja). É onde começa o laranja nas 5 faixas da [Nota Técnica nº 01/26 da Secretaria Municipal de Saúde de Porto Alegre](https://prefeitura.poa.br/sites/default/files/usu_doc/hotsites/sms/vigilancia-em-saude/NT%201_26_Calor%20extremo.pdf) (27/34/40/52 °C), a mesma régua da estação e do Python. Até 15/11/2026, usávamos 32 °C (da NOAA), e a dose dava 116,4 °C·h.
 
 ## O modelo e as análises
@@ -63,7 +63,7 @@ T(t) = T∞ + (T0 − T∞)·e^(−k·(t − 20h))      T∞ = 23,35 °C,  T0 = 
 ![M4](graficos/4_limite.png)
 
 ## Limitações (o que o modelo não diz)
-- Os dados são da **estação oficial**, num gramado aberto. Por isso eles mostram o tempo da cidade, e não o calor do piso do Largo. No concreto, a dose seria maior. Para medir isso, servem as estações Forno Alegre no próprio local.
+- Os dados são da **estação oficial**, num gramado aberto. Por isso eles mostram o tempo da cidade, e não o calor do piso do Largo. No concreto, a dose seria maior. Para medir isso, servem as estações Clima Real POA no próprio local.
 - O modelo de 2 ondas é **suave**: ele atrasa o salto da manhã e adianta o pico em cerca de 1 hora (14h07 no modelo × 15h na medida).
 - O dia não é exatamente periódico (o 05/02 começou mais quente que o 04/02), e o modelo de 24 h supõe que é.
 - A lei de Newton supõe uma "sala" de temperatura fixa. Na cidade, essa "sala" muda (vento, nuvens, o calor que o concreto devolve). Às 3h, a medida caiu para 24,5 °C e depois subiu para 25,0 °C, e o modelo não acompanha esse vaivém.

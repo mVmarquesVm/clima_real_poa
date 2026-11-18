@@ -1,4 +1,4 @@
-# Edge — Estação Forno Alegre (ESP32 no Wokwi)
+# Edge — Estação Clima Real POA (ESP32 no Wokwi)
 
 > Ficha da CitizenTech: ver o [README principal](../README.md).
 
@@ -241,7 +241,7 @@ As credenciais ficam no `secrets.h`, que está no `.gitignore` e **nunca vai par
 
 ### Como criar o canal e a credencial no ThingSpeak
 1. Crie uma conta grátis em [thingspeak.mathworks.com](https://thingspeak.mathworks.com).
-2. *Channels > My Channels > New Channel*: nome `Forno Alegre - E1 Largo Glênio Peres`, marque os 8 campos e dê os nomes da tabela acima. Salve e anote o **Channel ID**.
+2. *Channels > My Channels > New Channel*: nome `Clima Real POA - E1 Largo Glênio Peres`, marque os 8 campos e dê os nomes da tabela acima. Salve e anote o **Channel ID**.
 3. *Devices > MQTT > Add a new device*: nome `estacao-E1`; em *Authorize channels*, escolha **só** o canal da E1, com *Publish* e *Subscribe*. Salve e baixe as credenciais (Client ID, Username e Password).
 4. Copie o `secrets.example.h` para `secrets.h` e preencha o Channel ID e as 3 credenciais. No Wokwi, abra o arquivo `secrets.h` e cole os mesmos valores.
 

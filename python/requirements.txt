@@ -1,4 +1,4 @@
-# Forno Alegre — Python (Computational Thinking)
+# Clima Real POA — Python (Computational Thinking)
 # Instalar:  pip install -r requirements.txt
 pandas==3.1.1        # tabelas (as séries horárias das estações)
 matplotlib==3.11.2   # gráficos

@@ -1,4 +1,4 @@
-# Backend — API do Forno Alegre
+# Backend — API do Clima Real POA
 
 > Ficha da CitizenTech: ver o [README principal](../README.md).
 

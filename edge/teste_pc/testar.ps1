@@ -29,7 +29,7 @@ foreach ($n in 1..4) {
     if ($LASTEXITCODE -ne 0) { Write-Host "ERRO: nao compilou (E$n)" -ForegroundColor Red; exit 1 }
     if ($n -eq 1) { & $exe } else {
         $saida = & $exe
-        $saida | Select-String 'FALHOU|=== Forno|Resultado' | ForEach-Object { "  E${n}: $($_.Line.Trim())" }
+        $saida | Select-String 'FALHOU|=== Clima|Resultado' | ForEach-Object { "  E${n}: $($_.Line.Trim())" }
     }
     if ($LASTEXITCODE -ne 0) { Write-Host "ERRO: algum autoteste falhou (E$n)" -ForegroundColor Red; exit 1 }
 }

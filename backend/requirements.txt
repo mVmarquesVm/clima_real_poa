@@ -1,4 +1,4 @@
-# API do Forno Alegre (FastAPI + Uvicorn + SQLite)
+# API do Clima Real POA (FastAPI + Uvicorn + SQLite)
 # O SQLite vem com o Python (módulo sqlite3): não precisa instalar.
 fastapi==0.163.1
 uvicorn==0.54.0

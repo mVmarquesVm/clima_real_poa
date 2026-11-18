@@ -1,8 +1,8 @@
-"""Matemática do Forno Alegre: o calor de 04/02/2025 visto pelo Cálculo.
+"""Matemática do Clima Real POA: o calor de 04/02/2025 visto pelo Cálculo.
 
 Dados REAIS: estação automática A801 do INMET (Porto Alegre), hora a
 hora, em hora local, lidos pelo python/fontes/oficial.py. A sensação térmica é
-a MESMA fórmula da estação Forno Alegre (Temperatura Aparente de
+a MESMA fórmula da estação Clima Real POA (Temperatura Aparente de
 Steadman, com o sol medido), do python/processamento/sensacao.py.
 
 Por que 04/02/2025? É o dia em que o InGá mediu 61 °C no piso do Parque
@@ -123,7 +123,7 @@ def analisar(df: pd.DataFrame) -> dict:
 def imprimir(r: dict) -> None:
     m1, m2, m3, m4 = r["m1_modelo"], r["m2_derivada"], r["m3_integral"], r["m4_limite"]
     br = lambda x, casas=1: f"{x:.{casas}f}".replace(".", ",")  # noqa: E731
-    print(f"Forno Alegre - Matemática com o dia {r['dia']} ({r['fonte']})\n")
+    print(f"Clima Real POA - Matemática com o dia {r['dia']} ({r['fonte']})\n")
     print("M1 MODELO: sensação ao sol = soma de ondas de 24 h")
     for linha in m1["comparacao"]:
         marca = "  <- escolhido" if linha["harmonicos"] == m1["harmonicos"] else ""

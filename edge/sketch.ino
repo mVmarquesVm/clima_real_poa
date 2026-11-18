@@ -1,5 +1,5 @@
 // ============================================================
-// Forno Alegre — estação de "calor real"
+// Clima Real POA — estação de "calor real"
 // Passo 2: a cada 2 s lê o DHT22, o anemômetro e o LDR e calcula a
 // Temperatura Aparente (com vento e sol), com watchdog do programa,
 // vigia do sensor, defesa da leitura e autoteste no boot.
@@ -767,7 +767,7 @@ void setup() {
   lcd.backlight();
   carregarAcentos(lcd);    // antes do setCursor: o createChar mexe no ponteiro de escrita do LCD
   lcd.setCursor(0, 0);
-  lcd.print("Forno Alegre ");
+  lcd.print("Clima Real POA ");
   lcd.print(ID_ESTACAO);
   lcd.setCursor(0, 1);
   lcd.print("Autoteste...");
@@ -792,7 +792,7 @@ void setup() {
   }
 
   Serial.println();
-  Serial.printf("=== Forno Alegre | estacao %s (%s) ===\n", ID_ESTACAO, NOME_ESTACAO);
+  Serial.printf("=== Clima Real POA | estacao %s (%s) ===\n", ID_ESTACAO, NOME_ESTACAO);
   Serial.printf("Ultimo reinicio: %s | reinicios desde que ligou: %lu\n",
                 foiOVigia ? "VIGIA: recuperacao do sensor" : textoMotivoReinicio(motivo),
                 (unsigned long)contadorReinicios);

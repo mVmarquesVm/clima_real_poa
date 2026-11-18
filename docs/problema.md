@@ -1,4 +1,4 @@
-# O problema do Forno Alegre
+# O problema do Clima Real POA
 
 > Rascunho de 14/11/2026. É a base da Ficha da CitizenTech, do relatório de Total Experience e do pitch.
 > Todas as fontes foram abertas e conferidas em 14/11/2026 (ver a seção 12). O que ainda depende de decisão do Matheus está marcado com **(decidir)**.
@@ -107,7 +107,7 @@ Porto Alegre tem verões cada vez mais quentes. No Centro Histórico e na Praia 
 
 ## 11. Limites e cuidados (para não ser pego de surpresa)
 
-- A Temperatura Aparente **não é** o índice legal do calor no trabalho. A NHO 06 (Fundacentro) e a NR-15 usam o **IBUTG**, que pede termômetro de globo e de bulbo úmido. O Forno Alegre é um **alerta e um indicador**, e pode mostrar onde vale fazer a avaliação oficial.
+- A Temperatura Aparente **não é** o índice legal do calor no trabalho. A NHO 06 (Fundacentro) e a NR-15 usam o **IBUTG**, que pede termômetro de globo e de bulbo úmido. O Clima Real POA é um **alerta e um indicador**, e pode mostrar onde vale fazer a avaliação oficial.
 - O projeto de POA para os trabalhadores foi **aprovado na Câmara**; a sanção não foi confirmada, e um parecer da Câmara questiona se o município pode legislar sobre o tema. Diga "projeto aprovado", não "lei".
 - As medições do InGá e da GZH são pontuais, de ONG e de jornal, não oficiais.
 - A sensação de ~38/45 °C no Largo é uma estimativa nossa, sem medida de vento e de sol.

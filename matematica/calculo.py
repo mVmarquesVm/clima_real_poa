@@ -1,4 +1,4 @@
-"""Ferramentas de Cálculo do Forno Alegre, só com NumPy.
+"""Ferramentas de Cálculo do Clima Real POA, só com NumPy.
 
 Nada aqui sabe de INMET ou de pandas: são funções puras de matemática,
 testadas com funções cuja resposta a gente sabe de cabeça

@@ -1,11 +1,11 @@
-# Forno Alegre
+# Clima Real POA
 
 > Medindo a ilha de calor do Centro de Porto Alegre (projeto *Hot Island in the City*).
 
 Estações de "calor real" em locais de lazer de Porto Alegre: medem a sensação térmica onde as pessoas realmente ficam, avisam o risco e recomendam o local e o horário mais seguros para cada atividade.
 
 ## Ficha da CitizenTech
-- **Nome:** Forno Alegre
+- **Nome:** Clima Real POA
 - **Cidade e bairro:** Porto Alegre — região central (Centro Histórico e Praia de Belas)
 - **Cidadão beneficiado:** quem vai a locais ao ar livre para lazer, com atenção aos grupos de risco (idosos, crianças, gestantes e pessoas com doença crônica); a estação também protege quem não usa o app, e a prefeitura usa os dados para decidir onde sombrear
 - **Problema em uma frase:** Porto Alegre já mede o tempo em 16 pontos, mas nenhum diz quanto calor a pessoa sente na praça, nem avisa, nem refresca.

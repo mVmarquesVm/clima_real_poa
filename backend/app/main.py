@@ -26,7 +26,7 @@ async def ciclo_de_vida(app: FastAPI):
 
 app = FastAPI(
     lifespan=ciclo_de_vida,
-    title="API do Forno Alegre",
+    title="API do Clima Real POA",
     description=(
         "Cadastro de locais de lazer e de pontos de hidratação "
         "na região central de Porto Alegre."
