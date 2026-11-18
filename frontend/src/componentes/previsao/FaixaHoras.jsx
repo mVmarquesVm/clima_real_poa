@@ -38,13 +38,14 @@ function Dia({ titulo, horas, atividade }) {
   return (
     <div>
       <h4 className="text-lg font-semibold">{titulo}</h4>
-      <ol className="mt-1 flex flex-wrap gap-2">
+      {/* Grade de colunas de 4,5rem: 3 por linha no celular, mesmo com a letra maior (A+). */}
+      <ol className="mt-1 grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2">
         {horas.map((h) => {
           const boa = horaBoa(h, atividade)
           return (
             <li
               key={h.hora.getTime()}
-              className={`flex w-20 flex-col items-center rounded border py-2 ${
+              className={`flex flex-col items-center rounded border py-2 ${
                 boa ? 'border-risco-verde bg-risco-verde text-white' : 'border-borda-forte bg-superficie-2 text-texto'
               }`}
             >

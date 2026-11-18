@@ -27,18 +27,27 @@ export default function useLocalizacao() {
         // Sem posição nova, a velha sai: a lista não fica ordenada por um lugar antigo.
         setPosicao(null)
         setEstado('erro')
-        // Os 3 códigos da API de geolocalização, em português.
+        // Os 3 códigos da API de geolocalização, em português simples. Todos
+        // apontam a saída (o CEP, logo abaixo): ninguém fica sem caminho.
         setErro(
           e.code === e.PERMISSION_DENIED
-            ? 'Você não permitiu o acesso à localização. Dá para liberar no cadeado da barra de endereço.'
+            ? 'O celular não deixou ver onde você está. Tudo bem: digite o CEP de onde você sai, logo abaixo.'
             : e.code === e.TIMEOUT
-              ? 'A localização demorou demais. Tente de novo.'
-              : 'Não foi possível descobrir onde você está.',
+              ? 'Demorou demais para achar onde você está. Tente de novo ou digite o CEP, logo abaixo.'
+              : 'Não deu para achar onde você está. Digite o CEP de onde você sai, logo abaixo.',
         )
       },
       // Precisão de cidade basta (sem GPS fino, gasta menos bateria); posição de até 5 min vale.
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     )
+  }, [])
+
+  // Plano B: a partida vem do CEP (BotaoPertoDeMim). "onde" é o endereço em
+  // texto, para a tela dizer de onde as distâncias são contadas.
+  const usarEndereco = useCallback((ponto, onde) => {
+    setPosicao({ lat: ponto.lat, lon: ponto.lon, onde })
+    setErro(null)
+    setEstado('ok')
   }, [])
 
   const esquecer = useCallback(() => {
@@ -47,5 +56,5 @@ export default function useLocalizacao() {
     setEstado('parado')
   }, [])
 
-  return { estado, posicao, erro, pedir, esquecer }
+  return { estado, posicao, erro, pedir, usarEndereco, esquecer }
 }

@@ -8,13 +8,14 @@ import { aoClicarLink } from '../../lib/navegacao'
 export default function Menu({ secoes }) {
   return (
     <nav aria-label="Seções da página" className="w-full">
-      <ul className="flex flex-wrap gap-2">
+      {/* 3 colunas iguais: no celular os 3 itens cabem numa linha só (antes, "Gestão" caía sozinho na 2ª). */}
+      <ul className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
         {secoes.map((s) => (
           <li key={s.id}>
             <a
               href={`#${s.id}`}
               onClick={(e) => aoClicarLink(e, s.id)}
-              className="inline-block rounded border border-white/60 px-3 py-1.5 font-semibold text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="block rounded border border-white/60 px-2 py-1.5 text-center font-semibold sm:px-3 text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {s.texto}
             </a>

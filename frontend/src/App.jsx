@@ -56,8 +56,9 @@ export default function App() {
       <header className="bg-marca px-4 py-4 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Forno Alegre</h1>
-            <p>Calor no Centro de Porto Alegre</p>
+            <h1 className="text-2xl font-bold">Clima Real POA</h1>
+            {/* Em 1 frase, para que serve: quem chega pela 1ª vez (a avó da entrevista) entende em segundos. */}
+            <p>Veja se está quente demais para sair no Centro de Porto Alegre e para onde ir.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <BotaoLetra grande={letra.grande} aoAlternar={letra.alternar} />

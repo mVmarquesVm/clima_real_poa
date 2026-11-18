@@ -1,4 +1,4 @@
-// Régua de risco do Forno Alegre: a MESMA da estação (edge/config.h e edge/risco.h).
+// Régua de risco do Clima Real POA: a MESMA da estação (edge/config.h e edge/risco.h).
 // Fonte: Nota Técnica nº 01/26 da SMS de Porto Alegre (atualizada em 04/02/2026):
 //   < 27 verde · 27–33 amarelo · 34–39 laranja · 40–51 vermelho · > 51 roxo.
 // A nota só dá as cores; os conselhos são os mesmos do LCD de Orientação da estação.
@@ -7,7 +7,7 @@
 
 export const LIMITES = { amarelo: 27, laranja: 34, vermelho: 40, roxo: 52 }
 
-// Abaixo disto o app avisa "frio", mas o nível continua verde: o Forno Alegre
+// Abaixo disto o app avisa "frio", mas o nível continua verde: o Clima Real POA
 // só alerta calor (decisão de 13/11, igual ao LIMITE_FRIO_C do Edge).
 export const LIMITE_FRIO = 9
 

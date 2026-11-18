@@ -77,6 +77,7 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
       <h2 id="titulo-recomendacao" ref={titulo} tabIndex={-1} className="text-2xl font-bold">
         Planeje o seu passeio
       </h2>
+      <p className="text-lg">Escolha o que você vai fazer. O app diz se está quente demais, a melhor hora e para onde ir.</p>
       <SeletorAtividade valor={atividade} aoMudar={setAtividade} />
 
       <div className="space-y-3">
@@ -121,7 +122,10 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
             e marque essa atividade.
           </p>
         )}
-        {melhor && (
+        {/* O cartão espera a previsão: a água depende da HORA da ida, e sem
+            isso o cartão aparecia com um ponto e trocava para outro logo depois. */}
+        {melhor && !previsao.itens && !previsao.erro && <EstadoCarregando texto="Escolhendo o melhor local…" />}
+        {melhor && (previsao.itens || previsao.erro) && (
           <CartaoRecomendacao
             // Outro local, outro ponto ou outra origem = cartão novo (a rota velha some).
             key={`${melhor.id}-${ponto?.id}-${localizacao.posicao?.lat}-${localizacao.posicao?.lon}`}

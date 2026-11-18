@@ -50,6 +50,13 @@ export default function MapaEscolherPonto({ ponto, aoEscolher, centrar }) {
       cooperativeGestures: true,
     })
     mapa.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+    // O crédito do mapa (OpenStreetMap/OpenFreeMap) começa FECHADO no botão "i":
+    // aberto, ele cobria cerca de 20% do mapa no celular. Um toque no "i" mostra.
+    mapa.once('load', () => {
+      const credito = caixa.current?.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact')
+      credito?.classList.remove('maplibregl-compact-show')
+      credito?.removeAttribute('open')
+    })
     const canvas = mapa.getCanvas()
     canvas.setAttribute('role', 'img')
     canvas.setAttribute(

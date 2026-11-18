@@ -15,7 +15,7 @@ const TEMPO_MAXIMO_MS = 10_000
 export const ERROS_ENDERECO = {
   cepInvalido: 'O CEP precisa ter 8 números. Ex.: 90010-150.',
   cepNaoExiste: 'Esse CEP não existe. Confira os números.',
-  foraDePoa: 'Esse CEP não é de Porto Alegre. O Forno Alegre só cadastra locais de Porto Alegre.',
+  foraDePoa: 'Esse CEP não é de Porto Alegre. O Clima Real POA só cadastra locais de Porto Alegre.',
   naoAchou: 'Não achamos esse endereço no mapa. Toque no mapa para marcar o ponto.',
   semServico: 'Não deu para buscar o endereço agora. Tente de novo ou toque no mapa para marcar o ponto.',
 }

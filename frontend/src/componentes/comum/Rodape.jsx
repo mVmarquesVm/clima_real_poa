@@ -42,7 +42,7 @@ export default function Rodape() {
           ))}
         </dl>
       </details>
-      <p className="mt-3 text-texto-suave">Forno Alegre · projeto acadêmico (FIAP, 2026).</p>
+      <p className="mt-3 text-texto-suave">Clima Real POA · projeto acadêmico (FIAP, 2026).</p>
     </footer>
   )
 }

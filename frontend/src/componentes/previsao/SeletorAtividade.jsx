@@ -12,6 +12,8 @@ export default function SeletorAtividade({ valor, aoMudar }) {
         <NumeroPasso numero={1} />
         O que você vai fazer?
       </legend>
+      {/* Uma opção já vem marcada (caminhada): a dica diz que dá para trocar. */}
+      <p className="mb-2 text-texto-suave">Toque numa opção para trocar.</p>
       <div className="flex flex-wrap gap-2">
         {LISTA_DE_ATIVIDADES.map((atividade) => (
           <label

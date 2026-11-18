@@ -17,7 +17,7 @@ export default function ListaEstacoes({ estacoes, locais, estados, agora }) {
   if (ligadas.length === 0) {
     return (
       <p role="status" className="rounded border border-borda bg-superficie p-4 text-lg">
-        <span aria-hidden="true">? </span>
+        <span aria-hidden="true">ⓘ </span>
         As estações estão <strong>sem leitura agora</strong>. Use a previsão do “Planeje o seu passeio”, logo acima.
       </p>
     )

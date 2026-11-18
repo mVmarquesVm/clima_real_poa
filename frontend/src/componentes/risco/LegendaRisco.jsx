@@ -27,7 +27,7 @@ export default function LegendaRisco() {
                 {nivel.nome}
               </span>
               <span>
-                <span className="font-mono tabular-nums">{f.texto}</span>: {nivel.conselho.toLowerCase()}.
+                <span className="tabular-nums">{f.texto}</span>: {nivel.conselho.toLowerCase()}.
               </span>
             </li>
           )

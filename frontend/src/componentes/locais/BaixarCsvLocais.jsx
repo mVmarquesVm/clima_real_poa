@@ -30,7 +30,7 @@ const COLUNAS = [
 export default function BaixarCsvLocais({ locais, passagens }) {
   function baixar() {
     const emOrdem = [...locais].sort((a, b) => a.satelite.posicao - b.satelite.posicao)
-    baixarArquivo(`forno-alegre-ranking-satelite-${passagens.ultima}.csv`, paraCsv(COLUNAS, emOrdem))
+    baixarArquivo(`clima-real-poa-ranking-satelite-${passagens.ultima}.csv`, paraCsv(COLUNAS, emOrdem))
   }
 
   return (

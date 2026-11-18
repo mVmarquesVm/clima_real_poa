@@ -274,6 +274,13 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false,
     mapaRef.current = mapa
     estiloAplicado.current = estilo
     mapa.addControl(new NavigationControl({ showCompass: false }), 'top-right')
+    // O crédito do mapa (OpenStreetMap/OpenFreeMap) começa FECHADO no botão "i":
+    // aberto, ele cobria cerca de 20% do mapa no celular. Um toque no "i" mostra.
+    mapa.once('load', () => {
+      const credito = caixa.current?.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact')
+      credito?.classList.remove('maplibregl-compact-show')
+      credito?.removeAttribute('open')
+    })
 
     // Acessibilidade do canvas: nome claro e a indicação de onde estão os dados.
     const canvas = mapa.getCanvas()

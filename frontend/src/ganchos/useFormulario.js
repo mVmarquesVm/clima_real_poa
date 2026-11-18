@@ -15,6 +15,8 @@ export default function useFormulario({ inicial, validar, salvar, aoSalvar }) {
   const [valores, setValores] = useState(inicial)
   const [erros, setErros] = useState({}) // {campo: mensagem}
   const [erroGeral, setErroGeral] = useState(null) // um ErroApi, para a caixa do topo
+  // A caixa do topo veio só dos campos? Então ela some quando o último campo é corrigido.
+  const [erroDosCampos, setErroDosCampos] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const formulario = useRef(null)
   const controle = useRef(null)
@@ -53,6 +55,7 @@ export default function useFormulario({ inicial, validar, salvar, aoSalvar }) {
 
   function mostrarErro(erro, porCampo) {
     setErroGeral(erro)
+    setErroDosCampos(Object.keys(porCampo).length > 0)
     focarErro.current = Object.keys(porCampo).length > 0
     setErros(porCampo)
   }
@@ -92,5 +95,9 @@ export default function useFormulario({ inicial, validar, salvar, aoSalvar }) {
     aoMudar: (v) => mudar(nome, v),
   })
 
-  return { formulario, valores, mudar, erros, erroGeral, enviando, enviar, campo }
+  // Antes, "Há campos com problema" ficava no topo mesmo com tudo corrigido.
+  // Um erro que não é de campo (API fora do ar, 500) continua até o próximo envio.
+  const erroGeralVisivel = erroDosCampos && Object.keys(erros).length === 0 ? null : erroGeral
+
+  return { formulario, valores, mudar, erros, erroGeral: erroGeralVisivel, enviando, enviar, campo }
 }

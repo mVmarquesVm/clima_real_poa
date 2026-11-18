@@ -29,7 +29,7 @@ export default function CartaoRecomendacao({ local, ponto, posicao, aoMostrarRot
 
   // Os 2 trajetos possíveis: de onde, para onde e o nome de cada ponta no mapa.
   const TRAJETOS = {
-    local: { origem: posicao, destino: local, nomeOrigem: 'Você', nomeDestino: local.nome },
+    local: { origem: posicao, destino: local, nomeOrigem: posicao?.onde ? 'Partida' : 'Você', nomeDestino: local.nome },
     agua: ponto && { origem: local, destino: ponto, nomeOrigem: local.nome, nomeDestino: `Água: ${ponto.nome}` },
   }
 
@@ -55,6 +55,9 @@ export default function CartaoRecomendacao({ local, ponto, posicao, aoMostrarRot
   const trajetoAtual = rota.alvo ? TRAJETOS[rota.alvo] : null
   // "Até o local" (e não "Até o Praça XV"): o nome já está no título do cartão.
   const ateOnde = rota.alvo === 'agua' ? 'Do local até a água' : 'De você até o local'
+  // Um número só para cada distância: com o caminho pelas ruas calculado, ele
+  // vale no lugar da linha reta (antes, a tela dizia "a 40 m" e "20 m a pé").
+  const peloCaminho = (alvo, emLinhaReta) => (rota.estado === 'ok' && rota.alvo === alvo ? rota.metros : emLinhaReta)
 
   return (
     <article aria-labelledby={`recomendado-${local.id}`} className="space-y-4 rounded border-2 border-foco bg-superficie p-4">
@@ -63,7 +66,7 @@ export default function CartaoRecomendacao({ local, ponto, posicao, aoMostrarRot
         <h4 id={`recomendado-${local.id}`} className="text-2xl font-bold">
           {local.nome}
         </h4>
-        {local.distancia !== null && <p>A {formatarDistancia(local.distancia)} de você.</p>}
+        {local.distancia !== null && <p>A {formatarDistancia(peloCaminho('local', local.distancia))} de você.</p>}
       </div>
 
       <ul className="text-lg">
@@ -76,7 +79,7 @@ export default function CartaoRecomendacao({ local, ponto, posicao, aoMostrarRot
         {ponto ? (
           <>
             {ponto.nome} ({rotulo(TIPOS_DE_HIDRATACAO, ponto.tipo).toLowerCase()},{' '}
-            {descreverHorario(ponto).toLowerCase()}), a {formatarDistancia(ponto.distancia)}
+            {descreverHorario(ponto).toLowerCase()}), a {formatarDistancia(peloCaminho('agua', ponto.distancia))}
             {ponto.distancia > AGUA_LONGE_M && <strong>. É longe: leve a sua água.</strong>}
           </>
         ) : (
@@ -107,7 +110,7 @@ export default function CartaoRecomendacao({ local, ponto, posicao, aoMostrarRot
             </button>
           )}
         </div>
-        {!posicao && <p>Para ver o caminho de onde você está, toque em “Perto de mim”, logo acima.</p>}
+        {!posicao && <p>Para ver o caminho de onde você está, toque em “Perto de mim” ou use o seu CEP, logo acima.</p>}
         {(posicao || ponto) && (
           <p className="text-texto-suave">O caminho é calculado pelo OpenStreetMap, que recebe a partida e a chegada.</p>
         )}

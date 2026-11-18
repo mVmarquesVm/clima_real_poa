@@ -1,4 +1,4 @@
-// As estações do Forno Alegre e o canal do ThingSpeak de cada uma.
+// As estações do Clima Real POA e o canal do ThingSpeak de cada uma.
 // O ponto e a área de cada estação vêm do locais.json (gerado pelo Python);
 // aqui fica só o que o app precisa para buscar a leitura ao vivo.
 //
