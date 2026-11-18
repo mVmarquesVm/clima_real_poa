@@ -841,3 +841,54 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 **O que eu mudei ou fiz sozinho**
 - Olhei a página pensando num idoso e cobrei que ela não estava fácil.
 - Pedi para tirar o excesso de informação.
+
+## Pitch — Roteiro do vídeo de 3 minutos (18/11/2026)
+
+**O que eu pedi**
+- "Vamos continuar o projeto": o próximo passo combinado era o roteiro do pitch.
+
+**O que a IA gerou**
+- Roteiro do pitch (fica só no PC, fora do Git): 7 cenas em 2 min 50 s (a pessoa → o problema → por que acontece → a estação funcionando → o app → a gestão → o fecho), com a fala pronta, o que mostrar na tela e o que preparar antes de gravar.
+- A história de abertura usa a entrevista autorizada (`docs/entrevista.md`), com espaço para uma história minha no lugar.
+- Uma tabela de onde cada disciplina aparece no vídeo e uma lista de cuidados com as palavras (piso × ar, °C·h, "projeto aprovado", 1 entrevistado só, estações simuladas).
+- Os números da fala foram conferidos contra o `docs/problema.md` e o `matematica/resultados.json`; os nomes dos botões, contra o código do app.
+
+**O que eu mudei ou fiz sozinho**
+- (preencher depois de ler e ensaiar o roteiro)
+
+## Total Experience — Relatório (18/11/2026)
+
+**O que eu pedi**
+- Perguntei o que faltava para entregar e escolhi começar pelo relatório de Total Experience.
+
+**O que a IA gerou**
+- O relatório como documento editável no Claude, exportado em `docs/relatorio_total_experience.pdf` (20 páginas): capa, índice, justificativa (com as evidências e as fontes), escopo (as 4 estações, o que está dentro e fora e um diagrama da arquitetura), público e entrevista (o que cada resposta mudou no produto), 30 requisitos funcionais, os não funcionais com a forma de conferir cada um, as regras de negócio, o backlog com 6 épicos entregues (em histórias de usuário) e 5 futuros, a conclusão e as referências.
+- A base veio do `docs/problema.md`, do `docs/requisitos_rascunho.md` e do `docs/entrevista.md`; os requisitos do Edge, da nuvem e da análise, que faltavam no rascunho, foram escritos a partir do código.
+- Conferindo no código, a IA achou um erro no próprio texto: a histerese da cor estava descrita como "muda só 0,5 °C depois do limite", mas o código muda a cor no limite ao subir e só 0,5 °C abaixo ao descer. Corrigido antes do PDF.
+
+**O que eu mudei ou fiz sozinho**
+- (preencher depois de ler o relatório)
+
+## Nome novo + avaliação e correções do app (18/11/2026)
+
+**O que eu pedi**
+- Trocar o nome "Forno Alegre", que é comum e genérico (a própria GZH usou "Forno Alegre" numa manchete de 26/01/2026), por um nome mais sério.
+- Uma análise do app com prints e um relatório dizendo se ele já está bom.
+- Corrigir os problemas 1 (localização negada), 3 (primeiro olhar e cabeçalho), 4 (régua de horas) e os detalhes menores.
+
+**O que a IA gerou**
+- Sugestões de nome com prós e contras e o levantamento de onde o nome aparecia (43 vezes em 27 arquivos).
+- A troca do nome visível (READMEs, documentos, título da página, cabeçalho, rodapé, LCD e Serial da estação, títulos da API, nome do CSV). Os nomes internos ficaram (`FORNO_BANCO`, `forno_alegre.db`, as chaves do navegador e a gaveta da memória do ESP32), para não quebrar nada perto da entrega. A citação da manchete da GZH ficou como está.
+- Uma avaliação do app por um subagente (computador e celular, 2 temas, letra maior, teclado, com e sem dados), com os problemas em ordem de gravidade.
+- As correções:
+  - sem localização: a mensagem diz "O celular não deixou ver onde você está. Tudo bem: digite o CEP de onde você sai" e aparece o CEP como ponto de partida (o mesmo ViaCEP + OpenStreetMap do cadastro), com o botão "Digitar o CEP" sempre à mão;
+  - a frase de abertura no cabeçalho e no "Planeje o seu passeio", e a dica "Toque numa opção para trocar";
+  - o menu em 3 colunas (cabe numa linha no celular) e a régua de horas em grade (3 por linha no celular com a letra maior);
+  - um número só para cada distância (o caminho pelas ruas, quando calculado, substitui a linha reta);
+  - o quadro "Há campos com problema" some quando o último campo é corrigido;
+  - o cartão "Vá para" espera a previsão, para a água não trocar logo depois de aparecer;
+  - o crédito dos mapas começa fechado no botão "i"; o "?" do aviso virou "ⓘ"; a legenda das cores saiu da fonte mono.
+
+**O que eu mudei ou fiz sozinho**
+- Escolhi o nome **Clima Real POA**.
+- Escolhi quais problemas corrigir (deixei de fora a frase da previsão × estações).
