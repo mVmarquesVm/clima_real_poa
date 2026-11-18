@@ -58,9 +58,22 @@
   color-scheme: dark;
 }
 
+/*
+  Tamanho da letra. O Tailwind mede tudo em "rem" (= o tamanho da letra do
+  <html>), então mudar só esta linha aumenta o texto, os botões e os espaços
+  juntos, na mesma proporção. Base de 18 px (o padrão do navegador é 16): o app
+  é pensado também para idosos. O botão "A+" do cabeçalho liga a letra grande
+  (21 px), guardada no aparelho (ver useLetra.js e o index.html).
+  Em % (e não em px): quem já aumentou a letra no navegador ganha por cima.
+*/
 html {
   background: var(--color-fundo);
   color: var(--color-texto);
+  font-size: 112.5%;
+}
+
+html[data-letra="grande"] {
+  font-size: 131.25%;
 }
 
 /* Quem pede menos movimento no sistema não recebe animações. */

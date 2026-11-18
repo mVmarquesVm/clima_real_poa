@@ -22,4 +22,5 @@ export const CLASSE_CAMPO =
 // Os botões do cadastro: o principal (Salvar) e o secundário (Cancelar, Editar...).
 export const CLASSE_BOTAO =
   'rounded px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco'
+export const CLASSE_BOTAO_PRINCIPAL = `${CLASSE_BOTAO} bg-foco text-fundo`
 export const CLASSE_BOTAO_SECUNDARIO = `${CLASSE_BOTAO} border border-borda-forte bg-superficie hover:bg-superficie-2`

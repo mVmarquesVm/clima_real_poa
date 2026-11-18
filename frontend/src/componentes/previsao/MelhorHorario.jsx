@@ -1,11 +1,6 @@
 import { ATIVIDADES } from '../../lib/cadastro'
 import { numero } from '../../lib/formato'
 import {
-  HORA_FIM,
-  HORA_INICIO,
-  LIMITE_POR_ATIVIDADE,
-  MOTIVO_DO_LIMITE,
-  arredondar,
   diaLocal,
   horaBoa,
   horaLocal,
@@ -13,79 +8,58 @@ import {
   horasDeLazer,
   janelasBoas,
 } from '../../lib/recomendacao'
-import { NIVEIS, conselhoDe, indicePorTA } from '../../lib/risco'
-import IconeRisco from '../risco/IconeRisco'
+import FaixaHoras from './FaixaHoras'
 
-// "Quando ir": diz se AGORA dá, e lista as janelas boas de hoje e de amanhã.
-// Tudo em texto (o gráfico é só um apoio visual).
+// "Quando ir", em 3 partes que se leem de longe:
+// 1) a RESPOSTA, em letra grande ("Melhor horário: hoje, das 7h às 10h");
+// 2) se AGORA dá (✓ ou ✕);
+// 3) a régua de horas "Pode ir / Evite" de hoje.
+// Os números (gráfico e tabela) ficam em "Ver a previsão em detalhes".
 export default function MelhorHorario({ previsao, atividade, agora }) {
-  const limite = LIMITE_POR_ATIVIDADE[atividade]
   const nome = ATIVIDADES[atividade].toLowerCase()
   const horas = horasDeLazer(previsao, agora)
-  const janelas = janelasBoas(horas, atividade)
+  const janela = janelasBoas(horas, atividade)[0] ?? null
   const hoje = diaLocal(agora)
+  const qualDia = (data) => (diaLocal(data) === hoje ? 'hoje' : 'amanhã')
 
-  // Fora do horário de lazer (ex.: 3h da manhã), o "Agora dá" não aparece.
+  // Fora do horário de lazer (ex.: 3h da manhã), a linha "Agora" não aparece.
   const horaAgora = horas.find((h) => agora - h.hora >= 0 && agora - h.hora < 3600000)
-  const nivelAgora = horaAgora ? NIVEIS[indicePorTA(arredondar(horaAgora.taSol))] : null
-
-  const porDia = (dia) => janelas.filter((j) => diaLocal(j.inicio) === dia)
-  const diasComJanela = [...new Set(janelas.map((j) => diaLocal(j.inicio)))]
-  const menosQuente = janelas.length === 0 ? horaMenosQuente(horas) : null
+  const menosQuente = janela ? null : horaMenosQuente(horas)
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-texto-suave">{MOTIVO_DO_LIMITE[atividade]}</p>
+    <div className="space-y-4">
+      <p className="rounded border-2 border-foco bg-superficie p-4 text-xl">
+        {janela ? (
+          <>
+            Melhor horário para {nome}:{' '}
+            <strong className="tabular-nums">
+              {qualDia(janela.inicio)}, das {horaLocal(janela.inicio)}h às {horaLocal(janela.fim) || 24}h
+            </strong>
+          </>
+        ) : menosQuente ? (
+          <>
+            <strong>Nenhum horário seguro</strong> para {nome} hoje nem amanhã. O menos quente é{' '}
+            <strong className="tabular-nums">
+              {qualDia(menosQuente.hora)} às {horaLocal(menosQuente.hora)}h
+            </strong>
+            : fique na sombra e leve água.
+          </>
+        ) : (
+          <>Sem previsão para as próximas horas.</>
+        )}
+      </p>
 
       {horaAgora && (
-        <p className="flex items-start gap-2 rounded border border-borda bg-superficie p-3">
-          <span className={`inline-flex rounded-full p-1 ${nivelAgora.classe}`}>
-            <IconeRisco nivel={nivelAgora} />
+        <p className="text-lg">
+          <span aria-hidden="true" className="mr-1 font-bold">
+            {horaBoa(horaAgora, atividade) ? '✓' : '✕'}
           </span>
-          <span>
-            <strong>
-              {horaBoa(horaAgora, atividade) ? 'Agora dá: ' : 'Agora não é uma boa hora: '}
-            </strong>
-            sensação de {numero(horaAgora.taSol)} °C ao sol (nível {nivelAgora.nome.toLowerCase()}),
-            {horaBoa(horaAgora, atividade) ? ' abaixo' : ' acima'} do limite de {limite} °C para {nome}.{' '}
-            {conselhoDe(nivelAgora, horaAgora.dia)}.
-          </span>
+          <strong>{horaBoa(horaAgora, atividade) ? 'Agora pode ir.' : 'Agora é melhor evitar.'}</strong>{' '}
+          Sensação de <span className="tabular-nums">{numero(horaAgora.taSol, 0)} °C</span> ao sol.
         </p>
       )}
 
-      {janelas.length > 0 ? (
-        <div>
-          <h4 className="font-semibold">
-            Melhores horários para {nome} (das {HORA_INICIO}h às {HORA_FIM}h)
-          </h4>
-          <ul className="mt-1 space-y-1">
-            {diasComJanela.map((dia) => (
-              <li key={dia}>
-                <span className="font-semibold">{dia === hoje ? 'Hoje' : 'Amanhã'}: </span>
-                {porDia(dia).map((j, i) => (
-                  <span key={j.inicio.getTime()} className="font-mono tabular-nums">
-                    {i > 0 && ', '}
-                    {horaLocal(j.inicio)}h às {horaLocal(j.fim) || 24}h (até {numero(j.taMax)} °C)
-                  </span>
-                ))}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p>
-          <strong>Nenhum horário abaixo de {limite} °C</strong> para {nome} hoje nem amanhã,
-          das {HORA_INICIO}h às {HORA_FIM}h.
-          {menosQuente && (
-            <>
-              {' '}
-              O menos quente: {diaLocal(menosQuente.hora) === hoje ? 'hoje' : 'amanhã'} às{' '}
-              {horaLocal(menosQuente.hora)}h ({numero(menosQuente.taSol)} °C ao sol). Prefira a
-              sombra, leve água e faça pausas.
-            </>
-          )}
-        </p>
-      )}
+      <FaixaHoras horas={horas} atividade={atividade} hoje={hoje} />
     </div>
   )
 }

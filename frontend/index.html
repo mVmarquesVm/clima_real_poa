@@ -22,6 +22,15 @@
         }
         var escuro = salvo ? salvo === 'escuro' : matchMedia('(prefers-color-scheme: dark)').matches
         document.documentElement.dataset.tema = escuro ? 'escuro' : 'claro'
+        // A letra grande (botão "A+"), pelo mesmo motivo: sem "pular" depois.
+        // A chave é a mesma do src/ganchos/useLetra.js.
+        try {
+          if (localStorage.getItem('forno-alegre:letra') === 'grande') {
+            document.documentElement.dataset.letra = 'grande'
+          }
+        } catch (e) {
+          /* armazenamento bloqueado: letra normal */
+        }
       })()
     </script>
   </head>

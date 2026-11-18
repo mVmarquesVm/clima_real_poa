@@ -9,7 +9,7 @@ export default function BotaoTema({ escuro, aoAlternar }) {
     <button
       type="button"
       onClick={aoAlternar}
-      className="shrink-0 rounded border border-white/80 px-3 py-1 text-sm font-semibold hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      className="shrink-0 rounded border border-white/80 px-3 py-1 font-semibold hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
     >
       {/* O ícone é o do tema que o clique vai ligar. */}
       <span aria-hidden="true">{escuro ? '☀' : '☾'}</span> {escuro ? 'Tema claro' : 'Tema escuro'}

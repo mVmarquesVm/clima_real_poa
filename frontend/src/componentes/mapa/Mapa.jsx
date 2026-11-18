@@ -111,7 +111,7 @@ function montarCamadas(mapa, dados, rota) {
     paint: { 'text-color': corDaLetra, 'text-halo-color': halo, 'text-halo-width': 2 },
   })
 
-  // A rota a pé até a água (vazia até a pessoa pedir "Como chegar").
+  // A rota a pé até o local ou até a água (vazia até a pessoa pedir a rota).
   // Linha cheia = pelas ruas; tracejada = só a linha reta (plano B).
   const { linha, pontas } = rotaParaGeoJSON(rota)
   mapa.addSource('rota', { type: 'geojson', data: linha })
@@ -161,7 +161,8 @@ function montarCamadas(mapa, dados, rota) {
   })
 }
 
-// A rota (ou nada) -> a linha e as duas pontas ("Início" e "Água"), em GeoJSON.
+// A rota (ou nada) -> a linha e as duas pontas, em GeoJSON. Os nomes das
+// pontas vêm do cartão ("Você" → "Parque Marinha", ou o local → "Água: ...").
 function rotaParaGeoJSON(rota) {
   const vazio = { type: 'FeatureCollection', features: [] }
   if (!rota) return { linha: vazio, pontas: vazio }
@@ -177,7 +178,7 @@ function rotaParaGeoJSON(rota) {
     },
     pontas: {
       type: 'FeatureCollection',
-      features: [ponto(rota.origem, 'Início'), ponto(rota.destino, `Água: ${rota.destino.nome}`)],
+      features: [ponto(rota.origem, rota.nomeOrigem), ponto(rota.destino, rota.nomeDestino)],
     },
   }
 }
@@ -415,15 +416,8 @@ export default function Mapa({ locais, estados, agora, idTabela, escuro = false,
         )
       })}
 
-      <figcaption className="text-sm text-texto-suave">
-        As 4 estações no Centro de Porto Alegre. A área colorida é a parte que cada estação
-        representa, na cor do risco agora (cinza = sem dado). O contorno tracejado é o local
-        inteiro, pelo OpenStreetMap. Cada estação é um ESP32 simulado no Wokwi, com os valores
-        ajustados à mão (demonstração, não medição); o anel que pulsa marca quem está publicando
-        agora. Clique numa estação, ou
-        chegue nela com Tab e aperte Enter, para ver os detalhes. Em &quot;Onde e quando ir&quot;, o
-        botão &quot;Como chegar a pé até a água&quot; desenha aqui a rota (linha tracejada = só a linha reta).
-      </figcaption>
+      {/* Uma frase só: o resto (de onde vêm os dados) está no rodapé, em "Sobre os dados". */}
+      <figcaption>Toque numa estação para ver os detalhes. A cor é o risco agora (cinza = sem leitura).</figcaption>
     </figure>
   )
 }

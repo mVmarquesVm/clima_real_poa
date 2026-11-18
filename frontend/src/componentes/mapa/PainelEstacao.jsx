@@ -73,30 +73,39 @@ export default function PainelEstacao({ local, estado, agora, aoFechar }) {
         </p>
       )}
 
-      <div className="space-y-1">
-        <h4 className="font-semibold">Área que a estação representa</h4>
-        <p className="text-sm">{REGRAS[cobertura.regra] ?? cobertura.regra}</p>
-        <p className="text-sm text-texto-suave">
-          Nessa área:{' '}
-          <span className="font-mono tabular-nums">{numero(cobertura.construido * 100, 0)}%</span>{' '}
-          construído,{' '}
-          <span className="font-mono tabular-nums">{numero(cobertura.arvore * 100, 0)}%</span>{' '}
-          árvore e <span className="font-mono tabular-nums">{numero(cobertura.grama * 100, 0)}%</span>{' '}
-          grama (ESA WorldCover 2021; arredondado, a soma pode dar 99% ou 101%).
-        </p>
-      </div>
+      {/* O técnico (área medida, satélite) fica numa gaveta: o painel mostra
+          primeiro o que a pessoa precisa saber agora. */}
+      <details>
+        <summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco">
+          Dados técnicos do local
+        </summary>
+        <div className="mt-2 space-y-3">
+          <div className="space-y-1">
+            <h4 className="font-semibold">Área que a estação representa</h4>
+            <p className="text-sm">{REGRAS[cobertura.regra] ?? cobertura.regra}</p>
+            <p className="text-sm text-texto-suave">
+              Nessa área:{' '}
+              <span className="font-mono tabular-nums">{numero(cobertura.construido * 100, 0)}%</span>{' '}
+              construído,{' '}
+              <span className="font-mono tabular-nums">{numero(cobertura.arvore * 100, 0)}%</span>{' '}
+              árvore e <span className="font-mono tabular-nums">{numero(cobertura.grama * 100, 0)}%</span>{' '}
+              grama (ESA WorldCover 2021; arredondado, a soma pode dar 99% ou 101%).
+            </p>
+          </div>
 
-      <div className="space-y-1">
-        <h4 className="font-semibold">Piso pelo satélite (verão)</h4>
-        <dl className="grid grid-cols-2 gap-3">
-          <Dado rotulo="Piso médio" valor={`${numero(satelite.pisoMedioVerao)} °C`} />
-          <Dado rotulo="Ranking do piso" valor={`${satelite.posicao}º de 4`} />
-        </dl>
-        <p className="text-xs text-texto-suave">
-          O Landsat mede a superfície, por volta das 10h20, em {satelite.passagens} passagens. É o
-          piso do problema, e não a sensação de quem está ali.
-        </p>
-      </div>
+          <div className="space-y-1">
+            <h4 className="font-semibold">Piso pelo satélite (verão)</h4>
+            <dl className="grid grid-cols-2 gap-3">
+              <Dado rotulo="Piso médio" valor={`${numero(satelite.pisoMedioVerao)} °C`} />
+              <Dado rotulo="Ranking do piso" valor={`${satelite.posicao}º de 4`} />
+            </dl>
+            <p className="text-sm text-texto-suave">
+              O Landsat mede a superfície, por volta das 10h20, em {satelite.passagens} passagens. É o
+              piso do problema, e não a sensação de quem está ali.
+            </p>
+          </div>
+        </div>
+      </details>
     </section>
   )
 }

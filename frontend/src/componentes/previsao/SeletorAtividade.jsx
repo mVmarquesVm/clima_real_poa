@@ -1,5 +1,6 @@
 import { ATIVIDADES } from '../../lib/cadastro'
 import { LIMITE_POR_ATIVIDADE, LISTA_DE_ATIVIDADES } from '../../lib/recomendacao'
+import NumeroPasso from '../comum/NumeroPasso'
 
 // "O que você vai fazer?": botões de rádio (só uma escolha), com cara de pílula.
 // O <input> continua de verdade (só fica invisível): as setas do teclado andam
@@ -7,7 +8,10 @@ import { LIMITE_POR_ATIVIDADE, LISTA_DE_ATIVIDADES } from '../../lib/recomendaca
 export default function SeletorAtividade({ valor, aoMudar }) {
   return (
     <fieldset>
-      <legend className="mb-2 font-semibold">O que você vai fazer?</legend>
+      <legend className="mb-2 flex items-center text-lg font-bold">
+        <NumeroPasso numero={1} />
+        O que você vai fazer?
+      </legend>
       <div className="flex flex-wrap gap-2">
         {LISTA_DE_ATIVIDADES.map((atividade) => (
           <label

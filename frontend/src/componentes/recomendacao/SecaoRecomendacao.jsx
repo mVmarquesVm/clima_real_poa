@@ -1,12 +1,10 @@
-import { lazy, Suspense, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import useLista from '../../ganchos/useLista'
 import useLocalizacao from '../../ganchos/useLocalizacao'
 import { ATIVIDADES } from '../../lib/cadastro'
 import { formatarDistancia } from '../../lib/geo'
+import { aoClicarLink } from '../../lib/navegacao'
 import {
-  LIMITE_POR_ATIVIDADE,
-  diaLocal,
-  horaMenosQuente,
   horasDeLazer,
   janelasBoas,
   pontoMaisPerto,
@@ -16,14 +14,12 @@ import { api } from '../../servicos/api'
 import { buscarPrevisao } from '../../servicos/openmeteo'
 import EstadoCarregando from '../comum/EstadoCarregando'
 import MensagemErro from '../comum/MensagemErro'
+import NumeroPasso from '../comum/NumeroPasso'
+import DetalhesPrevisao from '../previsao/DetalhesPrevisao'
 import MelhorHorario from '../previsao/MelhorHorario'
 import SeletorAtividade from '../previsao/SeletorAtividade'
-import TabelaPrevisao from '../previsao/TabelaPrevisao'
 import BotaoPertoDeMim from './BotaoPertoDeMim'
 import CartaoRecomendacao from './CartaoRecomendacao'
-
-// O ECharts é pesado: baixa só quando a previsão chegou (como o mapa).
-const GraficoPrevisao = lazy(() => import('../previsao/GraficoPrevisao'))
 
 // Funções fixas (fora do componente) para o useLista não buscar de novo a cada render.
 const buscarLocais = (opcoes) => api.locais.listar(opcoes)
@@ -55,10 +51,9 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
   // ONDE: os locais do cadastro que servem para a atividade, do melhor para o pior.
   const ranking = locais.itens ? rankearLocais(locais.itens, atividade, localizacao.posicao) : null
   const melhor = ranking?.[0] ?? null
-  // QUANDO: a 1ª janela boa (ou a hora menos quente, se não houver nenhuma).
+  // QUANDO: a 1ª janela boa (para achar a água aberta nessa hora).
   const horas = previsao.itens ? horasDeLazer(previsao.itens, agora) : []
   const janela = janelasBoas(horas, atividade)[0] ?? null
-  const menosQuente = janela ? null : horaMenosQuente(horas)
   // ÁGUA: o ponto aberto mais perto do local, na hora em que a pessoa vai estar lá.
   const ponto =
     melhor && pontos.itens
@@ -79,13 +74,16 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
 
   return (
     <section aria-labelledby="titulo-recomendacao" className="space-y-4">
-      <h2 id="titulo-recomendacao" ref={titulo} tabIndex={-1} className="text-xl font-bold">
-        Onde e quando ir
+      <h2 id="titulo-recomendacao" ref={titulo} tabIndex={-1} className="text-2xl font-bold">
+        Planeje o seu passeio
       </h2>
       <SeletorAtividade valor={atividade} aoMudar={setAtividade} />
 
       <div className="space-y-3">
-        <h3 className="text-lg font-bold">Quando ir</h3>
+        <h3 className="flex items-center text-xl font-bold">
+          <NumeroPasso numero={2} />
+          Quando ir
+        </h3>
         {previsao.carregando && !previsao.itens && <EstadoCarregando texto="Buscando a previsão do tempo…" />}
         {previsao.erro && !previsao.itens && (
           <MensagemErro titulo="Sem previsão agora" erro={previsao.erro} aoTentarDeNovo={tentarDeNovo} />
@@ -93,34 +91,16 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
         {previsao.itens && (
           <>
             <MelhorHorario previsao={previsao.itens} atividade={atividade} agora={agora} />
-            <Suspense fallback={<EstadoCarregando texto="Carregando o gráfico…" />}>
-              <GraficoPrevisao
-                hoje={diaLocal(agora)}
-                horas={proximas}
-                limite={LIMITE_POR_ATIVIDADE[atividade]}
-                nomeAtividade={ATIVIDADES[atividade]}
-                escuro={escuro}
-              />
-            </Suspense>
-            <TabelaPrevisao horas={proximas} agora={agora} />
-            <p className="text-sm text-texto-suave">
-              Previsão do Open-Meteo para o Centro (um modelo em grade: é igual para os 4 locais),
-              com a mesma fórmula de sensação térmica da estação. Ao sol é o pior caso, e é ele que
-              decide.
-            </p>
+            <DetalhesPrevisao horas={proximas} atividade={atividade} agora={agora} escuro={escuro} />
           </>
         )}
       </div>
 
       <div className="space-y-3">
-        <h3 ref={tituloOnde} tabIndex={-1} className="text-lg font-bold">
-          Onde ir
+        <h3 ref={tituloOnde} tabIndex={-1} className="flex items-center text-xl font-bold">
+          <NumeroPasso numero={3} />
+          Onde ir e como chegar
         </h3>
-        <p className="text-sm text-texto-suave">
-          A previsão é a mesma para os locais do Centro; o que deixa um local mais seguro é a
-          sombra. Ordem: com sombra primeiro, depois o mais perto de você e, por fim, com
-          bebedouro.
-        </p>
         <BotaoPertoDeMim localizacao={localizacao} />
         {(locais.carregando || pontos.carregando) && !locais.itens && (
           <EstadoCarregando texto="Buscando os locais cadastrados…" />
@@ -135,7 +115,7 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
         {ranking && ranking.length === 0 && (
           <p className="rounded border border-borda bg-superficie p-4">
             Nenhum local cadastrado é bom para {ATIVIDADES[atividade].toLowerCase()}.{' '}
-            <a href="#titulo-cadastro" className="underline">
+            <a href="#titulo-cadastro" onClick={(e) => aoClicarLink(e, 'titulo-cadastro')} className="underline">
               Cadastre um local
             </a>{' '}
             e marque essa atividade.
@@ -146,18 +126,18 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
             // Outro local, outro ponto ou outra origem = cartão novo (a rota velha some).
             key={`${melhor.id}-${ponto?.id}-${localizacao.posicao?.lat}-${localizacao.posicao?.lon}`}
             local={melhor}
-            janela={janela}
-            menosQuente={menosQuente}
             ponto={ponto}
             posicao={localizacao.posicao}
-            agora={agora}
             aoMostrarRota={aoMostrarRota}
           />
         )}
         {ranking && ranking.length > 1 && (
-          <div>
-            <h4 className="font-semibold">Outras opções</h4>
-            <ol start={2} className="mt-1 list-decimal space-y-1 pl-6">
+          // Fechadas: a resposta é o cartão acima; as outras são só para quem quer escolher.
+          <details>
+            <summary className="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco">
+              Ver outras opções ({ranking.length - 1})
+            </summary>
+            <ol start={2} className="mt-2 list-decimal space-y-1 pl-6">
               {ranking.slice(1).map((l) => (
                 <li key={l.id}>
                   {l.nome}
@@ -169,7 +149,7 @@ export default function SecaoRecomendacao({ agora: agoraMs, escuro, aoMostrarRot
                 </li>
               ))}
             </ol>
-          </div>
+          </details>
         )}
       </div>
     </section>

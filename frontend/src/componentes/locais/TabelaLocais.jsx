@@ -54,7 +54,7 @@ export default function TabelaLocais({ locais, passagens }) {
           })}
         </tbody>
       </table>
-      <p className="border-t border-borda p-3 text-xs text-texto-suave">
+      <p className="border-t border-borda p-3 text-sm text-texto-suave">
         * Diferença média entre o piso e o ar medido pela estação oficial do INMET (A801) na mesma hora,
         nas passagens de 2025. Fonte: Landsat 8/9 e Sentinel-2, via Microsoft Planetary Computer;
         áreas do OpenStreetMap.

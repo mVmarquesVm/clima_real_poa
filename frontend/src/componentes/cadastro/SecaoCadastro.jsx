@@ -20,7 +20,7 @@ export default function SecaoCadastro() {
 
   return (
     <section aria-labelledby="titulo-cadastro" className="space-y-3">
-      <h2 id="titulo-cadastro" className="text-xl font-bold">
+      <h2 id="titulo-cadastro" tabIndex={-1} className="text-xl font-bold">
         Cadastro
       </h2>
       <p className="text-texto-suave">
