@@ -798,3 +798,46 @@ Cada passo tem três partes: **o que eu pedi**, **o que a IA gerou** e **o que e
 
 **O que eu mudei ou fiz sozinho**
 - Percebi que os fios atrapalhavam a leitura dos displays e pedi a mudança.
+
+## Front — Página mais fácil de usar, rota até o local, cadastro por CEP e planilha CSV (17/11/2026)
+
+**O que eu pedi**
+- Um relatório meu, depois de usar o app: o começo precisa ser amigável, com o horário fácil de ler e sem excesso de informação (pensando em quem é idoso; até eu fiquei perdido).
+- Tirar o "Agora no Largo Glênio Peres": com o mapa, ele não fazia sentido.
+- O gráfico não explicava o que querem dizer o vermelho, o laranja e o amarelo.
+- Cadastrar um local digitando latitude e longitude é "diabólico": usar o CEP e o número e também deixar marcar direto no mapa.
+- Levar as métricas para o fim do app, com uma planilha em CSV para baixar.
+- Escolhi, entre as opções: a régua de horas "Pode ir / Evite" (com o gráfico nos detalhes), o ViaCEP + Nominatim para o CEP e o CSV do ranking do satélite.
+
+**O que a IA gerou**
+- **Nova ordem da página e menu** (`comum/Menu.jsx`): Planejar → Calor agora → Cadastro → Métricas, com links que levam o foco ao título de cada seção.
+- **As 4 estações em cartões curtos** (`estacao/ListaEstacoes.jsx` + `EstacaoAoVivo` reduzido): nome, nível com conselho e sensação térmica. Os outros números ficam no painel do mapa. O `SeloRisco` ganhou o modo `compacto`.
+- **"Planeje o seu passeio" em 3 passos numerados** (`comum/NumeroPasso.jsx`): 1) a atividade; 2) quando ir; 3) onde ir e como chegar.
+- **Quando ir** (`MelhorHorario` refeito + `FaixaHoras.jsx`): a resposta em letra grande ("Melhor horário para caminhada: hoje, das 7h às 10h"), a linha "Agora pode ir / é melhor evitar" e uma régua de horas com ✓ "Pode ir" e ✕ "Evite". O gráfico, a tabela e a **legenda das cores** (`risco/LegendaRisco.jsx`: a faixa em °C + o conselho da estação) ficaram em "Ver a previsão em detalhes" (`DetalhesPrevisao.jsx`), e o gráfico só é baixado quando a pessoa abre os detalhes.
+- **Rota a pé até o local** (`CartaoRecomendacao`): "Rota até o local" (de onde a pessoa está) e "Rota do local até a água"; o mapa mostra os nomes das 2 pontas. Mesmo serviço (FOSSGIS) e mesmo plano B (linha reta + link do OpenStreetMap).
+- **Cadastro por CEP e mapa** (`servicos/endereco.js`, `cadastro/CampoLocalizacao.jsx`, `mapa/MapaEscolherPonto.jsx`): CEP + número → ViaCEP (rua, bairro, cidade; recusa CEP de fora de Porto Alegre) → Nominatim (o ponto, só dentro de Porto Alegre; sem o número, cai no meio da rua e avisa). Um toque no mini mapa também marca o ponto. A latitude e a longitude são preenchidas sozinhas e continuam editáveis. Os serviços só são chamados no botão "Buscar endereço" (regra do Nominatim: 1 busca por segundo, nada de busca automática).
+- **Planilha CSV** (`lib/csv.js` + `locais/BaixarCsvLocais.jsx`): o ranking do satélite com a cobertura do solo e o ponto da estação, no formato do Excel brasileiro (`;`, vírgula decimal, BOM para os acentos) e com proteção contra fórmulas escondidas nas células.
+
+**O que eu mudei ou fiz sozinho**
+- Usei o app e escrevi o relatório do que confundia (o começo, o cartão do Largo, as cores do gráfico, a latitude e longitude no cadastro, as métricas no lugar errado).
+- Tive as ideias do CEP com número, de marcar no mapa e de exportar o CSV.
+- Escolhi a régua de horas, os serviços do CEP e o conteúdo do CSV.
+
+## Front — Página para idosos: letra maior e menos informação (17/11/2026)
+
+**O que eu pedi**
+- "Tu acha que é acessível para um IDOSO?" A IA respondeu que não: era acessível no teclado e no leitor de tela, mas tinha letra pequena, texto demais e termos técnicos.
+- "Tira excesso de informações também, tá bizarro."
+
+**O que a IA gerou**
+- **Letra maior em toda a página** (`index.css`: base de 18 px, em % para respeitar o tamanho que a pessoa já escolheu no navegador) e o **botão "A+ Letra maior"** (21 px), guardado no aparelho (`ganchos/useLetra.js`, `comum/BotaoLetra.jsx`, script no `index.html` para não "pular"). Nenhum texto em `text-xs` sobrou.
+- **Menu com 3 itens** (Planejar, Calor agora, Gestão). O cadastro e as métricas ficam numa **"Área da gestão" fechada** no fim da página; o menu e o link "Cadastre um local" abrem a gaveta e levam o foco (`lib/navegacao.js`).
+- **Rodapé "Sobre os dados e as fontes"** (`comum/Rodape.jsx`), fechado: Wokwi, ThingSpeak, Steadman, a nota da SMS, Open-Meteo, a ordem dos locais, FOSSGIS, ViaCEP, Nominatim, OpenFreeMap e o satélite saíram do caminho e vieram para cá.
+- **Textos cortados:** a legenda do mapa virou 1 frase; o parágrafo sobre a ordem dos locais e o "sem localização" saíram; o cartão recomendado não repete o horário ("Vá para: Parque Marinha", sombra, bebedouro, água e o botão "Como chegar a pé"); "Outras opções" ficam numa gaveta; o relógio da barra perdeu os segundos.
+- **Hora a hora só de hoje**, com quadros maiores; amanhã fica no botão "Ver amanhã". O motivo do limite da atividade foi para os detalhes da previsão.
+- **Estações desligadas = um aviso só** ("As estações estão sem leitura agora"), em vez de 4 cartões cinza; com leitura, os cartões voltam, sem o número velho.
+- **Painel do mapa:** a área medida e o satélite foram para a gaveta "Dados técnicos do local".
+
+**O que eu mudei ou fiz sozinho**
+- Olhei a página pensando num idoso e cobrei que ela não estava fácil.
+- Pedi para tirar o excesso de informação.

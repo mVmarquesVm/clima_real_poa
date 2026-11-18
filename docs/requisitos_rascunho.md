@@ -29,6 +29,7 @@
 - **RF-CAD-4:** pedir confirmação antes de apagar, com o nome do item e o aviso de que não dá para desfazer.
 - **RF-CAD-5:** avisar o resultado de cada ação ("Local X salvo/atualizado/apagado") e mostrar cada erro embaixo do seu campo.
 - **RF-CAD-6:** `GET /saude`, para o app saber se a API está no ar.
+- **RF-CAD-7:** marcar onde fica o local sem digitar coordenadas: pelo **CEP + número** (ViaCEP → Nominatim) ou com **um toque no mini mapa**; a latitude e a longitude são preenchidas sozinhas e continuam editáveis.
 
 ### RNF — Como o cadastro deve ser
 - **RNF-CAD-1 (estados):** toda tela de dados mostra os 4 estados: carregando, erro (com "Tentar de novo"), vazio e a lista. Se a lista já apareceu e uma atualização falhar, ela continua na tela com o erro em cima.
@@ -36,6 +37,7 @@
 - **RNF-CAD-3 (erros):** um formato único de erro em português (`{"detail", "erros": [{campo, mensagem}]}`); o 500 não mostra detalhes internos; todo erro leva o cabeçalho do CORS; a API desligada e a demora de mais de 10 s viram mensagens claras.
 - **RNF-CAD-4 (acessibilidade):** `label` em todo campo; o erro ligado ao campo (`aria-invalid` + `aria-describedby`); o foco no 1º campo com erro; o aviso numa região `role="status"`; a confirmação num `<dialog>` modal que fecha com Esc; as abas no padrão da WAI-ARIA; o foco nunca cai no `<body>` depois de salvar, apagar ou tentar de novo; contraste medido de 4,5:1 ou mais nos 2 temas.
 - **RNF-CAD-5 (robustez):** 2 cliques rápidos não criam 2 itens; fechar o formulário cancela a requisição; requisições ao mesmo tempo não dão erro (teste com 40 em paralelo).
+- **RNF-CAD-7 (serviços de endereço):** o CEP e o endereço do LOCAL só vão ao ViaCEP e ao Nominatim no clique em "Buscar endereço" (a regra do Nominatim: no máximo 1 busca por segundo e nada de busca automática); Enter no CEP busca, e não envia o formulário.
 - **RNF-CAD-6 (segurança):** a API aceita só os tipos certos (`strict`), ids de até 2^63 − 1, nomes com 3 letras visíveis e sem caracteres de controle; o CORS aceita só a origem do app.
 
 ### RN — Regras do cadastro
@@ -43,24 +45,33 @@
 - **RN-CAD-2:** os dois horários vazios = aberto 24 h; um só não vale; o de fechar vem depois do de abrir; não aceita horário que vira a noite. No formulário, desmarcar "Aberto 24 h" obriga a preencher os dois.
 - **RN-CAD-3:** um local tem pelo menos 1 atividade (é por ela que a recomendação filtra).
 - **RN-CAD-4:** um ponto desativado continua no cadastro, mas a recomendação não o usa.
+- **RN-CAD-6:** o CEP precisa ter 8 números e ser de Porto Alegre (o ViaCEP diz a cidade); a busca no mapa fica só dentro de Porto Alegre. Sem o número, o ponto cai no meio da rua, e a tela pede para a pessoa tocar no ponto certo.
 - **RN-CAD-5:** os dados iniciais (sombra, bebedouro, atividades) são estimativa nossa, e a observação de cada um diz isso.
 
 ## Recomendação "Onde e quando ir" (Front: `frontend/src/componentes/recomendacao/` e `previsao/`)
 
 ### RF — O que a recomendação faz
 - **RF-REC-1:** a pessoa escolhe a atividade (levar criança, caminhada, corrida, pedal, piquenique).
-- **RF-REC-2:** mostrar a sensação térmica prevista hora a hora (hoje e amanhã), ao sol e na sombra, num gráfico e numa tabela, com as faixas de risco e o limite da atividade.
+- **RF-REC-2:** mostrar a resposta primeiro, em letra grande ("Melhor horário para caminhada: hoje, das 7h às 10h"), e uma régua de horas com ✓ "Pode ir" / ✕ "Evite" para a atividade (pedido do Matheus em 17/11: "para quem é velho, não pode ter excesso de informação"). O gráfico (ao sol e na sombra, com as faixas e o limite), a tabela e a legenda das cores em palavras ficam em "Ver a previsão em detalhes".
 - **RF-REC-3:** dizer se AGORA é uma boa hora e listar as janelas boas de hoje e de amanhã (das 6h às 22h); sem nenhuma, dizer a hora menos quente.
 - **RF-REC-4:** recomendar o local do cadastro que serve para a atividade e listar até 3 outras opções.
 - **RF-REC-5:** "Perto de mim": usar a localização do navegador (só no clique) para ordenar pela distância.
-- **RF-REC-6:** indicar o ponto de hidratação ativo e aberto mais perto do local, na hora da visita, e traçar a rota a pé até ele no mapa.
+- **RF-REC-6:** indicar o ponto de hidratação ativo e aberto mais perto do local, na hora da visita, e traçar a rota a pé do local até ele no mapa.
+- **RF-REC-7:** traçar a rota a pé de onde a pessoa está **até o local recomendado** (com a localização ligada).
+
+### Página e métricas (Front)
+- **RF-PAG-1:** a página segue a ordem do uso: planejar o passeio (3 passos numerados) → o calor agora nas 4 estações (cartões curtos + mapa) → cadastro → métricas; um menu no topo leva a cada seção e move o foco para o título dela.
+- **RF-PAG-2:** cada estação aparece num cartão curto: nome, nível (cor + ícone + texto + conselho) e sensação térmica; os outros valores ficam no painel do mapa.
+- **RNF-PAG-1 (idosos):** letra base de 18 px e um botão "A+ Letra maior" (21 px) lembrado no aparelho; nenhum texto menor que 15,75 px; termos técnicos e fontes só no rodapé "Sobre os dados"; cadastro e métricas numa "Área da gestão" fechada; com as estações desligadas, um aviso só (pedido do Matheus em 17/11: "tira excesso de informações").
+- **RF-MET-1:** baixar o ranking do satélite em CSV (posição, local, piso médio e máximo, piso acima do ar, NDVI, cobertura do solo e o ponto da estação), feito no próprio navegador.
+- **RNF-MET-1:** o CSV abre certo no Excel em português (`;`, vírgula decimal, BOM para os acentos) e não deixa uma célula virar fórmula (texto que começa com `=`, `+`, `-` ou `@` ganha um `'` na frente).
 
 ### RNF — Como a recomendação deve ser
 - **RNF-REC-1 (mesma régua):** a previsão usa a MESMA fórmula da estação e do Python (`lib/sensacao.js`), conferida com o Python em 3 casos (os mesmos números até a 4ª casa).
 - **RNF-REC-2 (acessibilidade):** o gráfico tem `role="img"` com um resumo em frase e uma tabela com todos os números; o nível vai em ícone + texto; as atividades são botões de rádio de verdade (setas do teclado); os resultados da localização e da rota são anunciados numa região `role="status"`.
 - **RNF-REC-3 (privacidade):** a localização só é pedida no clique, fica só na página e não vai para a nossa API; a rota avisa antes que a origem e o destino vão para a FOSSGIS.
 - **RNF-REC-4 (degradação):** sem previsão, a seção mostra o erro com "Tentar de novo"; sem a API, o "Onde ir" mostra o erro e o "Quando ir" continua funcionando; sem o serviço de rotas, a linha reta e um link para o OpenStreetMap.
-- **RNF-REC-5 (peso):** o ECharts entra só com os módulos usados e é baixado só quando a previsão chega.
+- **RNF-REC-5 (peso):** o ECharts entra só com os módulos usados e é baixado só quando a pessoa abre os detalhes da previsão.
 
 ### RN — Regras da recomendação (sem IA)
 - **RN-REC-1:** limite de sensação por atividade: levar criança e corrida < 27 °C (só verde); caminhada, pedal e piquenique < 34 °C (até o amarelo). Base: a régua da SMS e as categorias da NOAA, que já no 1º nível citam o esforço físico.
@@ -80,8 +91,8 @@ Base: entrevista com um usuário do grupo sensível ao calor (`docs/entrevista.m
 - **RN-EST-3:** a manutenção pelo botão vence até o comando remoto `rele:on` e acaba sozinha (2 min no Wokwi, 30 min numa estação real).
 
 ## Backlog: épicos
-- **Épico — Recomendação "onde e quando ir" (Front):** RF-REC-1 a 6. *Feito em 17/11.* **Futuro:** usar a leitura ao vivo de cada estação quando os 4 canais existirem; recomendar em linguagem natural com IA.
-- **Épico — Cadastro (Web):** CRUD de locais e de pontos de hidratação, com estados, validação e acessibilidade (RF-CAD-1 a 6). *Feito em 16–17/11.* **Futuro:** login para quem edita (hoje qualquer pessoa com o app pode editar), escolher o ponto clicando no mapa e um histórico de mudanças.
+- **Épico — Recomendação "onde e quando ir" (Front):** RF-REC-1 a 7. *Feito em 17/11; a régua de horas e a rota até o local também em 17/11.* **Futuro:** usar a leitura ao vivo de cada estação quando os 4 canais existirem; recomendar em linguagem natural com IA.
+- **Épico — Cadastro (Web):** CRUD de locais e de pontos de hidratação, com estados, validação e acessibilidade (RF-CAD-1 a 6). *Feito em 16–17/11.* *CEP + número e toque no mapa: feitos em 17/11 (RF-CAD-7).* **Futuro:** login para quem edita (hoje qualquer pessoa com o app pode editar) e um histórico de mudanças.
 - **Épico — Cobertura de parques grandes (futuro):** nós sensores com bateria + estação principal (gateway); o pior ponto no field5/field6 e o detalhe por nó no `status`; o mapa pinta um círculo de 50 m por nó funcionando. Detalhes no [README do Edge](../edge/README.md), na seção "Próximo passo: vários aparelhos no mesmo parque".
 
 ## Hardware real (anotar no relatório)
